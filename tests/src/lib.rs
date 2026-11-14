@@ -38,6 +38,7 @@ mod selection_names;
 mod selection_search_session;
 mod selection_service;
 mod slider_recovery;
+mod table_actions;
 mod table_cells;
 mod table_editing;
 mod table_rich_cells;

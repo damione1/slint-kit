@@ -84,8 +84,14 @@ export global KitDataService {
 // value the user may edit in place: `text` is its accepted value in the
 // canonical draft form of its codec, `spec` the key of the installed
 // `FieldSpec` that parses, validates and displays it ("" for plain text)
-// and `access` whether Enter opens the editor.
-export enum TableCellKind { text, badge, check, field, icon, progress }
+// and `access` whether Enter opens the editor. The three interactive kinds
+// are activated, never edited: a `toggle` shows `check` (checked or
+// unchecked) next to its `text`, an `action` shows `glyph` (none when empty)
+// and `text`, a `link` shows `text` as a link. For each, `access` is
+// `editable` while the cell may be activated, `read-only` when it only shows
+// its state and `disabled` when it is dimmed. An activation is reported by
+// `KitDataTable.cell-action`; the table never flips a toggle itself.
+export enum TableCellKind { text, badge, check, field, icon, progress, toggle, action, link }
 export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, glyph: IconGlyph, fraction: float, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
 // Where the cell cursor moves inside the active row.
 export enum ColumnStep { previous, next }
@@ -318,6 +324,8 @@ component TableCellView inherits Rectangle {
     in property <int> commit-request;
     in property <bool> pointed;
     callback point-requested();
+    // The accessible default action of an interactive cell.
+    callback action-requested();
     callback reveal-requested(length, length);
     // A replacement column model can mount this cell already active. Change
     // observers start from that state, so mounting must reveal it once too.
@@ -354,6 +362,10 @@ component TableCellView inherits Rectangle {
     // Disabled and selected rows keep one readable ink; a tone is data and
     // only colours a row at rest.
     private property <color> cell-ink: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.tone-ink(root.cell.tone);
+    // The ink of an interactive cell: accent while it may be activated, the
+    // ordinary ink when it only shows its state, dimmed when disabled.
+    private property <color> action-ink: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.cell.access == FieldAccess.read-only ? root.theme.text-primary : root.theme.accent;
+    private property <bool> activatable: !root.row-disabled && root.cell.access == FieldAccess.editable;
     clip: true;
     if root.cell.kind == TableCellKind.text: Text {
         x: root.inset; width: max(0px, parent.width - 2 * root.inset);
@@ -469,6 +481,49 @@ component TableCellView inherits Rectangle {
         label: root.cell.text;
         ink: root.cell-ink;
         x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+    }
+    // A toggle paints its state as a check mark and names it with `text`. The
+    // check mark is the pointer target of the row; the table flips nothing.
+    if root.cell.kind == TableCellKind.toggle: toggle-mark := CheckMark {
+        theme: root.theme; control-size: root.control-size;
+        x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+        state: root.cell.check == CheckState.checked ? CheckState.checked : CheckState.unchecked;
+        access: root.row-disabled ? FieldAccess.disabled : root.cell.access;
+        accessible-role: checkbox; accessible-label: root.cell.text;
+        accessible-checkable: true; accessible-checked: root.cell.check == CheckState.checked;
+        accessible-enabled: root.activatable;
+        accessible-action-default => { root.action-requested(); }
+    }
+    if root.cell.kind == TableCellKind.action: action-label := HorizontalLayout {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset); height: parent.height;
+        spacing: root.theme.spacing.unit * 2; alignment: root.alignment == DataAlignment.trailing ? end : root.alignment == DataAlignment.center ? center : start;
+        accessible-role: button; accessible-label: root.cell.text; accessible-enabled: root.activatable;
+        accessible-action-default => { root.action-requested(); }
+        if root.cell.glyph.stroke != "" || root.cell.glyph.fill != "": KitIcon {
+            theme: root.theme; control-size: root.control-size; glyph: root.cell.glyph; ink: root.action-ink;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            horizontal-stretch: 0; max-width: max(0px, parent.width - 2 * root.inset); text: root.cell.text; color: root.action-ink;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-weight: root.theme.typography.weight-medium; overflow: elide; vertical-alignment: center;
+        }
+    }
+    if root.cell.kind == TableCellKind.link: Rectangle {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+        accessible-role: button; accessible-label: root.cell.text; accessible-enabled: root.activatable;
+        accessible-action-default => { root.action-requested(); }
+        link-text := Text {
+            width: parent.width; height: parent.height; text: root.cell.text; color: root.action-ink;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            overflow: elide; vertical-alignment: center; horizontal-alignment: root.text-alignment();
+        }
+        // The rule marks the text as a link without relying on colour alone.
+        Rectangle {
+            x: root.alignment == DataAlignment.trailing ? parent.width - self.width : root.alignment == DataAlignment.center ? (parent.width - self.width) / 2 : 0px;
+            y: (parent.height + link-text.preferred-height) / 2; height: root.theme.shape.border-width;
+            width: min(parent.width, link-text.preferred-width); background: root.action-ink;
+        }
     }
     if root.cell.kind == TableCellKind.progress: Rectangle {
         x: root.inset; width: max(0px, parent.width - 2 * root.inset);
@@ -609,6 +664,8 @@ export component KitDataTable inherits Rectangle {
     in property <string> resize-label: "width";
     in property <string> editable-label: "editable";
     in property <string> read-only-label: "read only";
+    // The accessible description of an active toggle, action or link cell.
+    in property <string> actionable-label: "actionable";
     // The floor of every `fill` column. A `fixed` column is exactly its
     // basis within its own bounds.
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
@@ -648,6 +705,14 @@ export component KitDataTable inherits Rectangle {
     // column's `FieldSpec::accept`. The host fences it with the generation
     // and republishes the row; the table paints nothing from it.
     callback cell-committed(CellCommit);
+    // An activated `toggle`, `action` or `link` cell: row token, column token
+    // and the projection generation current at the activation, like
+    // `cell-committed`. It comes from Enter or Space on the cell cursor, a
+    // pointer click on the cell or the accessible default action, never
+    // selects the row and never fires for a read-only or disabled cell or a
+    // disabled row. The host fences it with the generation, applies the
+    // change (flipping a toggle's state) and republishes the row.
+    callback cell-action(CellRef);
     in property <TableEditBlurPolicy> edit-blur-policy: TableEditBlurPolicy.commit-or-drop;
     in property <TableUnchangedEditPolicy> unchanged-edit-policy: TableUnchangedEditPolicy.report;
     callback edit-started(CellRef);
@@ -747,6 +812,25 @@ export component KitDataTable inherits Rectangle {
             && root.rows[root.active-index].content[root.active-data-index].kind == TableCellKind.field
             && root.rows[root.active-index].content[root.active-data-index].access == FieldAccess.editable;
     }
+    pure function cell-actionable(cell: TableCell) -> bool {
+        return (cell.kind == TableCellKind.toggle || cell.kind == TableCellKind.action || cell.kind == TableCellKind.link) && cell.access == FieldAccess.editable;
+    }
+    // Whether the cell at a row position and a column position may be
+    // activated now, read from the projection the host published.
+    pure function action-cell-at(row-position: int, column-position: int) -> bool {
+        if (!root.live || row-position < 0 || row-position >= root.rows.length || column-position < 0 || column-position >= root.display-columns.length || root.rows[row-position].disabled) { return false; }
+        let data-index = root.cell-data-index(root.display-columns[column-position], column-position);
+        return data-index >= 0 && data-index < root.rows[row-position].content.length && root.cell-actionable(root.rows[row-position].content[data-index]);
+    }
+    pure function active-cell-actionable() -> bool {
+        return root.cursor-region == TableCursorRegion.body && root.action-cell-at(root.active-index, root.active-column);
+    }
+    function fire-action(row-position: int, column-position: int) {
+        if (root.action-cell-at(row-position, column-position)) {
+            root.cell-action({ row: root.rows[row-position].token, column: root.display-columns[column-position].token, generation: root.generation });
+        }
+    }
+    public function activate-active-cell() { if (root.active-cell-actionable()) { root.fire-action(root.active-index, root.active-column); } }
     pure function same-edit-session(identity: TableEditIdentity) -> bool {
         return root.edit-open && root.edit-session == identity.session
             && root.edit-row-token == identity.row-token && root.edit-column-token == identity.column-token
@@ -796,6 +880,7 @@ export component KitDataTable inherits Rectangle {
     }
     function confirm-active() {
         if (root.active-cell-editable()) { root.edit-active(); }
+        else if (root.active-cell-actionable()) { root.activate-active-cell(); }
         else if (root.has-active-row && !root.rows[root.active-index].disabled) {
             root.activate(root.rows[root.active-index].token, root.generation);
             root.gesture(root.rows[root.active-index].token, root.generation, RowGesture.open);
@@ -886,9 +971,9 @@ export component KitDataTable inherits Rectangle {
     // three separate facts in the accessible tree.
     clip: true; accessible-role: table; forward-focus: keys;
     accessible-label: root.label + (root.cursor-region == TableCursorRegion.header && root.has-active-column() ? ": " + root.header-label + ", " + root.header-name(root.display-columns[root.active-column]) : (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.display-columns[root.active-column].label : ""));
-    accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.edit-active(); } }
+    accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.active-cell-actionable()) { root.activate-active-cell(); } else { root.edit-active(); } }
     accessible-value: root.active-cell-value();
-    accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
+    accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.active-cell-actionable() ? root.actionable-label : root.read-only-label) : root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     // Keep the scrollbar corner in the header canvas on either side.
     Rectangle { width: root.width; height: root.row-height; background: root.theme.canvas; }
     header := Rectangle {
@@ -1045,7 +1130,7 @@ export component KitDataTable inherits Rectangle {
         }
         navigate-column(step) => {root.step-column(step);}
         context-requested => { if (root.cursor-region == TableCursorRegion.body && root.has-active-row && !root.rows[root.active-index].disabled) { root.context-requested(root.rows[root.active-index].token, root.generation, root.row-height, root.row-height * (root.active-index + 1.5) + list.content-y); } }
-        activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); root.gesture(root.rows[root.active-index].token,root.generation,RowGesture.toggle); } }
+        activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.active-cell-actionable()) { root.activate-active-cell(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); root.gesture(root.rows[root.active-index].token,root.generation,RowGesture.toggle); } }
         confirm => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.confirm-active(); } }
     }
     clipboard-source := TextInput { visible: false; width: 0px; height: 0px; }
@@ -1070,8 +1155,16 @@ export component KitDataTable inherits Rectangle {
             focus-requested => {keys.focus();}
             context(token,generation) => {keys.focus();root.context-requested(token,generation,list.content-x + row-action.pointer-x,root.row-height * (index + 1) + list.content-y + row-action.pointer-y);}
             checkbox-width: root.selection-visible ? root.selection-width : 0px;
-            double-activated => { if (row-action.in-checkbox) { return; } if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
-            requested(token,generation) => {keys.focus();root.activate(token,generation);root.gesture(token,generation,row-action.armed-gesture);}
+            double-activated => { if (row-action.in-checkbox || root.action-cell-at(index, root.active-column)) { return; } if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
+            // A press on an actionable cell is that cell's activation: it
+            // moved the cell cursor on press and neither selects nor opens the
+            // row. The press armed this row and generation; a changed
+            // projection cancelled it.
+            requested(token,generation) => {
+                keys.focus();
+                if (!row-action.in-checkbox && root.action-cell-at(index, root.active-column)) { root.fire-action(index, root.active-column); }
+                else { root.activate(token,generation);root.gesture(token,generation,row-action.armed-gesture); }
+            }
             // Row cells take the constraints of their column, so the solver
             // lays them out exactly as the header above. A row paints its
             // typed `content` when it has any, otherwise its plain `cells`
@@ -1124,6 +1217,7 @@ export component KitDataTable inherits Rectangle {
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
+                    action-requested => { root.fire-action(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     viewport-offset-x: list.content-x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
