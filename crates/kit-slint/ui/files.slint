@@ -4,6 +4,7 @@ import { KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext, KitMetrics, TypographyRole } from "theme.slint";
 import { KitIcon, IconGlyph } from "icons.slint";
 import { KitButton, KitPressable } from "button.slint";
+import { KitModalContext } from "modal.slint";
 import { FieldAccess } from "contracts.slint";
 import { FileSelectionMode } from "shared-contracts.slint";
 import { KitFileMessages, KitStrings } from "strings.slint";
@@ -30,6 +31,9 @@ component FileRemoveButton inherits KitButton {
 }
 
 export component KitFileList inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <string> list-label: KitStrings.file-list;
     in property <string> remove-label: KitStrings.file-remove;
     in property <string> remove-accessible-template: KitStrings.file-remove-template;
@@ -59,7 +63,7 @@ export component KitFileList inherits Rectangle {
                     Text { text: entry.name; font-weight: root.theme.typography.weight-medium; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     if entry.detail != "": Text { text: entry.detail; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
-                FileRemoveButton {
+                FileRemoveButton { modal-layer: root.modal-layer;
                     theme: root.theme; control-size:root.control-size; entry: entry;
                     remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template;
                     disabled: root.access != FieldAccess.editable || !entry.removable;
@@ -71,6 +75,9 @@ export component KitFileList inherits Rectangle {
 }
 
 export component KitFilePicker inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <string> accept;
     in property <int> max-files: -1;
     // Exact per-file bytes, empty means no bound; never a renderer float.
@@ -121,7 +128,7 @@ export component KitFilePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-medium; wrap: word-wrap; }
-        browse := KitButton {
+        browse := KitButton { modal-layer: root.modal-layer;
             theme: root.theme; control-size:root.control-size; text: root.browse-label;
             accessible-name: self.text + " " + root.label;
             disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported;
@@ -134,11 +141,14 @@ export component KitFilePicker inherits Rectangle {
         if root.request-state == HostRequestPresentation.failed && root.error == "": KitFieldError { theme: root.theme; text: root.failed-label; }
         if root.error == "" && checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
-        KitFileList { list-label: root.list-label; remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template; theme: root.theme; control-size:root.control-size; access: root.access; entries: root.entries; remove-requested(token,generation) => { root.remove-requested(token,generation); } }
+        KitFileList { modal-layer: root.modal-layer; list-label: root.list-label; remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template; theme: root.theme; control-size:root.control-size; access: root.access; entries: root.entries; remove-requested(token,generation) => { root.remove-requested(token,generation); } }
     }
 }
 
 export component KitDirectoryPicker inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: KitStrings.selection-required-message;
     in-out property <string> custom-validity;
@@ -178,11 +188,11 @@ export component KitDirectoryPicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-medium; wrap: word-wrap; }
-        browse := KitButton { theme: root.theme; control-size:root.control-size; text: root.browse-label; disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported; busy: root.request-state == HostRequestPresentation.pending; activated => { root.browse-requested(); } }
+        browse := KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size:root.control-size; text: root.browse-label; disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported; busy: root.request-state == HostRequestPresentation.pending; activated => { root.browse-requested(); } }
         if root.selected-name != "": HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
             Text { text: root.selected-name; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; vertical-alignment: center; }
-            KitButton { theme: root.theme; control-size:root.control-size; text: root.clear-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
+            KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size:root.control-size; text: root.clear-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
         }
         if root.request-state == HostRequestPresentation.unsupported: Text { text: root.unsupported-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
         if root.request-state == HostRequestPresentation.cancelled: Text {text:root.cancelled-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
@@ -196,6 +206,9 @@ export component KitDirectoryPicker inherits Rectangle {
 // checks MIME/types in can-drop and resolves handles asynchronously in dropped.
 // The available flag is a host capability, never guessed from pointer events.
 export component KitFileDropZone inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -220,7 +233,7 @@ export component KitFileDropZone inherits Rectangle {
     border-color: root.error != "" ? root.theme.danger : root.drag-hovered ? root.theme.accent : action.hovered ? root.theme.border-strong : root.theme.border-subtle;
     background: root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.drag-hovered ? root.theme.hover : action.pressed ? action.recipe.pressed-fill : action.hovered ? action.recipe.hover-fill : root.theme.canvas;
     accessible-role: none;
-    action := KitPressable {
+    action := KitPressable { modal-layer: root.modal-layer;
         theme: root.theme; control-size: root.control-size;
         x: 0px; y: 0px; width: root.width; height: root.height;
         corner-radius: root.border-radius;
@@ -243,7 +256,7 @@ export component KitFileDropZone inherits Rectangle {
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
     }
     drop := DropArea {
-        enabled: root.capability == DropCapability.available && root.access == FieldAccess.editable;
+        enabled: root.capability == DropCapability.available && root.access == FieldAccess.editable && !KitModalContext.inert(root.modal-layer);
         can-drop(event) => { return root.can-drop(event); }
         dropped(event) => { return root.dropped(event); }
     }

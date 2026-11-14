@@ -1052,6 +1052,9 @@ component NotificationAction inherits KitOption {
 }
 enum NotificationItemPhase { visible, dismissing }
 component NotificationItem inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     accessible-role: list-item;
     accessible-label: root.notice.read ? root.notice.item.label : root.notice.item.label + ", " + root.unread-label;
     accessible-description: root.notice.item.description;
@@ -1120,9 +1123,9 @@ component NotificationItem inherits Rectangle {
                 Text { text: root.notice.item.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                 FlexboxLayout {
                     spacing: root.theme.spacing.unit * 2; alignment: start;
-                    open-preview := NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled || root.inactive}; activate(token,generation) => {root.activate(token,generation);} }
-                    NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; alternate-label: root.notice.read ? root.mark-read-label : root.read-label; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.notice.read ? root.read-label : root.mark-read-label,description:"",disabled:root.notice.read || root.inactive}; activate(token,generation) => {root.mark-read(token,generation);} }
-                    NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.dismiss-label,description:"",disabled:root.inactive}; activate(token,generation) => {root.dismiss-token = token; root.dismiss-generation = generation; root.phase = NotificationItemPhase.dismissing;} }
+                    open-preview := NotificationAction { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled || root.inactive}; activate(token,generation) => {root.activate(token,generation);} }
+                    NotificationAction { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; alternate-label: root.notice.read ? root.mark-read-label : root.read-label; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.notice.read ? root.read-label : root.mark-read-label,description:"",disabled:root.notice.read || root.inactive}; activate(token,generation) => {root.mark-read(token,generation);} }
+                    NotificationAction { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.dismiss-label,description:"",disabled:root.inactive}; activate(token,generation) => {root.dismiss-token = token; root.dismiss-generation = generation; root.phase = NotificationItemPhase.dismissing;} }
                 }
             }
             Rectangle { x: root.theme.spacing.unit * 4; y: parent.height - self.height; width: max(0px,parent.width - 2 * self.x); height: root.theme.shape.border-width; background: root.theme.border-subtle; }
@@ -1130,6 +1133,9 @@ component NotificationItem inherits Rectangle {
 }
 
 export component KitNotificationCenter inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> accessible-name: KitStrings.notifications-label;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -1189,7 +1195,7 @@ export component KitNotificationCenter inherits Rectangle {
         content-height: max(self.visible-height,bounded-content.preferred-height);
         bounded-content := VerticalLayout {
             x: 0px; y: 0px; width: parent.visible-width; height: self.preferred-height; alignment: start; spacing: 0px;
-            for row in root.rows.length <= 32 ? root.rows : []: NotificationItem {
+            for row in root.rows.length <= 32 ? root.rows : []: NotificationItem { modal-layer: root.modal-layer;
                 theme: root.theme; control-size: root.control-size; notice: row;
                 focus-token: root.focus-token; focus-request: root.reveal-serial; focus-pending: root.focus-pending; unread-label: root.unread-label;
                 focus-taken => { root.focus-pending = false; }
@@ -1205,7 +1211,7 @@ export component KitNotificationCenter inherits Rectangle {
         visible: root.rows.length > 32;
         horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
         vertical-scrollbar-policy: ScrollBarPolicy.always-on;
-        for row in root.rows.length > 32 ? root.rows : []: NotificationItem {
+        for row in root.rows.length > 32 ? root.rows : []: NotificationItem { modal-layer: root.modal-layer;
             theme: root.theme; control-size: root.control-size; notice: row;
                 focus-token: root.focus-token; focus-request: root.reveal-serial; focus-pending: root.focus-pending; unread-label: root.unread-label;
                 focus-taken => { root.focus-pending = false; }

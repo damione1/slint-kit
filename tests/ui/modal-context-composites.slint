@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitDialogSurface, KitDialogPanel, DialogState, KitCalendar, KitDatePicker, KitDateRangePicker, KitTimePicker, KitDateTimeField, KitColorField, KitColorPicker, KitColorWheel, KitFilePicker, KitDirectoryPicker, KitFileDropZone, DropCapability, KitKeypad, KitScrollArea, KitForm, KitNotificationCenter, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, FieldAccess, TextViewAccess } from "@kit";
+
+// Every composite below sits in the window (layer 0). Opening the dialog surface
+// on layer 1 must make each of them inert; the control inside the dialog stays live.
+export component ModalContextCompositesFixture inherits Window {
+    width: 900px; height: 2400px;
+    in property <DialogState> lower;
+    out property <bool> modal-open: lower.open && lower.topmost;
+    callback lower-activated();
+    VerticalLayout {
+        KitCalendar { label: "BG calendar"; previous-month-label: "BG cal back"; next-month-label: "BG cal forward"; }
+        KitDatePicker { label: "BG date"; calendar-accessible-name: "BG date open"; }
+        KitDateRangePicker { label: "BG range"; cancel-label: "BG range cancel"; apply-label: "BG range apply"; }
+        KitTimePicker { label: "BG time"; hours-label: "BG hours"; increase-template: "BG up {label}"; decrease-template: "BG down {label}"; }
+        KitDateTimeField { label: "BG dt"; }
+        KitColorField { label: "BG color"; open-template: "BG open {label}"; }
+        KitColorPicker { label: "BG picker"; red-label: "BG red"; }
+        KitColorWheel { label: "BG wheel"; }
+        KitFilePicker { label: "BG files"; browse-label: "BG browse"; }
+        KitDirectoryPicker { label: "BG folder"; browse-label: "BG folder browse"; }
+        KitFileDropZone { label: "BG drop"; capability: DropCapability.available; }
+        KitKeypad { label: "BG keypad"; delete-label: "BG delete"; }
+        KitScrollArea { label: "BG scroll"; focusable: true; height: 60px; Text { text: "scroll body"; } }
+        KitForm { accessible-name: "BG form"; height: 20px; }
+        KitNotificationCenter {
+            rows: [{ item: { token: 1, generation: 1, label: "BG notice", description: "", disabled: false }, read: false }];
+            open-label: "BG notice open"; mark-read-label: "BG notice mark"; dismiss-label: "BG notice dismiss";
+        }
+        KitDataTable {
+            height: 120px; generation: 1; label: "BG table";
+            columns: [{ token: 1, label: "BG column", sortable: true }];
+            rows: [{ token: 10, cells: ["BG row"] }];
+        }
+        KitContentList {
+            height: 100px; generation: 1; label: "BG list";
+            items: [{ token: 1, title: "BG article", excerpt: "", metadata: "", link-label: "BG article link", selected: false, disabled: false }];
+        }
+        KitVirtualTextView {
+            height: 140px; generation: 1; label: "BG text"; access: TextViewAccess.edit-line; active-index: 0;
+            lines: [{ token: 1, number: 1, text: "BG line", selected: true }];
+            save-label: "BG save line"; copy-label: "BG copy line"; editor-label: "BG line editor";
+        }
+    }
+    KitDialogSurface {
+        state: root.lower;
+        modal-layer: 1;
+        KitDialogPanel {
+            width: 200px; height: 100px;
+            KitButton { text: "Lower"; accessible-name: "Lower action"; modal-layer: 1; activated => { root.lower-activated(); } }
+            KitKeypad { label: "Lower keypad"; modal-layer: 1; }
+            KitCalendar { label: "Lower calendar"; modal-layer: 1; }
+            KitDataTable { generation: 1; label: "Lower table"; modal-layer: 1; columns: [{ token: 1, label: "Lower column", sortable: true }]; rows: [{ token: 10, cells: ["Lower row"] }]; }
+        }
+    }
+}
