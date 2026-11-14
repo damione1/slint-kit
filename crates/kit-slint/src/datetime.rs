@@ -2,8 +2,8 @@
 #![forbid(unsafe_code)]
 use crate::{FieldSpec, ui};
 use kit_core::{
-    CivilDate, ClockFormat, DraftValue, Instant, IsoWeek, LocalDateTime, LocalTime, ParseIssue,
-    TimePrecision, TimeZoneId, UtcOffset, Year, YearMonth, ZonedResolution,
+    CivilDate, ClockFormat, DayPeriodMarkers, DraftValue, Instant, IsoWeek, LocalDateTime,
+    LocalTime, ParseIssue, TimePrecision, TimeZoneId, UtcOffset, Year, YearMonth, ZonedResolution,
 };
 impl From<LocalTime> for ui::LocalTimeView {
     fn from(value: LocalTime) -> Self {
@@ -97,6 +97,11 @@ impl From<ui::ClockFormat> for ClockFormat {
         }
     }
 }
+/// Slint cannot surface a construction error, so a pair the grammar cannot use (empty, equal
+/// or prefixing each other) falls back to the canonical AM and PM.
+pub(crate) fn day_periods(value: &ui::KitDayPeriods) -> DayPeriodMarkers {
+    DayPeriodMarkers::new(value.am.as_str(), value.pm.as_str()).unwrap_or_default()
+}
 fn parsed<T>(value: DraftValue<T>) -> Result<T, ParseIssue> {
     match value {
         DraftValue::Parsed(value) => Ok(value),
@@ -109,13 +114,15 @@ fn local(
     time: &str,
     precision: ui::TimePrecision,
     clock: ui::ClockFormat,
+    markers: &DayPeriodMarkers,
 ) -> Result<LocalDateTime, ParseIssue> {
     Ok(LocalDateTime::new(
         parsed(CivilDate::parse_iso(date))?,
-        parsed(LocalTime::parse_with_format(
+        parsed(LocalTime::parse_with_markers(
             time,
             precision.into(),
             clock.into(),
+            markers,
         ))?,
     ))
 }
@@ -136,13 +143,24 @@ fn unsigned(value: i32) -> Result<u32, ParseIssue> {
 }
 pub(crate) fn install_time<W>(window: &W)
 where
-    W: slint::ComponentHandle,
+    W: slint::ComponentHandle + 'static,
     for<'a> ui::KitTimeService<'a>: slint::Global<'a, W>,
 {
     let service = window.global::<ui::KitTimeService>();
     if service.get_ready() {
         return;
     }
+    // Read per call, so the bindings that call a service depend on the window's markers.
+    let markers = {
+        let window = window.as_weak();
+        std::rc::Rc::new(move || {
+            window
+                .upgrade()
+                .map_or_else(DayPeriodMarkers::default, |window| {
+                    day_periods(&window.global::<ui::KitTimeService>().get_day_periods())
+                })
+        })
+    };
     service.on_project_date(|value| {
         projection(if value == ui::CivilDateView::default() {
             Ok(None)
@@ -175,7 +193,8 @@ where
                 .map(|week| Some(FieldSpec::iso_week().format(&week)))
         })
     });
-    service.on_project_time(|value, precision, clock| {
+    let current = markers.clone();
+    service.on_project_time(move |value, precision, clock| {
         projection(if !value.present {
             Ok(None)
         } else {
@@ -184,7 +203,8 @@ where
                     return Err(ParseIssue::InvalidTime);
                 }
                 Ok(Some(
-                    FieldSpec::time(precision.into(), clock.into()).format(&time),
+                    FieldSpec::time_with_markers(precision.into(), clock.into(), current())
+                        .format(&time),
                 ))
             })
         })
@@ -226,8 +246,14 @@ where
             DraftValue::Incomplete | DraftValue::Invalid(_) => ui::IsoWeekResult::default(),
         },
     );
-    service.on_parse_time(|text, precision, clock| {
-        match LocalTime::parse_with_format(text.as_str(), precision.into(), clock.into()) {
+    let current = markers.clone();
+    service.on_parse_time(move |text, precision, clock| {
+        match LocalTime::parse_with_markers(
+            text.as_str(),
+            precision.into(),
+            clock.into(),
+            &current(),
+        ) {
             DraftValue::Empty => ui::LocalTimeResult {
                 valid: true,
                 value: ui::LocalTimeValue::default(),
@@ -242,37 +268,53 @@ where
             DraftValue::Incomplete | DraftValue::Invalid(_) => ui::LocalTimeResult::default(),
         }
     });
-    service.on_adjust(|text, constraints, precision, clock, segment, direction| {
-        let current =
-            match LocalTime::parse_with_format(text.as_str(), precision.into(), clock.into()) {
+    let current = markers.clone();
+    service.on_adjust(
+        move |text, constraints, precision, clock, segment, direction| {
+            let markers = current();
+            let current = match LocalTime::parse_with_markers(
+                text.as_str(),
+                precision.into(),
+                clock.into(),
+                &markers,
+            ) {
                 DraftValue::Empty => None,
                 DraftValue::Parsed(time) => Some(time),
                 DraftValue::Incomplete | DraftValue::Invalid(_) => return text,
             };
-        let amount = match segment {
-            ui::TimeSegment::Hour => 3_600,
-            ui::TimeSegment::Minute => 60,
-            ui::TimeSegment::Second => 1,
-        };
-        let direction = match direction {
-            ui::TimeAdjustment::Increment => kit_core::StepDirection::Increment,
-            ui::TimeAdjustment::Decrement => kit_core::StepDirection::Decrement,
-        };
-        let (rules, _) = crate::HtmlValidationEngine::default().constraints(&constraints);
-        rules
-            .step_time(
-                current,
-                direction,
-                std::num::NonZeroU32::new(amount).expect("positive segment"),
-                precision.into(),
-            )
-            .map_or(text, |time| {
-                time.format(precision.into(), clock.into()).into()
-            })
-    });
-    service.on_parse_local(|draft, precision, clock| {
-        local(draft.date.as_str(), draft.time.as_str(), precision, clock)
-            .map_or_else(|_| ui::LocalDateTimeView::default(), Into::into)
+            let amount = match segment {
+                ui::TimeSegment::Hour => 3_600,
+                ui::TimeSegment::Minute => 60,
+                ui::TimeSegment::Second => 1,
+            };
+            let direction = match direction {
+                ui::TimeAdjustment::Increment => kit_core::StepDirection::Increment,
+                ui::TimeAdjustment::Decrement => kit_core::StepDirection::Decrement,
+            };
+            let (rules, _) = crate::HtmlValidationEngine::default().constraints(&constraints);
+            rules
+                .step_time(
+                    current,
+                    direction,
+                    std::num::NonZeroU32::new(amount).expect("positive segment"),
+                    precision.into(),
+                )
+                .map_or(text, |time| {
+                    time.format_with_markers(precision.into(), clock.into(), &markers)
+                        .into()
+                })
+        },
+    );
+    let current = markers.clone();
+    service.on_parse_local(move |draft, precision, clock| {
+        local(
+            draft.date.as_str(),
+            draft.time.as_str(),
+            precision,
+            clock,
+            &current(),
+        )
+        .map_or_else(|_| ui::LocalDateTimeView::default(), Into::into)
     });
     service.on_split_local_text(|text| {
         let (date, time) = text.split_once('T').unwrap_or((text.as_str(), ""));
@@ -281,14 +323,20 @@ where
             time: time.into(),
         }
     });
-    service.on_resolve(|draft, precision, clock| {
+    service.on_resolve(move |draft, precision, clock| {
         let Ok(zone) = TimeZoneId::new(draft.zone.as_str()) else {
             return ui::ZonedDateTimeResult {
                 state: ui::ZonedTimePresentation::InvalidZone,
                 ..Default::default()
             };
         };
-        let Ok(local) = local(draft.date.as_str(), draft.time.as_str(), precision, clock) else {
+        let Ok(local) = local(
+            draft.date.as_str(),
+            draft.time.as_str(),
+            precision,
+            clock,
+            &markers(),
+        ) else {
             return ui::ZonedDateTimeResult::default();
         };
         let (state, utc_offset_seconds, later_utc_offset_seconds) = match zone.resolve(local) {

@@ -315,10 +315,22 @@ impl FieldSpec<CivilDate> {
     }
 }
 impl FieldSpec<LocalTime> {
+    /// Twelve-hour text uses the default AM and PM markers.
     pub fn time(precision: TimePrecision, clock: ClockFormat) -> Self {
+        Self::time_with_markers(precision, clock, DayPeriodMarkers::default())
+    }
+    /// Twelve-hour text prints and accepts the given day-period markers.
+    pub fn time_with_markers(
+        precision: TimePrecision,
+        clock: ClockFormat,
+        markers: DayPeriodMarkers,
+    ) -> Self {
         Self::codec(
-            move |text| LocalTime::parse_with_format(text, precision, clock),
-            move |value| value.format(precision, clock),
+            {
+                let markers = markers.clone();
+                move |text| LocalTime::parse_with_markers(text, precision, clock, &markers)
+            },
+            move |value| value.format_with_markers(precision, clock, &markers),
         )
     }
 }

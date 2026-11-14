@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Window-local defaults. Per-component message properties remain overridable.
+// The markers a twelve-hour time editor prints and accepts for before and after noon.
+// They must be non-empty, differ when case is ignored, and neither may start the other;
+// an unusable pair falls back to AM and PM.
+export struct KitDayPeriods { am: string, pm: string }
 export struct KitFieldMessages {
     required-message: string,
     email-message: string,
@@ -115,6 +119,7 @@ export global KitStrings {
     in-out property <string> time-increase-template: "Increase {label}";
     in-out property <string> time-decrease-template: "Decrease {label}";
     in-out property <string> time-description-twenty-four-hour: "24-hour local time";
+    in-out property <KitDayPeriods> day-periods: { am: "AM", pm: "PM" };
     in-out property <string> time-description-twelve-hour: "12-hour local time, including AM or PM";
     in-out property <string> date-description: "Civil date; no time zone";
     in-out property <string> time-zone-label: "Time zone";
