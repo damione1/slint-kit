@@ -20,8 +20,12 @@ export { TimePrecision, ClockFormat } from "shared-contracts.slint";
 import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, LocalTimeValue, KitTimeService } from "datetime-service.slint";
 export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, LocalTimeValue, KitTimeService } from "datetime-service.slint";
 import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
+import { KitModalContext } from "modal.slint";
 
 component TimeSegmentControl inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -49,7 +53,7 @@ component TimeSegmentControl inherits Rectangle {
     accessible-value-minimum: root.value-minimum;
     accessible-value-maximum: root.value-maximum;
     accessible-value-step: root.value-step;
-    accessible-enabled: root.access != FieldAccess.disabled;
+    accessible-enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-action-increment => { if (root.access == FieldAccess.editable) { root.adjust(root.segment,TimeAdjustment.increment); } }
     accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.adjust(root.segment,TimeAdjustment.decrement); } }
@@ -62,8 +66,8 @@ component TimeSegmentControl inherits Rectangle {
         spacing: root.theme.spacing.unit * 2;
         alignment: start;
         Text { min-width: 72px * root.theme.text-scale; horizontal-stretch: 0; text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; wrap: word-wrap; }
-        decrease := KitIconButton { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.minus; accessible-name: root.decrease-template.replace-all("{label}", root.label); disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activation-started => { root.repeating = false; } activation-allowed => { return !root.repeating; } activated => { root.adjust(root.segment,TimeAdjustment.decrement); } }
-        increase := KitIconButton { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.plus; accessible-name: root.increase-template.replace-all("{label}", root.label); disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activation-started => { root.repeating = false; } activation-allowed => { return !root.repeating; } activated => { root.adjust(root.segment,TimeAdjustment.increment); } }
+        decrease := KitIconButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.minus; accessible-name: root.decrease-template.replace-all("{label}", root.label); disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activation-started => { root.repeating = false; } activation-allowed => { return !root.repeating; } activated => { root.adjust(root.segment,TimeAdjustment.decrement); } }
+        increase := KitIconButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.plus; accessible-name: root.increase-template.replace-all("{label}", root.label); disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activation-started => { root.repeating = false; } activation-allowed => { return !root.repeating; } activated => { root.adjust(root.segment,TimeAdjustment.increment); } }
     }
 }
 
@@ -106,6 +110,9 @@ export component KitTimeField inherits TemporalField {
 }
 
 export component KitTimePicker inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <string> spec-key;
     in property <Ownership> ownership: Ownership.local;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
@@ -207,22 +214,25 @@ export component KitTimePicker inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
-        editor := KitTimeField {
+        editor := KitTimeField { modal-layer: root.modal-layer;
                 ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.accept-time(value); }
                 required: root.required; min: root.min; max: root.max; step: root.step; default-value: root.default-value; validation-timing: root.validation-timing;
                 focus-observed(focused) => { root.focus-observed(focused); }
                 custom-validity <=> root.custom-validity;
                 invalid => { root.invalid(); }
  theme: root.theme; control-size: root.control-size; access: root.access; accepted-time <=> root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; placeholder: root.placeholder; description: root.description; required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message; step-message: root.step-message; bad-input-message: root.bad-input-message; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
-        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: root.hours-label; increase-template: root.increase-template; decrease-template: root.decrease-template; value-text: root.hour-text(); value-minimum: root.twelve-hour ? 1 : 0; value-maximum: root.twelve-hour ? 12 : 23; value-step: root.step-seconds >= 3600 ? root.step-seconds / 3600 : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
-        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: root.minutes-label; increase-template: root.increase-template; decrease-template: root.decrease-template; value-text: root.draft-time.present ? root.two-digits(root.draft-time.time.minute) : ""; value-minimum: 0; value-maximum: 59; value-step: root.step-seconds >= 60 && root.step-seconds < 3600 ? root.step-seconds / 60 : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
-        if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: root.seconds-label; increase-template: root.increase-template; decrease-template: root.decrease-template; value-text: root.draft-time.present ? root.two-digits(root.draft-time.time.second) : ""; value-minimum: 0; value-maximum: 59; value-step: root.step-seconds < 60 ? root.step-seconds : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        TimeSegmentControl { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: root.hours-label; increase-template: root.increase-template; decrease-template: root.decrease-template; value-text: root.hour-text(); value-minimum: root.twelve-hour ? 1 : 0; value-maximum: root.twelve-hour ? 12 : 23; value-step: root.step-seconds >= 3600 ? root.step-seconds / 3600 : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        TimeSegmentControl { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: root.minutes-label; increase-template: root.increase-template; decrease-template: root.decrease-template; value-text: root.draft-time.present ? root.two-digits(root.draft-time.time.minute) : ""; value-minimum: 0; value-maximum: 59; value-step: root.step-seconds >= 60 && root.step-seconds < 3600 ? root.step-seconds / 60 : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        if root.precision == TimePrecision.second: TimeSegmentControl { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: root.seconds-label; increase-template: root.increase-template; decrease-template: root.decrease-template; value-text: root.draft-time.present ? root.two-digits(root.draft-time.time.second) : ""; value-minimum: 0; value-maximum: 59; value-step: root.step-seconds < 60 ? root.step-seconds : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
     }
 }
 
 // Separate date and time editors compose one commit payload. No half-accepted
 // application value is emitted when just one of the drafts parses successfully.
 export component KitDateTimeField inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <Ownership> ownership: Ownership.local;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     private property <LocalDateTimeView> proposal-baseline;
@@ -416,7 +426,7 @@ export component KitDateTimeField inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
-        date := KitTextField {
+        date := KitTextField { modal-layer: root.modal-layer;
             input-kind: HtmlInputKind.date;
             validation: root.date-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description; required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message; step-message: root.step-message; bad-input-message: root.bad-input-message;
@@ -426,7 +436,7 @@ export component KitDateTimeField inherits Rectangle {
         }
         HorizontalLayout {
             spacing: root.show-clear ? KitMetrics.inline-gap(root.theme) : 0px;
-            time := KitTextField {
+            time := KitTextField { modal-layer: root.modal-layer;
                 input-kind: HtmlInputKind.time;
                 validation-twelve-hour: root.clock-format == ClockFormat.twelve-hour;
                 validation: root.time-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
@@ -437,7 +447,7 @@ export component KitDateTimeField inherits Rectangle {
                 commit-requested(text) => { root.commit(); }
                 cancelled => { root.cancelled(); }
             }
-            clear-action := KitIconButton {
+            clear-action := KitIconButton { modal-layer: root.modal-layer;
                 theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close;
                 layout-order: time.trailing-adornment-order;
                 cross-axis-self-alignment: center;
@@ -453,6 +463,9 @@ export component KitDateTimeField inherits Rectangle {
 }
 
 export component KitZonedDateTimeField inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     out property <ZonedOccurrenceSelection> occurrence-selection: root.selected-occurrence;
     private property <ZonedOccurrenceSelection> selected-occurrence;
     changed resolution => { if (root.resolution != ZonedTimePresentation.ambiguous) { root.selected-occurrence = ZonedOccurrenceSelection.unselected; } }
@@ -576,7 +589,7 @@ export component KitZonedDateTimeField inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
-        local := KitDateTimeField {
+        local := KitDateTimeField { modal-layer: root.modal-layer;
             // The zoned group owns the blur; the inner pair only commits on Enter.
             commit-policy: CommitPolicy.on-submit; validation-timing: root.validation-timing;
             required: root.required || root.zone-text != ""; min: root.min; max: root.max; step: root.step;
@@ -590,7 +603,7 @@ export component KitZonedDateTimeField inherits Rectangle {
             commit-requested(draft) => { root.resolve(); }
             cancelled => { root.cancelled(); }
         }
-        zone := KitTextField {
+        zone := KitTextField { modal-layer: root.modal-layer;
             validation-timing: root.validation-timing;
             required: root.required || root.date-text != "" || root.time-text != "";
             custom-validity: KitFormValidation.ready && root.zone-text != "" && !KitFormValidation.valid-time-zone(root.zone-text) ? root.invalid-zone-message : "";
@@ -608,8 +621,8 @@ export component KitZonedDateTimeField inherits Rectangle {
         }
         if root.resolution == ZonedTimePresentation.ambiguous: VerticalLayout {
             spacing: root.theme.spacing.unit * 2;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.earlier-label; accessible-checkable: true; accessible-checked: root.selected-occurrence == ZonedOccurrenceSelection.earlier; intent: root.selected-occurrence == ZonedOccurrenceSelection.earlier ? ButtonIntent.primary : ButtonIntent.secondary; disabled: root.access != FieldAccess.editable || root.selected-occurrence != ZonedOccurrenceSelection.unselected; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.earlier); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.later-label; accessible-checkable: true; accessible-checked: root.selected-occurrence == ZonedOccurrenceSelection.later; intent: root.selected-occurrence == ZonedOccurrenceSelection.later ? ButtonIntent.primary : ButtonIntent.secondary; disabled: root.access != FieldAccess.editable || root.selected-occurrence != ZonedOccurrenceSelection.unselected; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.later); } }
+            KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: root.earlier-label; accessible-checkable: true; accessible-checked: root.selected-occurrence == ZonedOccurrenceSelection.earlier; intent: root.selected-occurrence == ZonedOccurrenceSelection.earlier ? ButtonIntent.primary : ButtonIntent.secondary; disabled: root.access != FieldAccess.editable || root.selected-occurrence != ZonedOccurrenceSelection.unselected; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.earlier); } }
+            KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: root.later-label; accessible-checkable: true; accessible-checked: root.selected-occurrence == ZonedOccurrenceSelection.later; intent: root.selected-occurrence == ZonedOccurrenceSelection.later ? ButtonIntent.primary : ButtonIntent.secondary; disabled: root.access != FieldAccess.editable || root.selected-occurrence != ZonedOccurrenceSelection.unselected; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.later); } }
         }
     }
 }
