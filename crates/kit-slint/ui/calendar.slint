@@ -422,25 +422,44 @@ export component KitDateField inherits TemporalField {
     input-kind: HtmlInputKind.date;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
     in-out property <CivilDateView> accepted-date;
-    model: KitTimeService.project-date(root.accepted-date);
+    model: root.entry-active ? KitTimeService.project-date-entry(root.accepted-date, root.entry-format) : KitTimeService.project-date(root.accepted-date);
+    // Typed entry. A DateDisplay pattern (for example "%d/%m/%Y") also parses and
+    // prints the edit text, with the same month and weekday names. The accepted
+    // date, `min`, `max` and `step` stay ISO. An empty or invalid pattern keeps
+    // ISO entry, as does a window where the calendar service is not installed.
+    in property <DateDisplay> entry-format;
+    out property <bool> entry-active: root.entry-format.pattern != "" && KitCalendarService.ready && KitCalendarService.date-entry-valid(root.entry-format);
+    validation-date-entry: root.entry-active ? root.entry-format : {};
+    public pure function parse-text(text: string) -> CivilDateView {
+        return !KitCalendarService.ready ? {} : root.entry-active ? KitCalendarService.parse-date-entry(text, root.entry-format) : KitCalendarService.parse-date(text);
+    }
+    public pure function format-text(date: CivilDateView) -> string {
+        return root.entry-active ? KitCalendarService.format-date-entry(date, root.entry-format) : KitCalendarService.format-date(date);
+    }
     typed-accepted(value) => {
         if (!value.present) { root.accepted-date = {}; }
         else if (KitCalendarService.ready) {
-            let date = KitCalendarService.parse-date(value.text);
+            let date = root.parse-text(value.text);
             if (date != {}) { root.accepted-date = date; }
         }
     }
-    placeholder: "YYYY-MM-DD";
+    placeholder: root.entry-active ? "" : "YYYY-MM-DD";
     description: KitStrings.date-description;
+    underflow-message: KitStrings.underflow-template.replace-all("{value}", root.shown-bound(root.min));
+    overflow-message: KitStrings.overflow-template.replace-all("{value}", root.shown-bound(root.max));
+    // Bounds are ISO; a message names them the way the field is typed.
+    public pure function shown-bound(bound: string) -> string {
+        return root.entry-active ? KitCalendarService.display-date(bound, root.entry-format) : bound;
+    }
     // Display-at-rest format. Editing, constraints and the accepted value stay
     // ISO; an empty pattern (or an invalid one) keeps the ISO text.
     in property <DateDisplay> display-format;
-    display-text: !KitFieldService.ready || root.accepted-text != root.text ? root.text
+    display-text: !KitFieldService.ready || root.accepted-text != root.text || root.entry-active ? root.text
         : root.display-format.pattern != "" && KitCalendarService.ready ? KitCalendarService.display-date(root.text, root.display-format)
         : KitFieldService.display(root.spec-key, root.text);
     // Alt+ArrowDown and F4 ask the host to open its calendar, as on the web.
     callback open-requested();
-    private property <CivilDateView> draft-date: KitCalendarService.ready ? KitCalendarService.parse-date(root.text) : {};
+    private property <CivilDateView> draft-date: root.parse-text(root.text);
     private property <CalendarView> step-view: {selected: root.draft-date, focused: root.draft-date, today: KitCalendarService.today, min: root.min, max: root.max, unavailable-weekdays: [], unavailable-ranges: []};
     private property <CalendarView> empty-view: {today: KitCalendarService.today, min: root.min, max: root.max, unavailable-weekdays: [], unavailable-ranges: []};
     // ArrowUp/ArrowDown step the draft by a day and PageUp/PageDown by a month
@@ -450,11 +469,11 @@ export component KitDateField inherits TemporalField {
     function step-date(direction: CalendarNavigation) -> KitKeyResult {
         if (!KitCalendarService.ready || root.access != FieldAccess.editable) { return KitKeyResult.reject; }
         if (root.text == "") {
-            root.replace-draft(KitCalendarService.format-date(KitCalendarService.initial-focus(root.empty-view)));
+            root.replace-draft(root.format-text(KitCalendarService.initial-focus(root.empty-view)));
             return KitKeyResult.accept;
         }
         if (root.draft-date.year <= 0) { return KitKeyResult.reject; }
-        let next = KitCalendarService.format-date(KitCalendarService.navigate(root.step-view, direction));
+        let next = root.format-text(KitCalendarService.navigate(root.step-view, direction));
         if (next != "" && next != root.text) { root.replace-draft(next); }
         return KitKeyResult.accept;
     }
@@ -488,6 +507,12 @@ export component KitDatePicker inherits Rectangle {
     // strftime-style pattern for the resting text, for example "%d/%m/%Y".
     // Empty keeps ISO. Editing and the accepted value remain ISO.
     in property <string> display-pattern;
+    // strftime-style pattern for typing, for example "%d/%m/%Y". Empty keeps ISO
+    // entry. The picker's month and weekday names apply; the accepted date, `min`
+    // and `max` stay ISO. `edited`, `committed` and `text` then use this pattern.
+    in property <string> entry-pattern;
+    private property <DateDisplay> entry-format: { pattern: root.entry-pattern, months: root.month-names, short-months: root.month-short-names, weekdays: root.weekday-names, short-weekdays: root.weekday-short-names };
+    out property <bool> entry-active: editor.entry-active;
     in property <Ownership> ownership: Ownership.local;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -509,8 +534,8 @@ export component KitDatePicker inherits Rectangle {
     in property <string> step;
     in property <string> default-value;
     in property <string> required-message: KitStrings.required-message;
-    in property <string> underflow-message: KitStrings.underflow-template.replace-all("{value}", root.min);
-    in property <string> overflow-message: KitStrings.overflow-template.replace-all("{value}", root.max);
+    in property <string> underflow-message: KitStrings.underflow-template.replace-all("{value}", editor.shown-bound(root.min));
+    in property <string> overflow-message: KitStrings.overflow-template.replace-all("{value}", editor.shown-bound(root.max));
     in property <string> step-message: KitStrings.step-message;
     in property <string> bad-input-message: KitStrings.bad-input-message;
     in-out property <string> custom-validity;
@@ -565,7 +590,7 @@ export component KitDatePicker inherits Rectangle {
     callback cleared();
     public function accept-date(date: CivilDateView) {
         if (root.access != FieldAccess.editable || !KitCalendarService.ready || !KitCalendarService.allowed(root.view, date)) { return; }
-        if (root.ownership == Ownership.local) { root.accepted-date = date; root.text = KitCalendarService.format-date(date); }
+        if (root.ownership == Ownership.local) { root.accepted-date = date; root.text = editor.format-text(date); }
         root.focused = date;
         root.chosen(date);
     }
@@ -583,7 +608,7 @@ export component KitDatePicker inherits Rectangle {
             }
             return;
         }
-        let date = KitCalendarService.parse-date(commit.value.text);
+        let date = editor.parse-text(commit.value.text);
         if (date == root.accepted-date) { return; }
         root.accept-date(date);
     }
@@ -647,6 +672,7 @@ export component KitDatePicker inherits Rectangle {
             spacing: root.trigger-style == DatePickerTrigger.none ? 0px : root.theme.spacing.unit * 2;
             editor := KitDateField { modal-layer: root.modal-layer;
                 spec-key: root.spec-key;
+                entry-format: root.entry-format;
                 display-format: { pattern: root.display-pattern, months: root.month-names, short-months: root.month-short-names, weekdays: root.weekday-names, short-weekdays: root.weekday-short-names };
                 show-validation-message: false;
                 clearable: root.clearable; clear-label: root.clear-label;

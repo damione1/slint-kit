@@ -3240,7 +3240,13 @@
           "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` sert à formater le texte au repos avec le service de calendrier installé. La saisie et la valeur acceptée restent ISO.",
           "default": "Motif vide (texte ISO).",
           "example": "KitDateField { display-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
-          "constraints": "Les modèles de noms exigent 12, 12, 7 et 7 entrées non vides et distinctes, même pour un motif sans noms ; sinon le texte ISO est conservé."
+          "constraints": "Les modèles de noms exigent 12, 12, 7 et 7 entrées non vides et distinctes, même pour un motif sans noms ; sinon le texte ISO est conservé. Sans effet quand `entry-format` est actif : le texte est alors déjà dans le motif de saisie."
+        },
+        "entry-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` sert aussi à saisir : le texte du champ, `edited`, `commit-requested` et `committed` suivent ce motif (par exemple `%d/%m/%Y` ou `%-d %B %Y`). `accepted-date`, `min`, `max`, `step` et `default-value` restent ISO ; les bornes sont comparées sous forme ISO et leurs messages les nomment dans le motif. Une saisie qui ne suit pas exactement le motif (ISO compris) est une saisie incorrecte (`bad-input`) et n’est jamais acceptée.",
+          "default": "Motif vide (saisie ISO).",
+          "example": "KitDateField { entry-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Le motif doit contenir une date complète (`DatePattern`) ; un motif vide, incomplet ou invalide, ou un jeu de noms invalide, conserve la saisie ISO (`entry-active` est faux). Quatre modèles de noms vides gardent les noms anglais ; sinon 12, 12, 7 et 7 entrées non vides et distinctes. Les noms se comparent sans tenir compte de la casse, sans retirer les accents. Aucun siècle n’est déduit et aucun ordre concurrent n’est essayé. Le placeholder ISO par défaut est vide : fournissez le vôtre. Associez un `FieldSpec::date_pattern` avec le même motif quand vous utilisez `spec-key`."
         }
       },
       "callbacks": {
@@ -3267,7 +3273,13 @@
           "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` used to format the resting text with the installed calendar service. Editing and the accepted value stay ISO.",
           "default": "Empty pattern (ISO text).",
           "example": "KitDateField { display-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
-          "constraints": "Name models need 12, 12, 7 and 7 nonempty distinct entries, even for a pattern without names; otherwise the ISO text is kept."
+          "constraints": "Name models need 12, 12, 7 and 7 nonempty distinct entries, even for a pattern without names; otherwise the ISO text is kept. Has no effect while `entry-format` is active: the text is then already in the entry pattern."
+        },
+        "entry-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` also drives typing: the field text, `edited`, `commit-requested` and `committed` follow this pattern (for example `%d/%m/%Y` or `%-d %B %Y`). `accepted-date`, `min`, `max`, `step` and `default-value` stay ISO; bounds are compared as ISO and their messages name them in the pattern. Text that does not follow the pattern exactly (ISO included) is bad input (`bad-input`) and is never accepted.",
+          "default": "Empty pattern (ISO entry).",
+          "example": "KitDateField { entry-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "The pattern must contain a complete date (`DatePattern`); an empty, incomplete or invalid pattern, or an invalid name set, keeps ISO entry (`entry-active` is false). Four empty name models keep the English names; otherwise 12, 12, 7 and 7 nonempty distinct entries. Names match case-insensitively without stripping accents. No century is inferred and no competing order is tried. The default ISO placeholder is empty: supply your own. Pair a `FieldSpec::date_pattern` with the same pattern when you use `spec-key`."
         }
       },
       "callbacks": {
@@ -3464,10 +3476,16 @@
           "example": "KitDatePicker { navigation-help: \"…\"; }"
         },
         "display-pattern": {
-          "effect": "Motif de type strftime du texte affiché quand le champ n’a pas le focus, par exemple `%d/%m/%Y`, `%-d %b %Y` ou `%A %-d %B %Y`. Les noms de mois et de jours viennent de `month-names`, `month-short-names`, `weekday-names` et `weekday-short-names`. La saisie, les contraintes natives de date et la valeur acceptée restent ISO (`YYYY-MM-DD`).",
+          "effect": "Motif de type strftime du texte affiché quand le champ n’a pas le focus, par exemple `%d/%m/%Y`, `%-d %b %Y` ou `%A %-d %B %Y`. Les noms de mois et de jours viennent de `month-names`, `month-short-names`, `weekday-names` et `weekday-short-names`. La saisie, les contraintes natives de date et la valeur acceptée restent ISO (`YYYY-MM-DD`) sauf si `entry-pattern` est défini.",
           "default": "Vide (texte ISO).",
           "example": "KitDatePicker { display-pattern: \"%d/%m/%Y\"; }",
-          "constraints": "Syntaxe DateDisplayPattern limitée aux dates. Un motif ou un jeu de noms invalide conserve le texte ISO. La saisie d’une date non ISO n’est pas prise en charge."
+          "constraints": "Syntaxe DateDisplayPattern limitée aux dates. Un motif ou un jeu de noms invalide conserve le texte ISO. Pour saisir dans un motif, utilisez `entry-pattern`."
+        },
+        "entry-pattern": {
+          "effect": "Motif de type strftime pour saisir la date, par exemple `%d/%m/%Y` ou `%-d %B %Y`. Le texte du champ, `edited`, `commit-requested`, `committed` et `text` suivent ce motif ; les noms viennent de `month-names`, `month-short-names`, `weekday-names` et `weekday-short-names`. `accepted-date`, `min`, `max`, `step` et `default-value` restent ISO ; les messages de borne nomment les bornes dans le motif. Une saisie qui ne suit pas exactement le motif est une saisie incorrecte et n’est jamais acceptée. `entry-active` indique si le motif est utilisé.",
+          "default": "Vide (saisie ISO).",
+          "example": "KitDatePicker { entry-pattern: \"%d/%m/%Y\"; }",
+          "constraints": "Le motif doit contenir une date complète (`DatePattern`) et les noms 12, 12, 7 et 7 entrées non vides et distinctes ; sinon la saisie reste ISO. Le placeholder ISO par défaut est vide quand le motif est actif : fournissez le vôtre."
         },
         "spec-key": {
           "effect": "Clé d’un FieldSpec enregistré auprès du service de champs ; son formateur d’affichage met en forme le texte au repos quand `display-pattern` est vide.",
@@ -3668,10 +3686,16 @@
           "example": "KitDatePicker { navigation-help: \"…\"; }"
         },
         "display-pattern": {
-          "effect": "strftime-style pattern for the text shown while the field is not focused, for example `%d/%m/%Y`, `%-d %b %Y` or `%A %-d %B %Y`. Month and weekday names come from `month-names`, `month-short-names`, `weekday-names` and `weekday-short-names`. Editing, native date constraints and the accepted value stay ISO (`YYYY-MM-DD`).",
+          "effect": "strftime-style pattern for the text shown while the field is not focused, for example `%d/%m/%Y`, `%-d %b %Y` or `%A %-d %B %Y`. Month and weekday names come from `month-names`, `month-short-names`, `weekday-names` and `weekday-short-names`. Editing, native date constraints and the accepted value stay ISO (`YYYY-MM-DD`) unless `entry-pattern` is set.",
           "default": "Empty (ISO text).",
           "example": "KitDatePicker { display-pattern: \"%d/%m/%Y\"; }",
-          "constraints": "Date-only DateDisplayPattern syntax. An invalid pattern or name set keeps the ISO text. Typing a non-ISO date is not supported."
+          "constraints": "Date-only DateDisplayPattern syntax. An invalid pattern or name set keeps the ISO text. To type in a pattern, use `entry-pattern`."
+        },
+        "entry-pattern": {
+          "effect": "strftime-style pattern for typing the date, for example `%d/%m/%Y` or `%-d %B %Y`. The field text, `edited`, `commit-requested`, `committed` and `text` follow this pattern; names come from `month-names`, `month-short-names`, `weekday-names` and `weekday-short-names`. `accepted-date`, `min`, `max`, `step` and `default-value` stay ISO; bound messages name the bounds in the pattern. Text that does not follow the pattern exactly is bad input and is never accepted. `entry-active` reports whether the pattern is in use.",
+          "default": "Empty (ISO entry).",
+          "example": "KitDatePicker { entry-pattern: \"%d/%m/%Y\"; }",
+          "constraints": "The pattern must contain a complete date (`DatePattern`) and the names 12, 12, 7 and 7 nonempty distinct entries; otherwise entry stays ISO. The default ISO placeholder is empty while the pattern is active: supply your own."
         },
         "spec-key": {
           "effect": "Key of a FieldSpec registered with the field service; its display formatter shapes the resting text when `display-pattern` is empty.",

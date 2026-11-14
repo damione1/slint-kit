@@ -17,6 +17,7 @@ import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } fr
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
 import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
 export { PhoneNumberMode } from "shared-contracts.slint";
+import { DateDisplay } from "calendar-service.slint";
 import { KitFormValidation, FormConstraintState, FormEditorFocus, KitInputConstraints, KitMaskRules, KitValidityState, HtmlInputKind, ValidationTiming, TextFilterSpec } from "validation.slint";
 
 export { FieldDecoration } from "field.slint";
@@ -155,6 +156,7 @@ export component KitTextField inherits KitField {
         : root.purpose == TextPurpose.password ? HtmlInputKind.password
         : root.purpose == TextPurpose.search ? HtmlInputKind.search : HtmlInputKind.text;
     in property <bool> validation-twelve-hour;
+    in property <DateDisplay> validation-date-entry;
     in property <string> validation-mask;
     private property <bool> mask-ready: root.validation-mask == "" || KitFormValidation.ready;
     in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
@@ -441,7 +443,7 @@ export component KitTextField inherits KitField {
         preferred-height: Math.max(root.editor-height, editor-row.preferred-height) + 2 * root.padding-block;
         max-height: self.preferred-height;
         checks := FormConstraintState {
-            kind: root.input-kind; twelve-hour: root.validation-twelve-hour; number-format: root.number-format; access: root.access; required: root.required; multiple: root.multiple;
+            kind: root.input-kind; twelve-hour: root.validation-twelve-hour; date-entry: root.validation-date-entry; number-format: root.number-format; access: root.access; required: root.required; multiple: root.multiple;
             min-length: root.min-length; max-length: root.max-length;
             pattern: root.pattern; pattern-enabled: root.pattern-enabled;
             min: root.min; max: root.max; step: root.step; default-value: root.default-value;

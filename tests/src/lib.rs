@@ -847,6 +847,7 @@ mod variants;
 mod base_feedback;
 
 mod date_display;
+mod date_entry;
 mod datetime_localization;
 mod datetime_strings;
 mod duration_unit;

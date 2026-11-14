@@ -53,6 +53,11 @@ export global KitCalendarService {
     pure callback parse-date(string) -> CivilDateView;
     pure callback format-date(CivilDateView) -> string;
     pure callback display-date(string, DateDisplay) -> string;
+    // Typed entry: the pattern of a DateDisplay also parses and prints the edit text.
+    // False for an empty pattern, a pattern without a complete date, or invalid names.
+    pure callback date-entry-valid(DateDisplay) -> bool;
+    pure callback parse-date-entry(string, DateDisplay) -> CivilDateView;
+    pure callback format-date-entry(CivilDateView, DateDisplay) -> string;
     pure callback project(CalendarView, CalendarText) -> CalendarProjection;
     pure callback navigate(CalendarView, CalendarNavigation) -> CivilDateView;
     pure callback show-month(CalendarView, int, int) -> CivilDateView;

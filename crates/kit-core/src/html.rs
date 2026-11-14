@@ -124,6 +124,9 @@ pub struct HtmlConstraints {
     pub custom_error: String,
     pub disabled: bool,
     pub read_only: bool,
+    /// Date drafts follow this pattern; `min`, `max` and the submission value
+    /// stay ISO. Only `HtmlInputKind::Date` reads it.
+    pub date_entry: Option<crate::DateEntry>,
 }
 impl Default for HtmlConstraints {
     fn default() -> Self {
@@ -144,6 +147,7 @@ impl Default for HtmlConstraints {
             custom_error: String::new(),
             disabled: false,
             read_only: false,
+            date_entry: None,
         }
     }
 }
@@ -199,6 +203,13 @@ impl HtmlConstraints {
                 draft.split_once(['T', ' ']).and_then(|(d, t)| {
                     canonical_clock_draft(t, &self.day_periods).map(|t| format!("{d}T{t}"))
                 })
+            } else if let (HtmlInputKind::Date, Some(entry)) = (self.kind, &self.date_entry) {
+                match entry.parse(draft) {
+                    crate::DraftValue::Parsed(date) => Some(date.iso_string()),
+                    crate::DraftValue::Empty
+                    | crate::DraftValue::Incomplete
+                    | crate::DraftValue::Invalid(_) => None,
+                }
             } else {
                 Some(draft.into())
             };
@@ -871,6 +882,27 @@ mod tests {
         assert!(validate(&c, "1.").bad_input);
         assert!(validate(&c, "-").bad_input);
         assert!(validate(&c, ".5").valid());
+    }
+    #[test]
+    fn date_entry_sanitizes_the_pattern_draft_to_iso_and_keeps_iso_bounds() {
+        let mut c = rules(HtmlInputKind::Date);
+        c.date_entry = Some(crate::DateEntry::new(
+            crate::DatePattern::new("%d/%m/%Y").unwrap(),
+            None,
+        ));
+        c.minimum = Some("2026-10-10".into());
+        c.maximum = Some("2026-10-20".into());
+        assert_eq!(c.sanitize("15/10/2026"), "2026-10-15");
+        assert!(validate(&c, "15/10/2026").valid());
+        assert!(validate(&c, "09/10/2026").range_underflow);
+        assert!(validate(&c, "21/10/2026").range_overflow);
+        for draft in ["2026-10-15", "31/02/2026", "15/10", "x"] {
+            assert!(validate(&c, draft).bad_input, "{draft}");
+            assert_eq!(c.sanitize(draft), "", "{draft}");
+        }
+        assert!(validate(&c, "").valid());
+        c.required = true;
+        assert!(validate(&c, "").value_missing);
     }
     #[test]
     fn temporal_constraints_keep_calendar_and_periodic_time_semantics() {
