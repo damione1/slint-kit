@@ -20,5 +20,11 @@ export struct DialogState { open: bool, topmost: bool, busy: bool }
 export struct ChoiceRow { token: int, label: string, disabled: bool, selected: bool }
 export enum ExpansionMode { single, multiple }
 export struct DisclosureRow { item: OptionRow, expanded: bool }
+// A row of an application sidebar, in reading order. `parent` nests an item under
+// another item by token; a section ignores it.
+export enum SidebarRowKind { section, item }
+export struct SidebarRow { item: OptionRow, kind: SidebarRowKind, parent: SelectionRef, leading-icon: IconGlyph, badge: string }
+// A sidebar row that is on screen, with its depth and expansion.
+export struct SidebarVisibleRow { row: SidebarRow, depth: int, expandable: bool, expanded: bool }
 
 export struct ChipRow { token: int, label: string, removable: bool }

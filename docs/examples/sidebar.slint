@@ -1,0 +1,42 @@
+import { InterFont } from "@kit/fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { KitSidebar, KitButton, SidebarRow, SidebarRowKind, KitTheme, KitThemes } from "@kit";
+
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    title: "KitSidebar example";
+    preferred-width: 640px;
+    preferred-height: 380px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status: "No page chosen yet";
+    in-out property <bool> collapsed;
+    in property <[SidebarRow]> rows: [
+        { item: { token: 1, generation: 1, label: "Workspace", description: "", disabled: false }, kind: SidebarRowKind.section, parent: { present: false, token: 0 }, leading-icon: { stroke: "", fill: "", viewbox: 24 }, badge: "" },
+        { item: { token: 2, generation: 1, label: "Dashboard", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: false, token: 0 }, leading-icon: LucideIcons.layout-dashboard(), badge: "" },
+        { item: { token: 3, generation: 1, label: "Projects", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: false, token: 0 }, leading-icon: LucideIcons.folder(), badge: "" },
+        { item: { token: 4, generation: 1, label: "Active", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: true, token: 3 }, leading-icon: { stroke: "", fill: "", viewbox: 24 }, badge: "" },
+        { item: { token: 5, generation: 1, label: "Archived", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: true, token: 3 }, leading-icon: { stroke: "", fill: "", viewbox: 24 }, badge: "" },
+        { item: { token: 6, generation: 1, label: "Settings", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: false, token: 0 }, leading-icon: LucideIcons.settings(), badge: "3" }
+    ];
+    HorizontalLayout {
+        KitSidebar {
+            theme: root.theme;
+            rows: root.rows;
+            collapsed: root.collapsed;
+            accessible-name: "Main navigation";
+            chosen(row) => { root.status = "Current page: " + row.label; }
+            rail-parent-activated(row) => { root.collapsed = false; }
+        }
+        VerticalLayout {
+            padding: 24px;
+            spacing: 12px;
+            alignment: start;
+            KitButton { theme: root.theme; text: root.collapsed ? "Expand the sidebar" : "Collapse to icons"; activated => { root.collapsed = !root.collapsed; } }
+            Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+        }
+    }
+}
