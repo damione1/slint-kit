@@ -255,11 +255,11 @@ class ReleaseTests(unittest.TestCase):
                     release.github_api('releases')
                 transport.assert_not_called()
 
-    def test_workflow_grants_release_write_only_to_publish_job(self):
+    def test_workflow_grants_release_write_only_to_publish_crates_job(self):
         # Inspect the actual workflow, not the temporary crate fixture.
         workflow = (Path(__file__).resolve().parents[1] / 'workflows/release.yml').read_text()
         header, jobs = workflow.split('\njobs:\n', 1)
-        match = re.search(r'(?ms)^  publish:\n.*?(?=^  \S|\Z)', jobs)
+        match = re.search(r'(?ms)^  publish-crates:\n.*?(?=^  \S|\Z)', jobs)
         self.assertIsNotNone(match)
         publish = match.group(0)
         other_jobs = jobs.replace(publish, '', 1)
@@ -268,6 +268,72 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(workflow.count('contents: write'), 1)
         self.assertNotIn('contents: write', other_jobs)
         self.assertIn('GH_TOKEN: ${{ github.token }}', publish)
+
+    def check_run(self, name, identifier, status='completed', conclusion='success'):
+        return {'id': identifier, 'name': name, 'status': status, 'conclusion': conclusion}
+
+    def require(self, entries, pages=None):
+        responses = pages or [{'total_count': len(entries), 'check_runs': entries}]
+        with patch.object(release, 'github_api', side_effect=responses) as api:
+            release.require_check_success('abc123')
+        return api
+
+    def test_tag_must_be_on_main(self):
+        for status in ('identical', 'behind'):
+            with patch.object(release, 'github_api', return_value={'status': status}) as api:
+                release.require_on_main('abc123')
+            self.assertIn('compare/main...abc123', api.call_args.args[0])
+        for status in ('ahead', 'diverged'):
+            with self.subTest(status=status), patch.object(release, 'github_api', return_value={'status': status}), \
+                    self.assertRaisesRegex(ValueError, f'not on main \\({status}\\)'):
+                release.require_on_main('abc123')
+        with patch.object(release, 'github_api', return_value={'status': 'unknown'}), self.assertRaises(ValueError):
+            release.require_on_main('abc123')
+
+    def test_check_gate_accepts_successful_required_runs(self):
+        api = self.require([self.check_run('linux', 1), self.check_run('windows', 2), self.check_run('docs-bundle', 3, 'in_progress', None)])
+        self.assertIn('commits/abc123/check-runs', api.call_args.args[0])
+
+    def test_check_gate_rejects_missing_unfinished_and_failed_runs(self):
+        cases = {
+            'no Check run found': [self.check_run('linux', 1)],
+            'still in_progress': [self.check_run('linux', 1), self.check_run('windows', 2, 'in_progress', None)],
+            'windows: failure': [self.check_run('linux', 1), self.check_run('windows', 2, conclusion='failure')],
+            'linux: cancelled': [self.check_run('linux', 1, conclusion='cancelled'), self.check_run('windows', 2)],
+            'linux: skipped': [self.check_run('linux', 1, conclusion='skipped'), self.check_run('windows', 2)],
+        }
+        for message, entries in cases.items():
+            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                self.require(entries)
+
+    def test_check_gate_uses_the_latest_rerun(self):
+        self.require([self.check_run('linux', 1, conclusion='failure'), self.check_run('linux', 5), self.check_run('windows', 2)])
+        with self.assertRaisesRegex(ValueError, 'linux: failure'):
+            self.require([self.check_run('linux', 9, conclusion='failure'), self.check_run('linux', 5), self.check_run('windows', 2)])
+
+    def test_check_gate_reads_every_page(self):
+        first = {'total_count': 101, 'check_runs': [self.check_run('docs-bundle', index) for index in range(100, 200)]}
+        second = {'total_count': 101, 'check_runs': [self.check_run('linux', 1)]}
+        with self.assertRaisesRegex(ValueError, 'windows: no Check run found'):
+            self.require([], pages=[first, second])
+
+    def test_check_gate_refuses_unknown_github_values(self):
+        with self.assertRaises(ValueError):
+            self.require([self.check_run('linux', 1, conclusion='fantastic'), self.check_run('windows', 2)])
+
+    def test_required_checks_exist_in_the_check_workflow(self):
+        workflow = (Path(__file__).resolve().parents[1] / 'workflows/check.yml').read_text()
+        for name in release.REQUIRED_CHECKS:
+            self.assertRegex(workflow, rf'(?m)^  {re.escape(name)}:\n')
+
+    def test_release_workflow_gates_publication_without_rebuilding(self):
+        workflow = (Path(__file__).resolve().parents[1] / 'workflows/release.yml').read_text()
+        publish = re.search(r'(?ms)^  publish-crates:\n.*?(?=^  \S|\Z)', workflow).group(0)
+        self.assertIn('release.py require-check', publish)
+        self.assertLess(publish.index('release.py validate'), publish.index('release.py require-check'))
+        self.assertLess(publish.index('release.py require-check'), publish.index('cargo package'))
+        self.assertNotIn('xtask', workflow)
+        self.assertIn('checks: read', publish)
 
 
 if __name__ == '__main__':

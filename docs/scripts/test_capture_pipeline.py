@@ -10,6 +10,7 @@ from unittest.mock import patch
 import zlib
 
 import capture_pipeline as pipeline
+import doc_inputs
 from doc_inputs import archived_runtime_inputs
 
 
@@ -160,6 +161,103 @@ class CatalogueCaptureTests(unittest.TestCase):
         component = json.loads(self.path.read_text())['components']['chip-button']
         self.assertEqual(component['width'], 99)
         self.assertEqual(len(component['locales']['fr']['variants']), 2)
+
+
+def solid_png(width, height, colour):
+    from PIL import Image
+    stream = io.BytesIO()
+    Image.new('RGBA', (width, height), colour).save(stream, format='PNG', compress_level=1)
+    return stream.getvalue()
+
+
+class RuntimeScopeTests(unittest.TestCase):
+    FILES = {'Cargo.lock': b'package = []\n',
+             'crates/kit/Cargo.toml': b'[package]\nname = "slint-kit"\n',
+             'crates/kit-slint/Cargo.toml': b'[package]\nname = "slint-kit-slint"\n',
+             'crates/kit-core/Cargo.toml': b'[package]\nname = "slint-kit-core"\n',
+             'crates/kit/src/lib.rs': b'pub fn kit() {}',
+             'crates/kit-core/src/lib.rs': b'pub fn core() {}',
+             'crates/kit-slint/src/lib.rs': b'pub fn adapter() {}',
+             'crates/kit-slint/build.rs': b'fn main() {}',
+             'crates/kit-slint/ui/theme.slint': b'export global T { in property <int> a: 1; }',
+             'crates/kit-slint/ui/font.ttf': b'font-bytes',
+             'crates/kit-native/src/lib.rs': b'pub fn dialogs() {}',
+             'crates/kit-build/src/lib.rs': b'pub fn build() {}',
+             'crates/kit-slint/tests/unit.rs': b'fn t() {}',
+             'xtask/src/main.rs': b'fn main() {}',
+             'docs/preview/src/lib.rs': b'pub fn host() {}',
+             'docs/preview/build.rs': b'fn main() {}',
+             'docs/preview/Cargo.toml': b'[package]\nname = "p"\nversion = "0.1.0"\n[dependencies]\nslint-kit = { version = "=0.8.0" }\n',
+             'docs/preview/Cargo.lock': b'package = []\n'}
+
+    def digest_with(self, **changes):
+        sources = {**self.FILES, **{name.replace('__', '/'): value for name, value in changes.items()}}
+        return doc_inputs.digest(archived_runtime_inputs(sources))
+
+    def test_unreachable_crates_do_not_change_the_runtime_digest(self):
+        base = self.digest_with()
+        for name in ('crates/kit-native/src/lib.rs', 'crates/kit-build/src/lib.rs',
+                     'crates/kit-slint/tests/unit.rs', 'xtask/src/main.rs'):
+            with self.subTest(name=name):
+                sources = {**self.FILES, name: b'// changed'}
+                self.assertEqual(doc_inputs.digest(archived_runtime_inputs(sources)), base)
+
+    def test_reachable_sources_change_the_runtime_digest(self):
+        base = self.digest_with()
+        for name in ('crates/kit-slint/src/lib.rs', 'crates/kit/src/lib.rs', 'crates/kit-core/src/lib.rs',
+                     'crates/kit-slint/build.rs', 'docs/preview/src/lib.rs', 'docs/preview/build.rs',
+                     'crates/kit-slint/ui/theme.slint', 'crates/kit-slint/ui/font.ttf'):
+            with self.subTest(name=name):
+                sources = {**self.FILES, name: b'// changed'}
+                self.assertNotEqual(doc_inputs.digest(archived_runtime_inputs(sources)), base)
+
+    def test_preview_release_version_pin_is_not_a_rendering_input(self):
+        bumped = self.FILES['docs/preview/Cargo.toml'].replace(b'=0.8.0', b'=0.8.1')
+        sources = {**self.FILES, 'docs/preview/Cargo.toml': bumped}
+        self.assertEqual(doc_inputs.digest(archived_runtime_inputs(sources)), self.digest_with())
+
+    def test_live_scope_matches_the_archived_scope(self):
+        live = doc_inputs.runtime_inputs()
+        for name in list(live['rust']) + list(live['assets']):
+            self.assertTrue(doc_inputs.RUNTIME_SCOPE.includes_rust(name) or doc_inputs.RUNTIME_SCOPE.includes_asset(name))
+        self.assertFalse(any(name.startswith(('crates/kit-native/', 'crates/kit-build/', 'xtask/')) for name in live['rust']))
+        self.assertIn('crates/kit-slint/src/lib.rs', live['rust'])
+
+
+class ImageSettlementTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.path = Path(temporary.name) / 'scene@2x.png'
+
+    def test_identical_pixels_keep_the_committed_bytes(self):
+        committed = solid_png(4, 2, (10, 20, 30, 255))
+        from PIL import Image
+        stream = io.BytesIO()
+        Image.new('RGBA', (4, 2), (10, 20, 30, 255)).save(stream, format='PNG', compress_level=9, optimize=True)
+        recaptured = stream.getvalue()
+        self.assertNotEqual(committed, recaptured)
+        self.path.write_bytes(recaptured)
+        self.assertEqual(pipeline.settle_image(self.path, committed), pipeline.CaptureOutcome.UNCHANGED)
+        self.assertEqual(self.path.read_bytes(), committed)
+
+    def test_different_pixels_are_rewritten(self):
+        committed = solid_png(4, 2, (10, 20, 30, 255))
+        recaptured = solid_png(4, 2, (10, 20, 31, 255))
+        self.path.write_bytes(recaptured)
+        self.assertEqual(pipeline.settle_image(self.path, committed), pipeline.CaptureOutcome.UPDATED)
+        self.assertEqual(self.path.read_bytes(), recaptured)
+
+    def test_different_size_is_rewritten(self):
+        committed = solid_png(4, 2, (1, 2, 3, 255))
+        recaptured = solid_png(6, 2, (1, 2, 3, 255))
+        self.path.write_bytes(recaptured)
+        self.assertEqual(pipeline.settle_image(self.path, committed), pipeline.CaptureOutcome.UPDATED)
+        self.assertEqual(self.path.read_bytes(), recaptured)
+
+    def test_missing_committed_image_is_new(self):
+        self.path.write_bytes(solid_png(2, 2, (0, 0, 0, 255)))
+        self.assertEqual(pipeline.settle_image(self.path, None), pipeline.CaptureOutcome.NEW)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,91 @@
+name: Documentation bundle
+# Restore the compiled WASM preview bundle from Cloudflare R2 by bundle key; on a
+# miss, compile it once and store it. Called by Check (push to main) and Release.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Commit or tag to build; empty means the calling commit'
+        type: string
+        default: ''
+    outputs:
+      key:
+        description: 'Bundle key now stored in R2'
+        value: ${{ jobs.bundle.outputs.key }}
+      outcome:
+        description: 'hit when R2 already held the bundle, miss when it was compiled'
+        value: ${{ jobs.bundle.outputs.outcome }}
+permissions:
+  contents: read
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: always
+  CARGO_BUILD_JOBS: '2'
+  # Pinned in docs/scripts/build-web-previews.py (BINDGEN_VERSION).
+  WASM_BINDGEN_VERSION: '0.2.129'
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+      outcome: ${{ steps.pull.outputs.outcome }}
+    env:
+      DOCS_CACHE_BUCKET: ${{ vars.DOCS_CACHE_BUCKET }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            docs/preview -> ../../target/doc-previews
+          cache-on-failure: true
+      - name: Install Linux development libraries
+        run: |
+          sudo timeout 600 apt-get update
+          sudo timeout 600 apt-get install -y --no-install-recommends \
+            libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libfontconfig-dev libwayland-dev
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+      - name: Install the matching wasm-bindgen CLI
+        run: |
+          cargo binstall --no-confirm --locked "wasm-bindgen-cli@${WASM_BINDGEN_VERSION}"
+          test "$(wasm-bindgen --version)" = "wasm-bindgen ${WASM_BINDGEN_VERSION}"
+      - name: Check the R2 configuration
+        run: |
+          for name in DOCS_CACHE_BUCKET CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN; do
+            test -n "${!name}" || { echo "::error::$name is missing (repository variable or secret)"; exit 1; }
+          done
+      - name: Compute the bundle key
+        id: key
+        shell: bash
+        run: |
+          key=$(python3 docs/scripts/build-web-previews.py --print-key | tail -n 1)
+          [[ "$key" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::Invalid bundle key: $key"; exit 1; }
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+      - name: Pull the bundle from R2
+        id: pull
+        run: python3 docs/scripts/bundle_cache.py pull --key "${{ steps.key.outputs.key }}"
+      - name: Compile the bundle on a cache miss
+        if: steps.pull.outputs.outcome == 'miss'
+        run: python3 docs/scripts/build-web-previews.py
+      - name: Store the bundle in R2
+        if: steps.pull.outputs.outcome == 'miss'
+        run: python3 docs/scripts/bundle_cache.py push --key "${{ steps.key.outputs.key }}"

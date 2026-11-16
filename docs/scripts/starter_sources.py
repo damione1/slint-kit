@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Prepare independent consumers and private local builds without patching downloads."""
+from dataclasses import dataclass
 from enum import Enum
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tomllib
 
@@ -16,6 +18,16 @@ KIT_PACKAGES = {'slint-kit-core': 'crates/kit-core', 'slint-kit-slint': 'crates/
                 'slint-kit': 'crates/kit'}
 LOCK_PACKAGE = 'slint-kit-consumer-lock'
 _prepared = {}
+_groups = {}
+WORKSPACE_FOLDER = 'target/docs-consumer-workspaces'
+
+
+@dataclass(frozen=True)
+class DependencyGroup:
+    """Starters sharing one dependency graph, with the lock resolved for that graph."""
+    key: str
+    lock: str
+    packages: tuple[tuple[str, str], ...]  # (slug, package name), sorted by slug
 
 
 def source_files(folder):
@@ -157,6 +169,7 @@ def prepare(mode=None):
     consumers = {}
     private = {}
     graphs = {}
+    members = {}
     checksums = {}
     for slug in sorted(entries):
         if not re.fullmatch('[a-z]+(?:-[a-z]+)*', slug):
@@ -171,6 +184,7 @@ def prepare(mode=None):
         graph = digest((normalized + '\0' + normalized_seed).encode())
         if graph not in graphs:
             graphs[graph] = prepared_lock(mode, source, seed, cargo_version)
+        members.setdefault(graph, []).append((slug, manifest['package']['name']))
         lock = rename_lock(graphs[graph], LOCK_PACKAGE, manifest['package']['name'])
         destination = public / slug
         native = ROOT / 'docs/.cache/native-source' / slug if mode is BuildMode.LOCAL else destination
@@ -191,6 +205,8 @@ def prepare(mode=None):
                   sort_keys=True, indent=2) + '\n')
     _prepared.clear()  # The public destination contains exactly one mode at a time.
     _prepared[mode] = consumers, private
+    _groups.clear()
+    _groups[mode] = tuple(DependencyGroup(key, graphs[key], tuple(packages)) for key, packages in members.items())
     print(f'Prepared {len(consumers)} {mode.value} consumers with {len(graphs)} dependency graphs', flush=True)
     return consumers
 
@@ -203,3 +219,65 @@ def source_directory(slug, mode=None, native=False):
     if slug not in consumers:
         raise ValueError(f'Unknown starter: {slug}')
     return (private if native else consumers)[slug]
+
+
+def dependency_groups(mode=None, slugs=()):
+    """Return the dependency groups of the prepared consumers, restricted to `slugs` when given."""
+    mode = build_mode(mode)
+    if mode not in _groups:
+        prepare(mode)
+    groups = _groups[mode]
+    known = {slug for group in groups for slug, _ in group.packages}
+    unknown = sorted(set(slugs) - known)
+    if unknown:
+        raise ValueError(f'Unknown starter: {unknown[0]}')
+    if not slugs:
+        return groups
+    selected = []
+    for group in groups:
+        packages = tuple(entry for entry in group.packages if entry[0] in slugs)
+        if packages:
+            selected.append(DependencyGroup(group.key, group.lock, packages))
+    return tuple(selected)
+
+
+def external_packages(lock):
+    """Registry or git packages of a lock file, as (name, version, source)."""
+    return frozenset((package['name'], package['version'], package['source'])
+                     for package in tomllib.loads(lock)['package'] if 'source' in package)
+
+
+def member_manifest(source):
+    """A public starter manifest turned into a workspace member: drop its own empty [workspace]."""
+    result, count = re.subn(r'(?m)^\[workspace\][ \t]*(?:#.*)?\n?', '', source)
+    if count != 1:
+        raise ValueError('A starter manifest must declare exactly one [workspace] table')
+    return result
+
+
+def group_workspace(mode, group, consumers):
+    """Write a synthetic workspace that holds every starter of one dependency graph.
+
+    The public consumers are copied, never modified. The shared lock is extended with the
+    members through `cargo update --workspace`, which keeps every external package of the
+    graph lock; a changed external package is an error instead of a silent re-resolution.
+    """
+    directory = ROOT / WORKSPACE_FOLDER / mode.value / group.key[:16]
+    shutil.rmtree(directory, ignore_errors=True)
+    names = [slug for slug, _ in group.packages]
+    for slug in names:
+        source = consumers[slug]
+        for name in source_files(source):
+            if name not in ('Cargo.toml', 'Cargo.lock'):
+                write_changed(directory / slug / name, (source / name).read_bytes())
+        write_changed(directory / slug / 'Cargo.toml', member_manifest((source / 'Cargo.toml').read_text()))
+    root = '[workspace]\nresolver = "3"\nmembers = [' + ', '.join(json.dumps(slug) for slug in names) + ']\n'
+    if mode is BuildMode.LOCAL:
+        root += local_patches()
+    write_changed(directory / 'Cargo.toml', root)
+    write_changed(directory / 'Cargo.lock', rename_lock(group.lock, LOCK_PACKAGE, group.packages[0][1]))
+    subprocess.run(['cargo', 'update', '--workspace', '--manifest-path', str(directory / 'Cargo.toml')],
+                   cwd=ROOT, check=True)
+    if external_packages((directory / 'Cargo.lock').read_text()) != external_packages(group.lock):
+        raise ValueError(f'Grouped lock drifted from the consumer lock: {names[0]} and {len(names) - 1} others')
+    return directory
