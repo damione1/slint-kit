@@ -84,6 +84,10 @@ jobs:
           DOCS_BUILD_MODE: local
         run: python3 docs/scripts/capture_pipeline.py check
       - name: Check the workspace and headless component suite
+        env:
+          # Two concurrent rustc processes on the generated UI crates each pass
+          # 7 GB and exhaust the 16 GB runner (exit 143). Compile one at a time.
+          CARGO_BUILD_JOBS: '1'
         run: |
           printf 'Available CPUs: '
           nproc
