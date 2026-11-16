@@ -20,13 +20,14 @@ web-time = "=1.1.0"
 [build-dependencies]
 slint-kit-build = "=0.8.0"
 
-# Declared once. Compile time matters more than bundle size here: the preview
-# bundle is rebuilt on every release, so skip LTO, split codegen across many
-# units so rustc can use every core, and optimise for size cheaply ("s").
+# Declared once. Keep few codegen units: LLVM merges identical constants only
+# inside one unit, and every fixture embeds the Inter fonts. With 256 units the
+# fonts were copied about 1,000 times and the gzipped bundle exceeded the 25 MiB
+# hosting limit. The R2 cache compiles this bundle once per merged commit.
 [profile.release]
-opt-level = "s"
-lto = "off"
-codegen-units = 256
+opt-level = "z"
+lto = "thin"
+codegen-units = 16
 panic = "abort"
 strip = true
 
