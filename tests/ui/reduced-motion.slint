@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitButton, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitSwitch, KitScrollBar, ScrollBarRecipe, ProgressMode } from "@kit";
+
+export component ReducedMotionFixture inherits Window {
+    width: 640px; height: 600px;
+    background: root.theme.canvas;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <float> progress: 0.2;
+    in property <ProgressMode> mode;
+    in property <duration> scroll-duration: 900ms;
+    in property <bool> checked;
+    private property <ScrollBarRecipe> scroll-recipe: KitThemes.scroll-bar-recipe(root.theme);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        KitButton { theme: root.theme; text: "Saving"; busy: true; }
+        KitProgress { theme: root.theme; value: root.progress; mode: root.mode; label: "Upload"; }
+        KitRadialProgress { theme: root.theme; value: root.progress; mode: root.mode; label: "Review"; }
+        KitSpinner { theme: root.theme; label: "Loading"; }
+        KitSkeleton { theme: root.theme; }
+        KitSwitch { theme: root.theme; label: "Enabled"; checked: root.checked; }
+    }
+    bar := KitScrollBar {
+        x: root.width - self.width; y: 0px; height: root.height;
+        theme: root.theme; maximum: 1000px; page-size: 100px;
+        // A consumer override must remain effective when animations are enabled.
+        recipe: { thickness: root.scroll-recipe.thickness,
+            thumb-thickness: root.scroll-recipe.thumb-thickness,
+            active-thumb-thickness: root.scroll-recipe.active-thumb-thickness,
+            min-thumb-length: root.scroll-recipe.min-thumb-length,
+            inset: root.scroll-recipe.inset, track: root.scroll-recipe.track,
+            active-track: root.scroll-recipe.active-track, thumb: root.scroll-recipe.thumb,
+            active-thumb: root.scroll-recipe.active-thumb, transition: root.scroll-duration };
+    }
+}
