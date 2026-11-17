@@ -17,6 +17,27 @@ spec.loader.exec_module(web)
 
 
 class ComponentPreviewTests(unittest.TestCase):
+    def test_bundle_key_ignores_compiler_host_but_retains_toolchain_identity(self):
+        rustc = ('rustc 1.99.1 (58cf8f9c3 2026-10-13)\n'
+                 'binary: rustc\n'
+                 'commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\n'
+                 'commit-date: 2026-10-13\n'
+                 'host: aarch64-apple-darwin\n'
+                 'release: 1.99.1\n'
+                 'LLVM version: 23.1.1')
+        inputs = {'entries': {'starter:button:tailwind': {'identity': 'starter'}}}
+        with patch.object(web, 'corresponding_sources', return_value=[]), \
+             patch.object(web, 'runtime_inputs', return_value={}):
+            def key(compiler):
+                return web.bundle_key(inputs, compiler, 'wasm-bindgen 0.2.129', {})
+            original = key(rustc)
+            self.assertEqual(original, key(rustc.replace('aarch64-apple-darwin', 'x86_64-unknown-linux-gnu')))
+            for before, after in [('release: 1.99.1', 'release: 1.99.2'),
+                                  ('commit-hash: 58cf8f9c3', 'commit-hash: 012345678'),
+                                  ('LLVM version: 23.1.1', 'LLVM version: 23.1.2')]:
+                with self.subTest(field=before):
+                    self.assertNotEqual(original, key(rustc.replace(before, after)))
+
     def test_notices_have_independent_urls_and_shared_bytes_are_deduplicated(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
