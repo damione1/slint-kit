@@ -231,8 +231,11 @@ export component KitScrollArea inherits Rectangle {
             : step == NavigationStep.page-previous ? current + page
             : step == NavigationStep.first ? 0px : -span;
         let bounded = clamp(target, -span, 0px);
+        // Keyboard steps are direct: every repeat starts from the preceding
+        // destination, and native pointer/restoration changes stay authoritative.
+        // Even a no-op Home/End must cancel an older smooth reveal.
+        frame.scroll-to({x: horizontal ? -bounded : -frame.content-x, y: horizontal ? -frame.content-y : -bounded}, ScrollBehavior.instant);
         if (bounded == current) { return false; }
-        frame.scroll-to({x: horizontal ? -bounded : -frame.content-x, y: horizontal ? -frame.content-y : -bounded}, KitThemes.scroll-behavior(root.theme));
         root.scrolled();
         return true;
     }

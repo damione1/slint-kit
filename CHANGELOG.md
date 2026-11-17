@@ -2,6 +2,12 @@
 
 ## Unreleased — 0.9.0
 
+- Restore collection scroll positions before their first layout and keep the active tab/menu item visible after rapid navigation reversals. `KitScrollArea` keyboard steps are immediate again so every repeat is preserved and pointer/restoration changes supersede them without a pending destination; explicit reveal/start/end helpers remain animated unless motion is reduced.
+- Restaure les positions des collections avant leur premier placement et garde l’onglet ou l’élément de menu actif visible après une inversion rapide. Les pas clavier de `KitScrollArea` redeviennent immédiats : chaque répétition est conservée et le pointeur ou une restauration les remplace sans destination en attente ; les fonctions explicites de révélation/début/fin restent animées sauf avec réduction des animations.
+
+- Add the `ScrollFrame.content-translation-y` composition property, defaulting to `content-y`; `ListView` uses zero for native virtual-row coordinates. Reveal helpers preserve their nearest edge from nonzero offsets on both primitives.
+- Ajoute la propriété de composition `ScrollFrame.content-translation-y`, égale à `content-y` par défaut ; `ListView` utilise zéro pour les coordonnées des lignes virtuelles natives. Les fonctions de révélation préservent le bord le plus proche depuis un décalage non nul sur les deux primitives.
+
 - Keep `KitTheme.reduced-motion` as the application override with Slint 1.19 animation disabling. System reduced motion applies to native animations and scrolling on Windows (winit) and Android; applications must still disable timer/tick effects on every platform. No public API removal.
 - Conserve `KitTheme.reduced-motion` comme réglage applicatif avec la désactivation des animations de Slint 1.19. La réduction système s’applique aux animations et au défilement natifs sous Windows (winit) et Android ; les applications doivent toujours désactiver les effets à base de timers/ticks sur toutes les plateformes. Aucune suppression d’API publique.
 

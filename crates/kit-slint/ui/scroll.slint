@@ -158,8 +158,12 @@ export component ScrollFrame {
     }
     // Coordinate-based compatibility helpers use a roleless target in the
     // viewport. Slint handles ancestor offsets, clipping and reduced motion.
+    // ListView places rows directly in viewport coordinates; a regular Flickable
+    // translates its content item. Keep this mapping in local coordinates.
+    in property <length> content-translation-y: root.content-y;
     public function reveal-horizontal(start: length, end: length, behavior: ScrollBehavior) {
-        reveal-target.x = start; reveal-target.y = -flickable.content-y;
+        root.scroll-to({x: -root.content-x, y: -root.content-y}, ScrollBehavior.instant);
+        reveal-target.x = start; reveal-target.y = -root.content-translation-y;
         reveal-target.width = min(flickable.width, max(0px, end - start)); reveal-target.height = 0px;
         if (end - start > flickable.width
             && reveal-target.absolute-position.x >= flickable.absolute-position.x
@@ -167,7 +171,8 @@ export component ScrollFrame {
         reveal-target.ensure-visible(root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
     }
     public function reveal-vertical(start: length, end: length, behavior: ScrollBehavior) {
-        reveal-target.x = -flickable.content-x; reveal-target.y = start;
+        root.scroll-to({x: -root.content-x, y: -root.content-y}, ScrollBehavior.instant);
+        reveal-target.x = -flickable.content-x; reveal-target.y = start + flickable.content-y - root.content-translation-y;
         reveal-target.width = 0px; reveal-target.height = min(flickable.height, max(0px, end - start));
         // Slint 1.19 cannot reveal a rectangle taller than its viewport.
         // Preserve a visible leading edge; otherwise reveal a viewport-sized
@@ -256,6 +261,7 @@ export component ScrollFrame {
 // element whose base is called ListView and that exposes the content-* and
 // visible-* lengths. Internal to the kit, like ScrollFrame.
 export component ListView inherits ScrollFrame {
+    content-translation-y: 0px;
     // Slint supplies the body from this ListView's virtualized repeater.
     public function ensure-row-visible(row: int, behavior: ScrollBehavior) {}
     @children

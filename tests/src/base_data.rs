@@ -1562,7 +1562,14 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
                 assert_eq!((probe.x)(&window), horizontal);
                 (probe.scroll_to)(&window, 950);
                 frame();
-                assert!(!(probe.end_near)(&window));
+                assert!(
+                    !(probe.end_near)(&window),
+                    "{} {theme_name} {scale}: y={} first={} count={}",
+                    probe.name,
+                    (probe.y)(&window),
+                    (probe.first)(&window),
+                    (probe.count)(&window)
+                );
                 let before = probe.near_events.get();
                 window.set_near_end_rows(100);
                 frame();
