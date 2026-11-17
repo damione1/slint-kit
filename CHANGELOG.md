@@ -2,6 +2,9 @@
 
 ## Unreleased — 0.9.0
 
+- Keep `KitTheme.reduced-motion` as the application override with Slint 1.19 animation disabling. System reduced motion applies to native animations and scrolling on Windows (winit) and Android; applications must still disable timer/tick effects on every platform. No public API removal.
+- Conserve `KitTheme.reduced-motion` comme réglage applicatif avec la désactivation des animations de Slint 1.19. La réduction système s’applique aux animations et au défilement natifs sous Windows (winit) et Android ; les applications doivent toujours désactiver les effets à base de timers/ticks sur toutes les plateformes. Aucune suppression d’API publique.
+
 - Add `ScrollFrame.scroll-to`, `reveal-horizontal` and `reveal-vertical`, native `ListView.ensure-row-visible`, and `KitThemes.scroll-behavior(theme)` for custom compositions and application reduced motion.
 - Ajoute `ScrollFrame.scroll-to`, `reveal-horizontal` et `reveal-vertical`, `ListView.ensure-row-visible` natif et `KitThemes.scroll-behavior(theme)` pour les compositions personnalisées et la réduction des animations applicative.
 
