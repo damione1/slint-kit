@@ -247,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn application_libraries_compile_with_the_default_theme() {
+    fn edition_118_application_libraries_compile_with_the_default_theme() {
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -261,14 +261,15 @@ mod tests {
         let input = directory.join("app.slint");
         std::fs::write(
             &input,
-            r#"import { KitButton } from "@kit/kit.slint";
+            r#"import { KitButton } from "@kit";
             import { Adornment } from "@app/adornment.slint";
             export component App inherits Window {
                 HorizontalLayout { Adornment {} KitButton { text: "Consumer"; } }
             }"#,
         )
         .unwrap();
-        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]));
+        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]))
+            .with_edition((1, 18));
         let result =
             slint_build::compile_with_output_path(&input, directory.join("app.rs"), config);
         std::fs::remove_dir_all(directory).unwrap();
