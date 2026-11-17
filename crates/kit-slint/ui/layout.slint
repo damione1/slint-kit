@@ -198,6 +198,16 @@ export component KitScrollArea inherits Rectangle {
     private property <bool> horizontal-primary: root.axes == ScrollAxes.horizontal;
     private property <length> range: max(0px, root.horizontal-primary ? frame.content-width - frame.visible-width : frame.content-height - frame.visible-height);
     private property <length> offset: root.horizontal-primary ? frame.content-x : frame.content-y;
+    // The column width while a horizontal axis scrolls: the content width,
+    // copied when it changes rather than bound. The frame content width follows
+    // the column's own width constraints, so a bound column width is a binding
+    // loop for every child whose minimum width depends on its width (a wrapped
+    // text or a layout sized from the child's width), even on a vertical-only
+    // area. A vertical-only column binds to the viewport width alone.
+    private property <length> frame-content-width: frame.content-width;
+    private property <length> column-width;
+    init => { root.column-width = root.frame-content-width; }
+    changed frame-content-width => { root.column-width = self.frame-content-width; }
     changed at-start => { if (root.at-start && root.scrollable) { root.edge-reached(ScrollEdge.start); } }
     changed at-end => { if (root.at-end && root.scrollable) { root.edge-reached(ScrollEdge.end); } }
     public function take-focus() { keys.focus(); }
@@ -283,7 +293,7 @@ export component KitScrollArea inherits Rectangle {
             content-height: root.axes == ScrollAxes.horizontal ? self.visible-height : max(self.visible-height, body.preferred-height);
             body := VerticalLayout {
                 y: 0px;
-                width: frame.content-width;
+                width: root.axes == ScrollAxes.vertical ? frame.visible-width : root.column-width;
                 height: root.axes == ScrollAxes.horizontal ? frame.visible-height : self.preferred-height;
                 padding: KitLayoutMetrics.space(root.theme, root.inset);
                 spacing: KitLayoutMetrics.space(root.theme, root.gap);

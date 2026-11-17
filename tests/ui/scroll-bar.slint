@@ -128,3 +128,28 @@ export component ScrollKeysFixture inherits Window {
         tail := Rectangle { width: 600px; height: 400px; }
     }
 }
+
+// A child whose minimum width follows its own width, like a card that sizes
+// an inner row from its width; a scroll area must lay it out without a
+// binding loop and give it the viewport width.
+component WidthBoundCard inherits Rectangle {
+    min-width: 0px; preferred-width: 280px; horizontal-stretch: 1;
+    VerticalLayout {
+        padding: 8px;
+        HorizontalLayout {
+            width: max(0px, root.width - 16px);
+            Text { text: "A card title that wraps when the card is narrow"; wrap: word-wrap; }
+        }
+    }
+}
+
+export component ScrollWidthBoundFixture inherits Window {
+    width: 300px; height: 200px;
+    out property <length> viewport-width: area.visible-width;
+    out property <length> card-width: card.width;
+    out property <length> content-width: area.content-width;
+    area := KitScrollArea {
+        x: 0px; y: 0px; width: 200px; height: 120px;
+        card := WidthBoundCard { }
+    }
+}
