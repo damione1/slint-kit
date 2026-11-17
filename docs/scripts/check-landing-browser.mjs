@@ -63,7 +63,7 @@ try{
   await click('[data-sort-column="tasks"]');assert.deepEqual(await order(),[203,409,101,307]);
   assert.equal(await evaluate('document.querySelector("[data-hero-table]").dataset.selectedKey'),'101');assert(await evaluate('window.originalAtlas===document.querySelector("[data-project-key=\\"101\\"]")'),'sort must retain the exact row node');
   await click('[data-sort-column="tasks"]');assert.deepEqual(await order(),[307,101,409,203]);
-  await click('[data-sort-column="tasks"]');assert.deepEqual(await order(),[101,203,307,409]);
+  await click('[data-sort-column="tasks"]');assert.deepEqual(await order(),[203,409,101,307],'third sort returns to ascending, matching the native table example');
   await click('[data-project-key="203"] button');assert.equal(await evaluate('document.querySelector("[data-hero-table]").dataset.selectedKey'),'203');
   assert(await evaluate('document.querySelector("[data-project-key=\\"307\\"] button").disabled'),'Cedar stays disabled');
   await click('[data-sort-column="tasks"]');assert.equal(await evaluate('document.querySelector("[data-hero-table]").dataset.selectedKey'),'203');assert(await evaluate('document.querySelector("[data-hero-caption]").textContent.includes("Boreal")'),'caption must describe the actual selected project');

@@ -43,6 +43,7 @@ export function searchDocuments(entries,query,limit=8) {
     if(symbol)tokens=words(symbol);
   }
   const identity=tokens.join('');
+  const identifier=String(query).trim().toLowerCase();
   const terms=tokens.length>1?tokens.filter(token=>token!=='kit'):tokens;
   return entries.map(entry=>{
     let score=0;
@@ -52,9 +53,13 @@ export function searchDocuments(entries,query,limit=8) {
       if(!best)return null;
       score+=best;
     }
-    if(entry.apiIdentity&&(entry.apiIdentity===identity||entry.apiIdentity.replace(/^kit/,'')===identity))score+=10000;
-    return {entry,score};
-  }).filter(Boolean).sort((a,b)=>b.score-a.score||a.entry.title.localeCompare(b.entry.title)).slice(0,limit).map(({entry})=>entry);
+    // Rank a named component first, then guides mentioning a complete identifier,
+    // ahead of fuzzy matches on individual parts of that identifier.
+    let priority=0;
+    if(entry.apiIdentity&&(entry.apiIdentity===identity||entry.apiIdentity.replace(/^kit/,'')===identity))priority=2;
+    else if(entry.url.includes('/guides/')&&entry.symbols.some(name=>name.toLowerCase()===identifier))priority=1;
+    return {entry,score,priority};
+  }).filter(Boolean).sort((a,b)=>b.priority-a.priority||b.score-a.score||a.entry.title.localeCompare(b.entry.title)).slice(0,limit).map(({entry})=>entry);
 }
 function excerpt(entry,query) {
   const apiWords=words(entry.api||'');
