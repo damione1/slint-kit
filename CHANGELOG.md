@@ -26,6 +26,9 @@ Slint Kit 0.9.0 passe à **Slint 1.19 et Rust 1.95+**. Consultez le [guide de mi
 
 ### Detailed changes / Détail des changements
 
+- Standalone dialog examples explicitly select native Tab/Shift+Tab traversal rather than delegating keyboard navigation to an absent application host.
+- Les exemples autonomes de dialogue choisissent explicitement le parcours natif Tab/Maj+Tab au lieu de déléguer la navigation clavier à un hôte applicatif absent.
+
 - Align the remaining release and preview locks with `async-executor` 1.14.1 and `clipboard-win` 5.4.3, avoiding withdrawn versions and including the upstream Linux executor lifetime fix. No kit API change.
 - Aligne les derniers verrous de release et d’aperçu sur `async-executor` 1.14.1 et `clipboard-win` 5.4.3, pour éviter les versions retirées et inclure le correctif amont de durée de vie de l’exécuteur Linux. Aucune modification d’API du kit.
 
