@@ -1068,9 +1068,19 @@ fn filled_slider_edge_radius_and_handle_shape_are_host_choices() {
         rgb(theme.surface),
         "disc ring"
     );
-    assert_eq!(
-        pixel(&window, edge - radius - 2., middle),
-        fill,
-        "fill beside the disc"
+    let beside_disc = pixel(&window, edge - radius - 2., middle);
+    // Slint 1.19 blends the disc's control shadow into this adjacent pixel.
+    // Use the same three-level RGB tolerance as the slider paint regressions;
+    // the edge, ring, centre and unshadowed fill remain exact checks above.
+    assert!(
+        beside_disc
+            .iter()
+            .zip(fill)
+            .all(|(a, b)| a.abs_diff(b) <= 3),
+        "fill beside the disc: {beside_disc:?} != {fill:?}"
+    );
+    save_capture(
+        &window.window().take_snapshot().unwrap(),
+        "styled-slider-disc",
     );
 }
