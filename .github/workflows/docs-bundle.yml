@@ -2,6 +2,12 @@ name: Documentation bundle
 # Restore the compiled WASM preview bundle from Cloudflare R2 by bundle key; on a
 # miss, compile it once and store it. Called by Check (push to main) and Release.
 on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Commit or tag to verify; empty means the selected branch'
+        type: string
+        default: ''
   workflow_call:
     inputs:
       ref:
