@@ -759,3 +759,57 @@ fn read_only_keys_take_no_pointer_or_keyboard_activation_and_start_no_feedback()
     assert!(intentions.borrow().is_empty());
     assert_eq!(starts.get(), 0);
 }
+
+#[test]
+fn key_height_and_digit_role_grow_the_keys_without_moving_the_grid() {
+    let (window, _) = fixture();
+    let heights = |window: &KeypadFixture| -> Vec<f32> {
+        KEYS.iter()
+            .map(|label| element(window, label).size().height)
+            .collect()
+    };
+    let default = heights(&window);
+    assert!(default.iter().all(|height| *height >= 48.));
+    let default_keypad = window.get_keypad_height();
+    // A taller key: every key of the four rows grows to it.
+    window.set_key_height(64.);
+    let tall = heights(&window);
+    assert!(tall.iter().all(|height| *height >= 64.), "{tall:?}");
+    // Four rows of at least 64px, above the default comfortable grid.
+    assert!(
+        window.get_keypad_height() >= 4. * 64. && window.get_keypad_height() > default_keypad,
+        "four rows grew: {} from {default_keypad}",
+        window.get_keypad_height()
+    );
+    // Display digits at the default key height: a digit line of 48px plus
+    // its block padding exceeds the touch minimum, so the rows grow again.
+    window.set_key_height(48.);
+    window.set_digit_role(TypographyRole::Display);
+    let display = heights(&window);
+    let theme = window.get_light();
+    assert!(
+        display
+            .iter()
+            .all(|height| *height >= theme.typography.size_display * 1.4),
+        "{display:?}"
+    );
+    for (label, height) in KEYS.iter().zip(&display) {
+        assert!(
+            *height > default[0],
+            "{label} grew from {} to {height}",
+            default[0]
+        );
+    }
+    // The keys still form a 3 by 4 grid that the keypad measures exactly.
+    let keys: Vec<ElementHandle> = KEYS.iter().map(|label| element(&window, label)).collect();
+    for row in keys.chunks(3) {
+        let top = row[0].absolute_position().y;
+        for key in row {
+            assert_eq!(key.absolute_position().y, top);
+        }
+    }
+    let last = &keys[11];
+    let first = &keys[0];
+    let bottom = last.absolute_position().y + last.size().height - first.absolute_position().y;
+    assert!((bottom - window.get_keypad_height()).abs() < 0.01);
+}

@@ -5690,6 +5690,16 @@
           "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses touches et sa portée clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitKeypad {\n    modal-layer: 1;\n}"
+        },
+        "key-height": {
+          "effect": "Hauteur minimale d’une touche. Une touche grandit toujours avec sa taille de contrôle et avec le chiffre qu’elle affiche, donc la grille ne rogne jamais un chiffre.",
+          "default": "`theme.spacing.unit * 12` (48px) : une cible tactile carrée.",
+          "example": "KitKeypad {\n    key-height: 64px;\n}"
+        },
+        "digit-role": {
+          "effect": "Rôle typographique des dix libellés de chiffres, lu via `KitMetrics.font-size`, donc les chiffres suivent l’agrandissement du texte du thème. Les touches supprimer et confirmer gardent leurs glyphes.",
+          "default": "`TypographyRole.title`.",
+          "example": "KitKeypad {\n    digit-role: TypographyRole.display;\n}"
         }
       }
     },
@@ -5709,6 +5719,16 @@
           "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its keys and keyboard scope take no focus and ignore pointer and keys. Give a component placed inside a modal that modal’s layer number.",
           "default": "`0` (window).",
           "example": "KitKeypad {\n    modal-layer: 1;\n}"
+        },
+        "key-height": {
+          "effect": "The least height of a key. A key still grows with its control size and with the digit it shows, so the grid never clips a digit.",
+          "default": "`theme.spacing.unit * 12` (48px): a square touch target.",
+          "example": "KitKeypad {\n    key-height: 64px;\n}"
+        },
+        "digit-role": {
+          "effect": "The typography role of the ten digit labels, read through `KitMetrics.font-size`, so the digits follow the theme's text scale. The delete and confirm keys keep their glyphs.",
+          "default": "`TypographyRole.title`.",
+          "example": "KitKeypad {\n    digit-role: TypographyRole.display;\n}"
         }
       }
     }
@@ -8106,6 +8126,11 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitSegmentedControl {\n    modal-layer: 1;\n}"
+        },
+        "selected-tone": {
+          "effect": "Peinture du segment choisi. `accent` le peint comme un bouton principal (fond accent, encre sur accent, anneau en sur-accent). Un autre ton peint la teinte atténuée de ce ton sous sa propre encre, comme un `KitChipButton` choisi de ce ton : `success`, `warning`, `danger` et `information` prennent leur fond atténué et leur couleur, `neutral` le ton pressé sous le texte principal. Les segments non choisis, les segments désactivés et les groupes en lecture seule ne changent pas.",
+          "default": "`Tone.accent`.",
+          "example": "KitSegmentedControl {\n    selected-tone: Tone.warning;\n    label: \"Heating mode\";\n}"
         }
       },
       "functions": {
@@ -8162,6 +8187,11 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitSegmentedControl {\n    modal-layer: 1;\n}"
+        },
+        "selected-tone": {
+          "effect": "The paint of the selected segment. `accent` paints it as a primary button (accent fill, on-accent ink, the ring in on-accent). Another tone paints that tone's subtle tint under its own ink, as a selected `KitChipButton` of that tone does: `success`, `warning`, `danger` and `information` take their subtle fill and colour, `neutral` the pressed tone under the primary text. Unselected segments, disabled segments and read-only groups are unchanged.",
+          "default": "`Tone.accent`.",
+          "example": "KitSegmentedControl {\n    selected-tone: Tone.warning;\n    label: \"Heating mode\";\n}"
         }
       },
       "functions": {
@@ -8905,6 +8935,21 @@
           "effect": "Pas à la molette, à activer, lorsque le contrôle a le focus. Un cran passe par le même chemin que les flèches : lecture seule, désactivation, `ownership` et `spec` sont respectés et `chosen` est émis. Vers le haut augmente, vers le bas diminue. Un contrôle horizontal suit aussi une molette latérale vers son extrémité, inversée par `flow`. Un curseur double déplace la poignée qui a le focus. Un contrôle sans focus ou sans activation, ou une molette avec Ctrl, Cmd ou Alt, laisse la molette à la zone défilante environnante.",
           "example": "wheel-stepping: true;",
           "default": "`false`"
+        },
+        "edge-brush": {
+          "effect": "Bord dessiné sur une piste remplie, après le remplissage, pour que la limite du contrôle reste visible sur toute page. `transparent` le retire pour un hôte dont la page distingue déjà le contrôle. Un curseur en ligne n’a pas de bord.",
+          "default": "`theme.border-strong` ; `theme.border-subtle` quand désactivé.",
+          "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    edge-brush: transparent;\n}"
+        },
+        "track-radius": {
+          "effect": "Rayon d’angle d’une piste remplie. La piste le borne à la moitié de son petit côté, donc un rayon de pastille donne des bouts ronds. Une piste en ligne est toujours une pastille.",
+          "default": "`theme.shape.radius-container`, borné à la moitié de la piste.",
+          "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    track-radius: root.theme.shape.radius-pill;\n}"
+        },
+        "handle-shape": {
+          "effect": "Poignée d’une piste remplie. `bar` est une courte barre dans le remplissage, à trois unités d’espacement de son bord. `disc` est un curseur rond centré sur le bord du remplissage, aussi large que la piste moins son retrait de chaque côté, peint en `handle-brush` dans un anneau de `theme.surface` avec l’ombre des contrôles du thème ; il reste dans la piste aux deux bouts. Un curseur en ligne a toujours un curseur rond.",
+          "default": "`SliderHandleShape.bar`.",
+          "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    handle-shape: SliderHandleShape.disc;\n    handle-brush: root.theme.accent;\n}"
         }
       },
       "callbacks": {
@@ -8969,6 +9014,21 @@
           "effect": "Opt-in mouse wheel stepping while the control has focus. A wheel step goes through the same path as the arrow keys, so it respects read-only, disabled, `ownership`, `spec` and emits `chosen`. Up raises and down lowers. A horizontal control also follows a sideways wheel towards its far end, mirrored by `flow`. A range slider moves the focused thumb. An unfocused or non-opted control, or a wheel with Ctrl, Cmd or Alt held, leaves the wheel to the surrounding scroll view.",
           "example": "wheel-stepping: true;",
           "default": "`false`"
+        },
+        "edge-brush": {
+          "effect": "The edge drawn over a filled track, after the fill, so the control's boundary stays visible on any page. `transparent` removes it for a host whose page already sets the control apart. A line slider has no edge.",
+          "default": "`theme.border-strong`; `theme.border-subtle` when disabled.",
+          "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    edge-brush: transparent;\n}"
+        },
+        "track-radius": {
+          "effect": "The corner radius of a filled track. The track clamps it to half its shorter side, so a pill radius gives round ends. A line track is always a pill.",
+          "default": "`theme.shape.radius-container`, clamped to half the track.",
+          "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    track-radius: root.theme.shape.radius-pill;\n}"
+        },
+        "handle-shape": {
+          "effect": "The handle of a filled track. `bar` is a short bar inside the fill, three spacing units from its edge. `disc` is a round thumb centred on the fill's edge, as wide as the track less its inset on each side, painted in `handle-brush` inside a ring of `theme.surface` with the theme's control shadow; it stays inside the track at both ends. A line slider always has a round thumb.",
+          "default": "`SliderHandleShape.bar`.",
+          "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    handle-shape: SliderHandleShape.disc;\n    handle-brush: root.theme.accent;\n}"
         }
       },
       "callbacks": {

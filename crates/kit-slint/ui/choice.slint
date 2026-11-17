@@ -6,7 +6,7 @@ import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow, ChoiceDirection } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow, ChoiceDirection, ShadowLayer } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
 import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
@@ -75,12 +75,12 @@ component RadioMark inherits Rectangle {
         border-width: root.theme.shape.border-width;
         // A disabled mark keeps its edge in the dimmed ink of its label: the
         // disabled row fill can equal border-subtle, which would erase the ring.
-        border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
+        border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.choice-fill : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
         if root.selected: Rectangle {
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
             width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
             border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-            background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+            background: root.disabled ? root.theme.disabled-text : root.theme.choice-fill;
         }
     }
 }
@@ -100,19 +100,19 @@ export component CheckMark inherits Rectangle {
     width: root.choice.box-size; height: root.choice.box-size;
     border-radius: root.choice.box-radius;
     border-width: root.theme.shape.border-width;
-    border-color: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
-    background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
+    border-color: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.choice-fill;
+    background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.choice-fill
         : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
     if root.state == CheckState.checked: KitIcon {
         theme: root.theme; glyph: root.theme.icons.check;
         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
         width: root.choice.box-size; height: root.choice.box-size;
-        ink: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+        ink: root.disabled ? root.theme.disabled-text : root.theme.on-choice-fill;
     }
     if root.state == CheckState.mixed: mixed-bar := Rectangle {
         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
         width: root.choice.mixed-width; height: root.choice.mark-stroke;
-        background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+        background: root.disabled ? root.theme.disabled-text : root.theme.on-choice-fill;
     }
 }
 
@@ -146,7 +146,7 @@ component SwitchTrackSlot inherits Rectangle {
     Rectangle {
         y: root.top-aligned ? max(0px, (root.line-height - self.height) / 2) : (parent.height - self.height) / 2;
         width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
-        background: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.access == FieldAccess.read-only ? (root.checked ? root.theme.text-secondary : root.theme.border-subtle) : root.checked ? root.theme.accent : root.theme.border-strong;
+        background: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.access == FieldAccess.read-only ? (root.checked ? root.theme.text-secondary : root.theme.border-subtle) : root.checked ? root.theme.choice-fill : root.theme.border-strong;
         // The disabled track matches the disabled row fill; its edge keeps it visible.
         border-width: root.access != FieldAccess.editable ? root.theme.shape.border-width : 0px;
         border-color: root.disabled ? root.theme.disabled-text : root.theme.border-strong;
@@ -155,7 +155,7 @@ component SwitchTrackSlot inherits Rectangle {
             y: root.choice.thumb-inset;
             width: root.choice.thumb-size; height: root.choice.thumb-size;
             border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-            background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-accent : root.theme.surface;
+            background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-choice-fill : root.theme.surface;
             animate x { duration: root.choice.transition; easing: ease-in-out; }
         }
     }
@@ -485,21 +485,40 @@ export component KitRadioGroup inherits Rectangle {
 
 component SegmentedOption inherits ChoiceOption {
     in property <[ChoiceIcon]> icons;
+    // The paint of the selected segment: `accent` is the primary button;
+    // another tone paints its subtle tint under its own ink, as a selected
+    // chip of that tone does. Read-only keeps the pressed tone.
+    in property <Tone> selected-tone: Tone.accent;
+    private property <bool> editable-selected: root.option-data.selected && root.access != FieldAccess.read-only;
+    private property <bool> toned: root.editable-selected && root.selected-tone != Tone.accent;
+    private property <color> tone-fill: root.selected-tone == Tone.success ? root.theme.success-subtle
+        : root.selected-tone == Tone.warning ? root.theme.warning-subtle
+        : root.selected-tone == Tone.danger ? root.theme.danger-subtle
+        : root.selected-tone == Tone.information ? root.theme.information-subtle
+        : root.theme.pressed;
+    private property <color> tone-ink: root.selected-tone == Tone.success ? root.theme.success
+        : root.selected-tone == Tone.warning ? root.theme.warning
+        : root.selected-tone == Tone.danger ? root.theme.danger
+        : root.selected-tone == Tone.information ? root.theme.information
+        : root.theme.text-primary;
+    private property <color> ink: root.disabled ? root.recipe.disabled-foreground : root.toned ? root.tone-ink : root.recipe.foreground;
     private property <length> icon-reserve: root.icons.length > 0 ? KitMetrics.icon-size(root.theme, root.control-size) + KitMetrics.inline-gap(root.theme) : 0px;
     content-reserve: 2 * root.icon-reserve;
     control-width: ControlWidth.fill;
     accessible-name: root.option-data.label;
     disabled: root.option-data.disabled || root.access == FieldAccess.disabled;
-    intent: root.option-data.selected && root.access != FieldAccess.read-only ? ButtonIntent.primary : ButtonIntent.quiet;
-    background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.theme.canvas) : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+    intent: root.editable-selected && root.selected-tone == Tone.accent ? ButtonIntent.primary : ButtonIntent.quiet;
+    background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.theme.canvas) : root.toned ? root.tone-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     accessible-role: radio-button; accessible-checked: root.option-data.selected;
     accessible-read-only: root.access == FieldAccess.read-only;
-    focus-ring: root.option-data.selected && !root.disabled && root.access == FieldAccess.editable ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
+    // A primary segment carries the ring in its on-accent ink; a toned tint
+    // keeps the theme's ring colour.
+    focus-ring: root.editable-selected && !root.disabled && root.access == FieldAccess.editable && root.selected-tone == Tone.accent ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
     for icon in root.icons: Rectangle {
         if icon.token == root.option-data.token: KitIcon {
             x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
             theme: root.theme; control-size: root.control-size; glyph: icon.glyph;
-            ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            ink: root.ink;
         }
     }
     Text {
@@ -507,7 +526,7 @@ component SegmentedOption inherits ChoiceOption {
         width: max(0px, root.width - 2 * root.padding-inline - 2 * root.icon-reserve);
         height: max(0px, root.height - 2 * root.padding-block);
         text: root.option-data.label;
-        color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        color: root.ink;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center;
     }
@@ -548,6 +567,10 @@ export component KitSegmentedControl inherits Rectangle {
     }
     // Decorative icons follow stable tokens, including after row reordering.
     in property <[ChoiceIcon]> icons;
+    // The paint of the selected segment: `accent` (the default) is the
+    // primary button; another tone paints that tone's subtle tint under its
+    // own ink, so a group that names a state (a mode, a severity) wears it.
+    in property <Tone> selected-tone: Tone.accent;
     // Horizontal groups wrap after this many columns; vertical groups stay stacked.
     in property <int> columns: max(1, root.render-count);
     private property <int> column-count: root.direction == ChoiceDirection.vertical ? 1 : clamp(root.columns, 1, max(1, root.render-count));
@@ -597,7 +620,7 @@ export component KitSegmentedControl inherits Rectangle {
                     disabled: self.source-index >= root.render-count || self.option-data.disabled || root.access == FieldAccess.disabled;
                     accessible-item-index: self.source-index; accessible-item-count: root.render-count;
                     option-data: root.render-row(self.source-index); generation: root.generation; access: root.access;
-                    icons: root.icons;
+                    icons: root.icons; selected-tone: root.selected-tone;
                     theme: root.theme; control-size: root.control-size;
                     focus-indicated: keyboard.focus-visible && root.active-token == self.option-data.token;
                     activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
@@ -1676,6 +1699,10 @@ component SliderKeyboard inherits FocusScope {
 // `line` draws a thin track with a round thumb; `filled` paints the whole
 // control as its track, the value as a fill and a bar as its handle.
 export enum SliderPresentation { line, filled }
+// The handle of a filled slider: `bar` is a short bar inside the fill, across
+// its edge; `disc` is a round thumb centred on the fill's edge, as wide as
+// the track less its inset, inside a surface ring with the control shadow.
+export enum SliderHandleShape { bar, disc }
 export component KitSlider inherits Rectangle {
     in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
@@ -1696,6 +1723,14 @@ export component KitSlider inherits Rectangle {
     in property <brush> track-brush: root.presentation == SliderPresentation.filled ? (root.disabled ? root.theme.disabled-fill : root.theme.pressed) : root.theme.border-strong;
     in property <brush> fill-brush: root.disabled ? (root.filled ? root.theme.pressed : root.theme.disabled-text) : root.theme.accent;
     in property <brush> handle-brush: root.disabled ? root.theme.disabled-text : root.presentation == SliderPresentation.filled ? root.theme.on-accent : root.theme.accent;
+    // The edge of a filled track, drawn over the fill. A host whose page
+    // already sets the control apart passes `transparent`.
+    in property <brush> edge-brush: root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+    // The corner radius of a filled track: the container radius, never more
+    // than half the track's shorter side. A line track is always a pill.
+    in property <length> track-radius: min(root.theme.shape.radius-container, min(root.body-width, root.body-height) / 2);
+    // The handle of a filled track; a line track always has a round thumb.
+    in property <SliderHandleShape> handle-shape: SliderHandleShape.bar;
     in property <float> position: KitFieldService.ready ? KitFieldService.slider-position(root.value, root.spec) : 0;
     in property <string> label;
     // Ticks and optional labels on the track. Each value snaps to the slider's
@@ -1761,8 +1796,19 @@ export component KitSlider inherits Rectangle {
     private property <float> fraction: clamp(root.position, 0, 1);
     // The fill starts at the left edge, the right edge when right-to-left.
     private property <float> start-fraction: root.rtl ? 1 - root.fraction : 0;
-    // A filled handle sits inside the fill, three spacing units from its edge.
+    // A filled bar handle sits inside the fill, three spacing units from its edge.
     private property <length> handle-gap: root.theme.spacing.unit * 3;
+    private property <bool> disc-handle: root.filled && root.handle-shape == SliderHandleShape.disc;
+    // A disc spans the track across the travel, less the thumb inset on each side.
+    private property <length> disc-size: max(0px, (root.vertical ? root.body-width : root.body-height) - 2 * root.choice.thumb-inset);
+    // Where the handle centres along the travel, from the fill's edge: a bar
+    // sits `handle-gap` inside the fill (`inward` is the fill's side), a disc
+    // rides the edge. Both stay their margin inside the track's `extent`.
+    pure function handle-centre(edge: length, inward: float, extent: length) -> length {
+        let margin = root.disc-handle ? root.disc-size / 2 + root.choice.thumb-inset : root.handle-gap;
+        let centre = root.disc-handle ? edge : edge + inward * root.handle-gap;
+        return clamp(centre, margin, max(margin, extent - margin));
+    }
     function update-position() {
         root.handle-position(root.vertical
             ? clamp(1 - (pointer.mouse-y - root.edge) / max(1px, root.height - 2 * root.edge), 0, 1)
@@ -1776,7 +1822,7 @@ export component KitSlider inherits Rectangle {
         y: root.filled ? 0px : root.vertical ? root.edge : (root.body-height - self.height) / 2;
         width: root.filled ? root.body-width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
         height: root.filled ? root.body-height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
-        border-radius: root.filled ? min(root.theme.shape.radius-container, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
+        border-radius: root.filled ? min(root.track-radius, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
         clip: root.filled;
         background: root.track-brush;
         if root.filled && root.solid-fill: Rectangle {
@@ -1806,7 +1852,7 @@ export component KitSlider inherits Rectangle {
             width: parent.width; height: parent.height;
             border-radius: parent.border-radius;
             border-width: root.theme.shape.border-width;
-            border-color: root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+            border-color: root.edge-brush;
         }
         if root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
@@ -1816,20 +1862,28 @@ export component KitSlider inherits Rectangle {
         vertical: root.vertical; rtl: root.rtl; filled: root.filled; disabled: root.disabled;
         edge: root.edge; fraction: root.fraction;
     }
-    // A round thumb on a line; a bar across the fill's edge when filled.
+    // A round thumb on a line; a bar across the fill's edge, or a disc riding
+    // it, when filled.
     handle := Rectangle {
         private property <length> bar-length: max(0px, min(root.theme.spacing.unit * 10, (root.vertical ? root.body-width : root.body-height) - root.theme.spacing.unit * 4));
         private property <length> bar-thickness: root.theme.spacing.unit * 1.5;
-        width: root.filled ? (root.vertical ? self.bar-length : self.bar-thickness) : root.choice.slider-thumb-size;
-        height: root.filled ? (root.vertical ? self.bar-thickness : self.bar-length) : root.choice.slider-thumb-size;
+        private property <ShadowLayer> disc-shadow: KitThemes.shadow(root.theme, root.theme.elevation.control);
+        width: root.disc-handle ? root.disc-size : root.filled ? (root.vertical ? self.bar-length : self.bar-thickness) : root.choice.slider-thumb-size;
+        height: root.disc-handle ? root.disc-size : root.filled ? (root.vertical ? self.bar-thickness : self.bar-length) : root.choice.slider-thumb-size;
         x: root.vertical ? (root.body-width - self.width) / 2
-            : root.filled ? clamp(root.rtl ? root.width * (1 - root.fraction) + root.handle-gap : root.width * root.fraction - root.handle-gap, root.handle-gap, max(root.handle-gap, root.width - root.handle-gap)) - self.width / 2
+            : root.filled ? root.handle-centre(root.rtl ? root.width * (1 - root.fraction) : root.width * root.fraction, root.rtl ? 1 : -1, root.width) - self.width / 2
             : root.choice.thumb-inset + (root.width - 2 * root.edge) * (root.rtl ? 1 - root.fraction : root.fraction);
         y: !root.vertical ? (root.body-height - self.height) / 2
-            : root.filled ? clamp(root.height * (1 - root.fraction) + root.handle-gap, root.handle-gap, max(root.handle-gap, root.height - root.handle-gap)) - self.height / 2
+            : root.filled ? root.handle-centre(root.height * (1 - root.fraction), 1, root.height) - self.height / 2
             : root.choice.thumb-inset + (root.height - 2 * root.edge) * (1 - root.fraction);
         border-radius: min(root.theme.shape.radius-pill, min(self.width, self.height) / 2);
         background: root.handle-brush;
+        // The disc's surface ring and control shadow lift it off any fill.
+        border-width: root.disc-handle ? root.theme.shape.border-width-strong : 0px;
+        border-color: root.theme.surface;
+        drop-shadow-offset-y: root.disc-handle ? self.disc-shadow.offset-y : 0px;
+        drop-shadow-blur: root.disc-handle ? self.disc-shadow.blur : 0px;
+        drop-shadow-color: root.disc-handle ? self.disc-shadow.color : transparent;
         if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     keyboard := SliderKeyboard { modal-layer: root.modal-layer;
