@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use super::example::ui::{TableApp, TableAppearance, TableLanguage};
+use super::example::ui::{DataSortDirection, TableApp, TableAppearance, TableLanguage};
 use slint::{
     ComponentHandle, Model,
     platform::{Key, PointerEventButton, WindowEvent},
@@ -78,7 +78,7 @@ fn snapshot(app: &TableApp, path: PathBuf) {
         .expect("PNG pixels");
 }
 
-pub fn schedule(app: &TableApp) {
+pub fn prepare(app: &TableApp) {
     let dark = std::env::args().any(|arg| arg == "--dark");
     let enlarged = std::env::args().any(|arg| arg == "--text-200");
     app.set_appearance(if dark {
@@ -94,6 +94,12 @@ pub fn schedule(app: &TableApp) {
         if enlarged { 1000. } else { 720. },
         if enlarged { 900. } else { 460. },
     ));
+    // Manual QA uses the verifier's exact presentation without injecting events,
+    // writing captures or closing the window after the assertions.
+    if !std::env::args().any(|arg| arg == "--verify") {
+        app.invoke_focus_table();
+        return;
+    }
     let weak = app.as_weak();
     slint::Timer::single_shot(Duration::from_millis(500), move || {
         let app = weak.upgrade().expect("live table example");
@@ -122,7 +128,9 @@ pub fn schedule(app: &TableApp) {
         assert!(app.get_selection_label().contains("#101"));
         let generation = app.get_generation();
         if enlarged {
-            // Traverse the actual header buttons from the table's key scope.
+            // From the body, Tab reaches the archive switch, then wraps to
+            // Project and Tasks. Two Tabs would sort Project, not Tasks.
+            key(&app, Key::Tab);
             key(&app, Key::Tab);
             key(&app, Key::Tab);
             key(&app, Key::Space);
@@ -133,6 +141,16 @@ pub fn schedule(app: &TableApp) {
         assert!(
             app.get_generation() > generation,
             "header sort callback must run"
+        );
+        let tasks = app
+            .get_columns()
+            .iter()
+            .find(|column| column.token == 2)
+            .expect("Tasks column token");
+        assert_eq!(
+            tasks.sort,
+            DataSortDirection::Ascending,
+            "the Tasks header receives the sort action"
         );
         assert_eq!(first_row_name(&app), "Boreal", "tasks sort ascending");
         assert!(
