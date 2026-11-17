@@ -12,7 +12,9 @@ export enum AvatarSize { compact, medium, large }
 export enum ChoiceFlow { left-to-right, right-to-left }
 export enum ChoiceDirection { horizontal, vertical }
 export enum ControlWidth { intrinsic, fill }
-export enum TypographyRole { caption, control, body, subtitle, title }
+// `display` is the largest role: a hero figure or a headline above the
+// title, such as a reading on a dial or the digits of a keypad.
+export enum TypographyRole { caption, control, body, subtitle, title, display }
 // secondary is a filled neutral surface; outline is a transparent bordered
 // control; quiet is borderless (the web's ghost).
 export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information, link }
@@ -24,7 +26,9 @@ export enum ElevationLevel { none, xs, sm, md, lg, xl }
 // outside: a ring around the host, separated by `offset`. inside: a ring drawn
 // over the host's own edge, for tightly packed rows, cells and thumbs.
 export enum FocusRingStyle { outside, inside }
-export enum SurfaceLevel { flat, raised, overlay, popover }
+// flat sits on the canvas, raised and the overlays lift above it; inset is a
+// well sunk into its parent surface, with a border and no shadow.
+export enum SurfaceLevel { flat, raised, overlay, popover, inset }
 export enum AlertSeverity { information, success, warning, error }
 
 // One layer of a web box shadow. Slint draws one shadow per element and has
@@ -51,7 +55,7 @@ export struct KitFocusRing { style: FocusRingStyle, width: length, offset: lengt
 export struct KitTypography {
     family: string, family-monospace: string,
     weight-regular: int, weight-medium: int, weight-semibold: int, weight-bold: int,
-    size-caption: length, size-control: length, size-body: length, size-subtitle: length, size-title: length,
+    size-caption: length, size-control: length, size-body: length, size-subtitle: length, size-title: length, size-display: length,
     line-height-control: length,
 }
 // Paddings and heights by ControlSize; one spacing unit derives gaps and insets.
@@ -69,14 +73,20 @@ export struct KitGeometry {
     drop-zone-minimum: length, drop-zone-scaled: length,
     color-wheel-minimum: length, color-wheel-diameter: length, color-wheel-indicator-size: length, color-wheel-indicator-border-width: length,
 }
+// `surface-inset` is a well sunk into a surface (a facts panel, a settings
+// group); shipped themes keep it at the raised tone. `control-fill` and
+// `control-border` paint a secondary button at rest, `choice-fill` and
+// `on-choice-fill` a checked box, a selected radio dot and an on switch, so a
+// theme can give its selection marks a colour other than its action accent.
 export struct KitTheme {
-    canvas: color, surface: color, surface-raised: color,
+    canvas: color, surface: color, surface-raised: color, surface-inset: color,
     text-primary: color, text-secondary: color, placeholder: color,
     accent: color, on-accent: color, accent-hover: color, accent-pressed: color, accent-subtle: color,
     selection: color, on-selection: color,
     danger: color, on-danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, on-success: color, success-hover: color, success-pressed: color, success-subtle: color,
     warning: color, on-warning: color, warning-hover: color, warning-pressed: color, warning-subtle: color, information: color, on-information: color, information-hover: color, information-pressed: color, information-subtle: color,
     border-subtle: color, border-strong: color,
+    control-fill: color, control-border: color, choice-fill: color, on-choice-fill: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
     spacing: KitSpacing, motion: KitMotion, icons: KitIconSet, geometry: KitGeometry,
@@ -178,7 +188,8 @@ export global KitMetrics {
             : role == TypographyRole.control ? theme.typography.size-control
             : role == TypographyRole.body ? theme.typography.size-body
             : role == TypographyRole.subtitle ? theme.typography.size-subtitle
-            : theme.typography.size-title) * theme.text-scale;
+            : role == TypographyRole.title ? theme.typography.size-title
+            : theme.typography.size-display) * theme.text-scale;
     }
     public pure function density(theme: KitTheme, size: ControlSize) -> KitControlDensity {
         return size == ControlSize.compact ? theme.spacing.compact : size == ControlSize.comfortable ? theme.spacing.comfortable : theme.spacing.medium;
@@ -218,7 +229,7 @@ export global KitThemes {
     }
 
     out property <KitTheme> light: {
-        canvas: #f1f5f9 /* slate-100 */, surface: #ffffff /* white */, surface-raised: #ffffff /* white */,
+        canvas: #f1f5f9 /* slate-100 */, surface: #ffffff /* white */, surface-raised: #ffffff /* white */, surface-inset: #ffffff /* white: wells keep the raised tone */,
         text-primary: #0f172a /* slate-900 */, text-secondary: #475569 /* slate-600 */, placeholder: #475569 /* slate-600: AA on the slate-100 canvas */,
         accent: #4f46e5 /* indigo-600 */, on-accent: #ffffff /* white */,
         accent-hover: #4338ca /* indigo-700 */, accent-pressed: #3730a3 /* indigo-800 */, accent-subtle: #eef2ff /* indigo-50 */,
@@ -230,6 +241,10 @@ export global KitThemes {
         // border-strong outlines controls that a light border would hide:
         // checkboxes, radios, switch and slider tracks, outline buttons.
         border-subtle: #e2e8f0 /* slate-200 */, border-strong: #64748b /* slate-500: visible control boundaries */,
+        // Secondary buttons rest on the surface tone inside a subtle edge;
+        // selection marks take the action accent.
+        control-fill: #ffffff /* white */, control-border: #e2e8f0 /* slate-200 */,
+        choice-fill: #4f46e5 /* indigo-600 */, on-choice-fill: #ffffff /* white */,
         hover: #f1f5f9 /* slate-100 */, pressed: #e2e8f0 /* slate-200 */,
         disabled-fill: #f1f5f9 /* slate-100 */, disabled-text: #94a3b8 /* slate-400 */, scrim: #00000080 /* black/50 */,
         // rounded-md, rounded-lg, rounded-xl and rounded-full.
@@ -249,8 +264,8 @@ export global KitThemes {
         focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #6366f1 /* indigo-500 */, invalid-color: #dc2626 /* red-600 */ },
         typography: {
             family: "", family-monospace: MonospaceFont.family, weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
-            // text-xs, text-sm, text-base, text-xl and text-3xl; text-sm line height.
-            size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px,
+            // text-xs, text-sm, text-base, text-xl, text-3xl and text-5xl; text-sm line height.
+            size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px, size-display: 48px,
             line-height-control: 20px,
         },
         // --spacing: 0.25rem. Heights h-8, h-9 and h-10; paddings px-3/px-4/px-6, py-1.5/py-2.
@@ -278,7 +293,7 @@ export global KitThemes {
         // Raised surfaces (popovers, dialogs) keep the card tone, as shadcn's
         // dark popover does: border, shadow and scrim set them apart, so the
         // slate-800 hover and border stay visible on every surface.
-        canvas: #020617 /* slate-950 */, surface: #0f172a /* slate-900 */, surface-raised: #0f172a /* slate-900 */,
+        canvas: #020617 /* slate-950 */, surface: #0f172a /* slate-900 */, surface-raised: #0f172a /* slate-900 */, surface-inset: #0f172a /* slate-900: wells keep the raised tone */,
         text-primary: #f8fafc /* slate-50 */, text-secondary: #94a3b8 /* slate-400 */, placeholder: #94a3b8 /* slate-400 */,
         // Labels on the indigo-400 accent use slate-950 (6.8:1): indigo-950
         // passed AA at 5.4:1 but read as low-contrast indigo on indigo.
@@ -290,6 +305,8 @@ export global KitThemes {
         on-warning: #020617, warning-hover: #fcd34d, warning-pressed: #fde68a, warning: #fbbf24 /* amber-400 */, warning-subtle: #451a03 /* amber-950 */,
         on-information: #020617, information-hover: #7dd3fc, information-pressed: #bae6fd, information: #38bdf8 /* sky-400 */, information-subtle: #082f49 /* sky-950 */,
         border-subtle: #1e293b /* slate-800 */, border-strong: #64748b /* slate-500: visible control boundaries */,
+        control-fill: #0f172a /* slate-900 */, control-border: #1e293b /* slate-800 */,
+        choice-fill: #818cf8 /* indigo-400 */, on-choice-fill: #020617 /* slate-950 */,
         hover: #1e293b /* slate-800 */, pressed: #334155 /* slate-700 */,
         disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
         shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
@@ -305,7 +322,7 @@ export global KitThemes {
         focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #818cf8 /* indigo-400 */, invalid-color: #f87171 /* red-400 */ },
         typography: {
             family: "", family-monospace: MonospaceFont.family, weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
-            size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px,
+            size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px, size-display: 48px,
             line-height-control: 20px,
         },
         spacing: {
@@ -373,7 +390,7 @@ export global KitThemes {
         return {
             fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger
                 : intent == ButtonIntent.success ? theme.success : intent == ButtonIntent.warning ? theme.warning : intent == ButtonIntent.information ? theme.information
-                : intent == ButtonIntent.secondary ? theme.surface : transparent,
+                : intent == ButtonIntent.secondary ? theme.control-fill : transparent,
             hover-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover
                 : intent == ButtonIntent.success ? theme.success-hover : intent == ButtonIntent.warning ? theme.warning-hover : intent == ButtonIntent.information ? theme.information-hover : theme.hover,
             pressed-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed
@@ -382,7 +399,7 @@ export global KitThemes {
             foreground: intent == ButtonIntent.link ? theme.accent : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger
                 : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : intent == ButtonIntent.information ? theme.on-information : theme.text-primary,
             disabled-foreground: theme.disabled-text,
-            border: intent == ButtonIntent.secondary ? theme.border-subtle : intent == ButtonIntent.outline ? theme.border-strong : transparent,
+            border: intent == ButtonIntent.secondary ? theme.control-border : intent == ButtonIntent.outline ? theme.border-strong : transparent,
             radius: theme.shape.radius-control,
             padding-inline: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-inline,
             padding-block: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-block,
@@ -457,15 +474,23 @@ export global KitThemes {
             focus: KitThemes.inset-focus(theme),
         };
     }
+    // The elevation of a surface level: overlays and popovers take their own
+    // role, flat and raised surfaces the container's, and a well none.
+    public pure function surface-elevation(theme: KitTheme, level: SurfaceLevel) -> ElevationLevel {
+        return level == SurfaceLevel.overlay ? theme.elevation.overlay
+            : level == SurfaceLevel.popover ? theme.elevation.popover
+            : level == SurfaceLevel.inset ? ElevationLevel.none
+            : theme.elevation.container;
+    }
     public pure function surface-recipe(theme: KitTheme, level: SurfaceLevel) -> SurfaceRecipe {
         return {
-            fill: level == SurfaceLevel.flat ? theme.surface : theme.surface-raised,
+            fill: level == SurfaceLevel.flat ? theme.surface : level == SurfaceLevel.inset ? theme.surface-inset : theme.surface-raised,
             border: theme.border-subtle,
             radius: level == SurfaceLevel.overlay || level == SurfaceLevel.popover ? theme.shape.radius-overlay : theme.shape.radius-container,
             border-width: theme.shape.border-width,
-            elevation: level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container,
-            shadow: KitThemes.shadow(theme, level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container),
-            ambient-shadow: KitThemes.ambient-shadow(theme, level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container),
+            elevation: KitThemes.surface-elevation(theme, level),
+            shadow: KitThemes.shadow(theme, KitThemes.surface-elevation(theme, level)),
+            ambient-shadow: KitThemes.ambient-shadow(theme, KitThemes.surface-elevation(theme, level)),
         };
     }
     // The box of a checkbox or radio by ControlSize: Tailwind size-4/5/6.

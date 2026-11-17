@@ -963,3 +963,114 @@ pub(super) fn save_capture(snapshot: &slint::SharedPixelBuffer<slint::Rgba8Pixel
     )
     .unwrap();
 }
+
+/// A fixture that rasterizes headlessly, so a test can read a control's paint.
+fn painted() -> ChoicePresentationFixture {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = ChoicePresentationFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.show().unwrap();
+    window
+}
+/// The colour of one whole logical pixel; the testing window has a scale of 1.
+fn pixel(window: &ChoicePresentationFixture, x: f32, y: f32) -> [u8; 3] {
+    let image = window.window().take_snapshot().unwrap();
+    let width = usize::try_from(image.width()).unwrap();
+    let offset = (y as usize * width + x as usize) * 4;
+    let bytes = &image.as_bytes()[offset..offset + 3];
+    [bytes[0], bytes[1], bytes[2]]
+}
+fn rgb(color: Color) -> [u8; 3] {
+    [color.red(), color.green(), color.blue()]
+}
+
+#[test]
+fn segmented_selected_tone_paints_that_tone_under_the_selected_segment_only() {
+    let window = painted();
+    let theme = window.get_light();
+    let low = element(&window, "Low");
+    let medium = element(&window, "Medium");
+    // Inside the segment's padding, before its label.
+    let probe = |segment: &ElementHandle| {
+        let origin = segment.absolute_position();
+        (origin.x + 4., origin.y + segment.size().height / 2.)
+    };
+    let (x, y) = probe(&low);
+    let (unselected_x, unselected_y) = probe(&medium);
+    for (tone, fill) in [
+        (Tone::Accent, theme.accent),
+        (Tone::Warning, theme.warning_subtle),
+        (Tone::Success, theme.success_subtle),
+        (Tone::Danger, theme.danger_subtle),
+        (Tone::Information, theme.information_subtle),
+        (Tone::Neutral, theme.pressed),
+    ] {
+        window.set_speed_tone(tone);
+        assert_eq!(pixel(&window, x, y), rgb(fill), "{tone:?} selected");
+        // An unselected segment shows the group's canvas whatever the tone.
+        assert_eq!(
+            pixel(&window, unselected_x, unselected_y),
+            rgb(theme.canvas),
+            "{tone:?} unselected"
+        );
+    }
+    assert_eq!(low.accessible_checked(), Some(true));
+    assert_eq!(medium.accessible_checked(), Some(false));
+}
+
+#[test]
+fn filled_slider_edge_radius_and_handle_shape_are_host_choices() {
+    let window = painted();
+    let theme = window.get_light();
+    let slider = element(&window, "Styled level");
+    let origin = slider.absolute_position();
+    let size = slider.size();
+    let middle = origin.y + size.height / 2.;
+    let (track, fill, handle) = ([0xd9, 0xd9, 0xd9], [0x2a, 0x6f, 0x2a], [0xf0, 0xa0, 0x30]);
+    // The right end, past the 70% fill: the strong edge by default, the
+    // track itself once the host clears the edge.
+    let end = origin.x + size.width - 1.;
+    assert_eq!(pixel(&window, end, middle), rgb(theme.border_strong));
+    window.set_styled_transparent_edge(true);
+    assert_eq!(pixel(&window, end, middle), track);
+    // Four pixels into the top-left corner: inside the container radius,
+    // outside a pill, where the canvas shows.
+    let corner = (origin.x + 4., origin.y + 4.);
+    assert_eq!(pixel(&window, corner.0, corner.1), fill);
+    window.set_styled_pill(true);
+    assert_eq!(pixel(&window, corner.0, corner.1), rgb(theme.canvas));
+    // The bar sits three spacing units inside the fill's edge; the disc
+    // centres on the edge, inside a ring of the surface colour.
+    let edge = origin.x + size.width * 0.7;
+    assert_eq!(pixel(&window, edge - 12., middle), handle, "bar");
+    // The fill's last column is the one before its edge.
+    assert_eq!(
+        pixel(&window, edge - 1., middle),
+        fill,
+        "fill up to its edge beside the bar"
+    );
+    assert_eq!(
+        pixel(&window, edge, middle),
+        track,
+        "track past the edge beside the bar"
+    );
+    window.set_styled_disc(true);
+    assert_eq!(pixel(&window, edge, middle), handle, "disc centre");
+    let radius = (size.height - 2. * theme.shape.border_width_strong) / 2.;
+    assert_eq!(
+        pixel(&window, edge - radius + 1., middle),
+        rgb(theme.surface),
+        "disc ring"
+    );
+    assert_eq!(
+        pixel(&window, edge - radius - 2., middle),
+        fill,
+        "fill beside the disc"
+    );
+}
