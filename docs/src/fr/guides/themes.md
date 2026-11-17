@@ -68,7 +68,7 @@ export component Example inherits Window {
 }
 ```
 
-**Inter est une police optionnelle.** Importez `{ InterFont } from "@kit/fonts/inter.slint"`, puis réglez `default-font-family: InterFont.family` sur la fenêtre, comme les exemples documentaires. Sans cet import, le thème utilise la police de l’application. Les quatre graisses statiques totalisent environ 1,6 Mo de fichiers sources ; une application embarquée peut choisir une police adaptée à son périphérique.
+**Inter est une police optionnelle.** Importez `{ InterFont } from "@kit-fonts/inter.slint"`, puis réglez `default-font-family: InterFont.family` sur la fenêtre, comme les exemples documentaires. Sans cet import, le thème utilise la police de l’application. Les quatre graisses statiques totalisent environ 1,6 Mo de fichiers sources ; une application embarquée peut choisir une police adaptée à son périphérique.
 
 Pour ajouter des alias de bibliothèques applicatives, partez de `slint_kit_build::config_with_libraries(...)`, puis utilisez `slint_kit_build::compile_with_config("ui/app.slint", config)`. Le helper préserve les alias de l’application et réserve `kit`. La hauteur des composants reste intrinsèque : contenu et padding peuvent demander davantage que la taille nominale.
 
@@ -90,7 +90,7 @@ Les groupes composés, sélecteurs, onglets et menus conservent leurs contrats d
 
 ```slint
 import { KitButton, ButtonIntent, KitThemeContext } from "@kit";
-import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideIcons } from "@kit-icons/all.slint";
 
 component ExportAction inherits KitButton {
     text: "Exporter";
@@ -138,13 +138,13 @@ Un contrôle voisin sans thème explicite continue d’utiliser le contexte de l
 
 ## Icônes
 
-`KitIcon` et `KitIconButton` peignent un `IconGlyph`. Les glyphes propres au kit sont dans `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Toutes les icônes de [Lucide](https://lucide.dev) 1.64.0 sont aussi disponibles : `@kit/icons/lucide/all.slint` exporte `LucideIcons`, et chaque catégorie Lucide a son propre fichier avec les mêmes glyphes, par exemple `LucideArrows` dans `@kit/icons/lucide/arrows.slint`. Chaque icône est une fonction nommée : un nom mal orthographié échoue à la compilation, et seules les icônes appelées par l’application arrivent dans son binaire.
+`KitIcon` et `KitIconButton` peignent un `IconGlyph`. Les glyphes propres au kit sont dans `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Toutes les icônes de [Lucide](https://lucide.dev) 1.64.0 sont aussi disponibles : `@kit-icons/all.slint` exporte `LucideIcons`, et chaque catégorie Lucide a son propre fichier avec les mêmes glyphes, par exemple `LucideArrows` dans `@kit-icons/arrows.slint`. Chaque icône est une fonction nommée : un nom mal orthographié échoue à la compilation, et seules les icônes appelées par l’application arrivent dans son binaire.
 
 [Parcourir toutes les icônes Lucide et copier leur intégration](/fr/components/icon/).
 
 ```slint
 import { KitIcon, KitIconButton, IconPurpose } from "@kit";
-import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideIcons } from "@kit-icons/all.slint";
 
 component Toolbar inherits HorizontalLayout {
     spacing: 8px;
@@ -272,7 +272,7 @@ Ce site propose des previews navigateur et des captures natives ; leurs légende
 
 Utilisez `KitAvatar` avec `AvatarInteraction.action` pour accéder à un profil : fournissez un nom d’action et traitez `activated`. Les avatars statiques restent des images. `KitBadge` et `KitStat` acceptent des glyphes `leading-icon` optionnels ; gardez le statut et la valeur lisibles. Les champs OTP soulignés utilisent toujours un seul éditeur natif. Alignez les `slots` visuels sur la longueur de code acceptée par l’hôte. Pour les infobulles des boutons Kit, liez `target-focused` à `focus-visible` afin de garder l’aide au survol sans ouvrir une projection clavier après un clic.
 
-Les valeurs `KitTypography` personnalisées doivent fournir `family-monospace`, utilisé pour la saisie de codes. Les thèmes fournis embarquent et enregistrent JetBrains Mono Regular (OFL 1.1) via `@kit/fonts/monospace.slint`, afin que chiffres, lettres larges et points de masquage gardent la même chasse en natif et en WebAssembly. Le nom système générique `monospace` ne suffit pas sur tous les backends. Une police de code personnalisée doit être enregistrée, réellement à chasse fixe et couvrir l’alphabet ainsi que les glyphes de masquage. `KitTextField.text-cell-width` mesure le glyphe zéro réel pour aligner les emplacements de code.
+Les valeurs `KitTypography` personnalisées doivent fournir `family-monospace`, utilisé pour la saisie de codes. Les thèmes fournis embarquent et enregistrent JetBrains Mono Regular (OFL 1.1) via `@kit-fonts/monospace.slint`, afin que chiffres, lettres larges et points de masquage gardent la même chasse en natif et en WebAssembly. Le nom système générique `monospace` ne suffit pas sur tous les backends. Une police de code personnalisée doit être enregistrée, réellement à chasse fixe et couvrir l’alphabet ainsi que les glyphes de masquage. `KitTextField.text-cell-width` mesure le glyphe zéro réel pour aligner les emplacements de code.
 
 Pour des sliders dans une modale défilante, activez `KitScrollArea.pan-policy: children-first`. Un enfant interactif conserve son appui jusqu’au relâchement ; démarrez sur le fond ou le texte pour défiler. Ce déplacement est direct, sans inertie. Molette, barres et révélation du focus restent actives. La politique `native` par défaut conserve l’arbitrage Slint.
 

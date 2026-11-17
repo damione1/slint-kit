@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCheckbox, KitSwitch, KitTheme, KitThemes, CheckState, ChoiceLabelPosition } from "@kit";
+import { KitCheckbox, KitSwitch, KitTheme, KitThemes, CheckState, ChoiceLabelPosition, KitMetrics, ControlSize, TypographyRole } from "@kit";
 
 // A checkbox and a switch with helper text, the label on either side.
 export component ChoiceDescriptionFixture inherits Window {
@@ -14,6 +14,22 @@ export component ChoiceDescriptionFixture inherits Window {
     out property <length> check-x: check.absolute-position.x;
     out property <length> toggle-x: toggle.absolute-position.x;
     out property <length> toggle-width: toggle.width;
+    // This application remains in edition 1.18 while @kit uses 1.19.
+    out property <length> application-conditional-height: edition-probe.preferred-height;
+    edition-probe := Rectangle {
+        visible: false;
+        if root.description != "": Rectangle { preferred-height: 47px; }
+    }
+    // The pre-1.19 size contract: independent native text measurements are
+    // retained only in this regression fixture, never in the control itself.
+    private property <length> check-caption-width: check.width - 2 * check.padding-inline - KitThemes.choice-recipe(root.theme, ControlSize.medium).box-size - KitThemes.choice-recipe(root.theme, ControlSize.medium).label-gap;
+    private property <length> switch-caption-width: toggle.width - 2 * toggle.padding-inline - KitThemes.choice-recipe(root.theme, ControlSize.medium).track-width - KitThemes.choice-recipe(root.theme, ControlSize.medium).label-gap;
+    out property <length> expected-check-height: max(check.recipe.height, check.text-size * 1.4 + 2 * check.padding-block, check-label.preferred-height + (root.description != "" ? check-description.preferred-height + KitMetrics.label-gap(root.theme) / 2 : 0px) + 2 * check.padding-block);
+    out property <length> expected-switch-height: max(toggle.recipe.height, toggle.text-size * 1.4 + 2 * toggle.padding-block, switch-label.preferred-height + (root.description != "" ? switch-description.preferred-height + KitMetrics.label-gap(root.theme) / 2 : 0px) + 2 * toggle.padding-block);
+    check-label := Text { visible: false; width: max(1px, root.check-caption-width); text: "Weekly digest"; font-family: root.theme.typography.family; font-size: check.text-size; font-weight: check.text-weight; wrap: word-wrap; }
+    check-description := Text { visible: false; width: check-label.width; text: root.description; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    switch-label := Text { visible: false; width: max(1px, root.switch-caption-width); text: "Notifications"; font-family: root.theme.typography.family; font-size: toggle.text-size; font-weight: toggle.text-weight; wrap: word-wrap; }
+    switch-description := Text { visible: false; width: switch-label.width; text: root.description; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     VerticalLayout {
         padding: 20px; spacing: 12px; alignment: start;
         plain := KitCheckbox { theme: root.theme; label: "Weekly digest"; }

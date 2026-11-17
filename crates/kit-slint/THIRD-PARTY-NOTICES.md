@@ -4,7 +4,7 @@ Slint Kit's own code and artwork are licensed `GPL-3.0-or-later` (see `LICENSE`)
 The built-in presentation in `crates/kit-slint/ui/theme.slint` and generated
 icon globals in `crates/kit-slint/ui/icons/lucide/` contain material from the
 projects below, which remain under their own licenses. Inter is registered
-separately through `InterFont` in `@kit/fonts/inter.slint`; importing the
+separately through `InterFont` in `@kit-fonts/inter.slint`; importing the
 components alone does not embed Inter. The default themes register JetBrains Mono
 for code fields on native and WebAssembly backends. The kit's own glyphs (`KitGlyphs`)
 are original.

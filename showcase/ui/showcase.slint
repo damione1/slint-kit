@@ -1,27 +1,27 @@
 import { KitKeyResult } from "@kit";
-import { InterFont } from "@kit/fonts/inter.slint";
+import { InterFont } from "@kit-fonts/inter.slint";
 import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
-import { KitTheme, KitThemes, ThemeMode, KitMetrics, TypographyRole, ControlWidth } from "@kit/theme.slint";
+import { KitTheme, KitThemes, ThemeMode, KitMetrics, TypographyRole, ControlWidth } from "@kit";
 export { ThemeMode }
-import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
-import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
-import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
-import { FieldAccess } from "@kit/contracts.slint";
-import { KitIcon, KitGlyphs } from "@kit/icons.slint";
+import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit";
+import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit";
+import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit";
+import { FieldAccess } from "@kit";
+import { KitIcon, KitGlyphs } from "@kit";
 import { DisplayGallery, DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 export { DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 import { NavigationDrawer, NavigationGallery, NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
 export { NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
 import { DataGallery, DataExamples, DataCollection } from "base-data.slint";
 export { DataExamples, DataCollection, ArticlePreviewState, ArticlePreview } from "base-data.slint";
-export { TableColumn, TableRow, ContentItem, TextLine, DataSortDirection, DataAlignment } from "@kit/data.slint";
+export { TableColumn, TableRow, ContentItem, TextLine, DataSortDirection, DataAlignment } from "@kit";
 import { ExampleSection, PreviewExamples, PreviewTarget } from "example-section.slint";
-import { KitTooltip, KitTooltipLayer, KitToastHost } from "@kit/feedback.slint";
+import { KitTooltip, KitTooltipLayer, KitToastHost } from "@kit";
 import { FormGallery, FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
 export { FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
-import { KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget } from "@kit/dialog.slint";
+import { KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget } from "@kit";
 
 component RegisteredButton inherits KitFocusTarget {
     in property <KitTheme> theme;
@@ -303,7 +303,7 @@ export component Showcase inherits Window {
             page-heading := Text { text: root.page-title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
             if root.page == ShowcasePage.gallery: VerticalLayout { spacing: 24px; alignment: start; vertical-stretch: 0;
                 Text { text: "Native components for Rust and Slint. Try each interaction, then change its presentation."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-                ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit/button.slint · Activate an action with the pointer, Space or Enter.";
+                ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit · Activate an action with the pointer, Space or Enter.";
                     FlexboxLayout { spacing: 8px; alignment: start;
                         for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Disabled"; disabled: true; }
@@ -311,7 +311,7 @@ export component Showcase inherits Window {
                     }
                     Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); accessible-live-region: polite; }
                 }
-                ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit/select.slint · Search 10,000 people. Selection follows identity when rows move.";
+                ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit · Search 10,000 people. Selection follows identity when rows move.";
                             mineral-select := KitSelect {
                                 init => { root.mineral-page-rows = self.page-rows; }
                                 changed page-rows => { root.mineral-page-rows = self.page-rows; }
@@ -336,7 +336,7 @@ export component Showcase inherits Window {
                     }
                     Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
-                ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit/dialog.slint · Create a demo project with validation and a nested select.";
+                ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit · Create a demo project with validation and a nested select.";
                     RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
                 }

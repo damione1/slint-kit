@@ -13,18 +13,42 @@ test('documentation versions come from the workspace, not another package table'
   assert.throws(() => projectMetadata(source.replace('=1.18.1', '^1.18.1')), /pinned Slint version/);
 });
 
+function assertSourceDependency(dependency, context) {
+  const manifest = fs.readFileSync(new URL('../../Cargo.toml', import.meta.url), 'utf8');
+  const repository = manifest.match(/^repository\s*=\s*"([^"]+)"/m)?.[1];
+  assert.ok(repository, 'the workspace declares its repository');
+  assert.equal(dependency.match(/git\s*=\s*"([^"]+)"/)?.[1], repository, `${context}: repository`);
+  assert.equal(dependency.match(/branch\s*=\s*"([^"]+)"/)?.[1], 'develop', `${context}: branch`);
+  assert.doesNotMatch(dependency, /\b(?:version|rev|tag|path)\s*=/);
+}
+
 test('published guide dependency snippets use the central version', () => {
   for (const locale of ['en', 'fr']) {
     for (const guide of ['project-setup', 'native', 'workspace']) {
       const source = fs.readFileSync(new URL(`../src/${locale}/guides/${guide}.md`, import.meta.url), 'utf8');
       const dependencies = source.split('\n').filter(line => /^slint-kit(?:-build)?\s*=/.test(line) && !line.includes('path ='));
       assert.ok(dependencies.length, `${locale}/${guide}: dependency snippet`);
-      for (const dependency of dependencies) assert.match(dependency, /\{\{ project\.version \}\}/);
+      for (const dependency of dependencies) {
+        if (/\bgit\s*=/.test(dependency)) assertSourceDependency(dependency, `${locale}/${guide}`);
+        else assert.match(dependency, /\{\{ project\.version \}\}/);
+      }
     }
   }
   assert.match(loadProject().version, /^\d+\.\d+\.\d+$/);
 });
 
+
+test('unpublished source guide dependencies share the workspace repository and develop branch', () => {
+  for (const locale of ['en', 'fr']) {
+    const source = fs.readFileSync(new URL(`../src/${locale}/guides/project-setup.md`, import.meta.url), 'utf8');
+    const blocks = Array.from(source.matchAll(/```toml\n([\s\S]*?)```/g), match => match[1])
+      .filter(block => /git\s*=/.test(block));
+    assert.equal(blocks.length, 1, `${locale}: one source dependency manifest`);
+    const dependencies = blocks[0].split('\n').filter(line => /^slint-kit(?:-build)?\s*=/.test(line));
+    assert.deepEqual(dependencies.map(line => line.match(/^(\S+)\s*=/)[1]), ['slint-kit', 'slint-kit-build']);
+    for (const dependency of dependencies) assertSourceDependency(dependency, locale);
+  }
+});
 
 test('password examples keep accepted secrets out of visible status and log sinks', () => {
   for (const locale of ['', 'fr/']) {

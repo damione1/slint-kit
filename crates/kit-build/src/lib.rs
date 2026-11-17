@@ -22,14 +22,26 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Register the kit while preserving application-specific libraries.
 /// Debug metadata follows Slint defaults, including `SLINT_EMIT_DEBUG_INFO`.
-/// `kit` is reserved; conflicting registrations fail at the boundary.
+/// `kit`, `kit-icons` and `kit-fonts` are reserved; conflicting registrations fail
+/// at the boundary. The application defaults to edition 1.18, independently of
+/// the library project’s edition 1.19.
 pub fn config_with_libraries(
     mut libraries: HashMap<String, PathBuf>,
 ) -> slint_build::CompilerConfiguration {
     assert!(
-        libraries.insert("kit".into(), ui_directory()).is_none(),
+        libraries
+            .insert("kit".into(), ui_directory().join("slint-project.json"))
+            .is_none(),
         "kit is a reserved library alias"
     );
+    for (alias, directory) in [("kit-icons", "icons/lucide"), ("kit-fonts", "fonts")] {
+        assert!(
+            libraries
+                .insert(alias.into(), ui_directory().join(directory))
+                .is_none(),
+            "{alias} is a reserved library alias"
+        );
+    }
     slint_build::CompilerConfiguration::new()
         .with_edition((1, 18))
         .with_library_paths(libraries)
@@ -247,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn application_libraries_compile_with_the_default_theme() {
+    fn edition_118_application_libraries_compile_with_the_default_theme() {
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -261,18 +273,35 @@ mod tests {
         let input = directory.join("app.slint");
         std::fs::write(
             &input,
-            r#"import { KitButton } from "@kit/kit.slint";
+            r#"import { KitButton } from "@kit";
+            import { LucideIcons } from "@kit-icons/all.slint";
+            import { InterFont } from "@kit-fonts/inter.slint";
             import { Adornment } from "@app/adornment.slint";
             export component App inherits Window {
-                HorizontalLayout { Adornment {} KitButton { text: "Consumer"; } }
+                default-font-family: InterFont.family;
+                HorizontalLayout { Adornment {} KitButton { text: "Consumer"; leading-icon: LucideIcons.plus(); } }
             }"#,
         )
         .unwrap();
-        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]));
-        let result =
-            slint_build::compile_with_output_path(&input, directory.join("app.rs"), config);
+        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]))
+            .with_edition((1, 18));
+        slint_build::compile_with_output_path(&input, directory.join("app.rs"), config).expect(
+            "edition 1.18 application, edition 1.19 kit and resource aliases compile together",
+        );
+        std::fs::write(
+            &input,
+            r#"import { KitButton } from "@kit/button.slint";
+            export component App inherits Window { KitButton {} }"#,
+        )
+        .unwrap();
+        let error = slint_build::compile_with_output_path(
+            &input,
+            directory.join("private.rs"),
+            super::config(),
+        )
+        .expect_err("the kit alias must load its project file rather than a directory");
+        assert!(format!("{error:?}").contains("private to a library with a project file"));
         std::fs::remove_dir_all(directory).unwrap();
-        result.expect("kit and application aliases compile together");
     }
 
     #[test]

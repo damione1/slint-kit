@@ -25,15 +25,15 @@ Windows requires 0.7.1 or later; 0.7.0 incorrectly escapes canonical source path
 
 ## Editor imports
 
-The Slint language server does not read `build.rs`. For a crates.io consumer, run `cargo vendor --locked target/slint-editor/vendor` from the application workspace root, then configure VS Code's `slint.libraryPaths` with `{"kit": "target/slint-editor/vendor/slint-kit-slint/ui"}`, or pass `-L kit=target/slint-editor/vendor/slint-kit-slint/ui` to `slint-lsp` in Zed. These paths assume one kit version and Cargo's default vendor directory naming. Vendoring copies all remote dependencies; rerun it after updating the lockfile or cleaning `target/`.
+The Slint language server does not read `build.rs`. For a crates.io consumer, run `cargo vendor --locked target/slint-editor/vendor` from the application workspace root, then configure VS Code's `slint.libraryPaths` with `{"kit": "target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json"}`, or pass `-L kit=target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json` to `slint-lsp` in Zed. These paths assume one kit version and Cargo's default vendor directory naming. Vendoring copies all remote dependencies; rerun it after updating the lockfile or cleaning `target/`.
 
 For complete editor settings, local path dependencies and troubleshooting, see [Editor setup](https://slint-kit.dev/guides/editor/) ([français](https://slint-kit.dev/fr/guides/editor/)).
 
 ## Shared modules and compatibility
 
-The build helper selects Slint language edition 1.18 explicitly, preserving the existing layout and state behavior.
+The build helper defaults applications to Slint language edition 1.18; the `@kit` library uses its own edition 1.19 project. Applications can opt into 1.19 with `config().with_edition((1, 19))`. Components use `@kit`; optional Lucide globals use `@kit-icons/all.slint` or category files, and Inter uses `@kit-fonts/inter.slint`. These three aliases are reserved.
 
-Slint Kit supports Slint **1.19 patch releases from 1.19.0** and enables its experimental module-build feature inside the build package. Components, structs, enums and globals use the single `@kit` entry point; supplemental font/icon imports retain their paths. Keep the runtime dependency named `slint-kit` so generated references to `slint_kit::ui` resolve. `compile` supplies the window globals needed by `slint_kit::install`; no per-component export list is needed in application UI.
+Slint Kit supports Slint **1.19 patch releases from 1.19.0** and enables its experimental module-build feature inside the build package. Components, structs, enums and globals use the single `@kit` entry point; supplemental font/icon imports use the dedicated resource aliases above. Keep the runtime dependency named `slint-kit` so generated references to `slint_kit::ui` resolve. `compile` supplies the window globals needed by `slint_kit::install`; no per-component export list is needed in application UI.
 
 The experimental feature is isolated here rather than exposed as application configuration. If an upstream release removes it, the compatibility fallback is a build-generated Slint entry point that re-exports the application and kit contracts, with typed Rust glue included through `SLINT_INCLUDE_GENERATED`. That fallback preserves the public import/props/callback and per-window `install` contract; it is a migration strategy, not an alternative backend enabled in the current 1.19.0 package.
 
@@ -45,9 +45,9 @@ slint_kit_build::compile_with_config("ui/app.slint", config)
 
 ## Modules partagés et compatibilité
 
-Le helper sélectionne explicitement l’édition 1.18 du langage Slint, ce qui conserve le comportement existant des layouts et des états.
+Le helper conserve l’édition 1.18 pour les applications par défaut ; `@kit` utilise son propre projet en édition 1.19. `config().with_edition((1, 19))` fait aussi passer l’application en 1.19. Les composants utilisent `@kit`, Lucide `@kit-icons/all.slint` ou les fichiers de catégorie, et Inter `@kit-fonts/inter.slint`. Ces trois alias sont réservés.
 
-Slint Kit prend en charge les **versions correctives de Slint 1.19 à partir de la 1.19.0** et active sa compilation expérimentale de modules dans le paquet build. Composants, structs, enums et globals passent par l’unique point d’entrée `@kit` ; les imports supplémentaires de polices/icônes conservent leurs chemins. Gardez la dépendance runtime nommée `slint-kit` pour résoudre `slint_kit::ui`. `compile` fournit les globals nécessaires à `slint_kit::install` sans liste d’exports par composant dans l’application.
+Slint Kit prend en charge les **versions correctives de Slint 1.19 à partir de la 1.19.0** et active sa compilation expérimentale de modules dans le paquet build. Composants, structs, enums et globals passent par l’unique point d’entrée `@kit` ; les imports de polices/icônes utilisent les alias dédiés ci-dessus. Gardez la dépendance runtime nommée `slint-kit` pour résoudre `slint_kit::ui`. `compile` fournit les globals nécessaires à `slint_kit::install` sans liste d’exports par composant dans l’application.
 
 Pour personnaliser le compilateur, partez de `config()` puis appelez `compile_with_config(path, config)` : les chemins de bibliothèques et exports de services restent configurés. L’appel direct au compilateur Slint de bas niveau n’ajoute pas ces exports.
 

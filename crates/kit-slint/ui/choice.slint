@@ -224,9 +224,8 @@ export component KitCheckbox inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + (root.description != "" ? measure-description.preferred-height + KitMetrics.label-gap(root.theme) / 2 : 0px) + 2 * root.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
-    measure-description := Text { visible: false; width: measure.width; text: root.description; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    // Edition 1.19 includes the caption’s conditional description in its layout.
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.preferred-height + 2 * root.padding-block);
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checkable: true;
@@ -282,9 +281,8 @@ export component KitSwitch inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + (root.description != "" ? measure-description.preferred-height + KitMetrics.label-gap(root.theme) / 2 : 0px) + 2 * root.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
-    measure-description := Text { visible: false; width: measure.width; text: root.description; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    // Edition 1.19 includes the caption’s conditional description in its layout.
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.preferred-height + 2 * root.padding-block);
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checkable: true;
@@ -295,7 +293,7 @@ export component KitSwitch inherits KitPressable {
     HorizontalLayout {
         spacing: root.choice.label-gap;
         if root.label-position == ChoiceLabelPosition.end: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
-        ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
+        label := ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
         if root.label-position == ChoiceLabelPosition.start: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
     }
 }
@@ -921,7 +919,6 @@ export component KitChipButton inherits KitPressable {
 component ChipWrap inherits Rectangle {
     in property <KitTheme> theme;
     min-width: 0px; preferred-width: 0px; horizontal-stretch: 1; vertical-stretch: 0;
-    min-height: flow.preferred-height; preferred-height: flow.preferred-height;
     flow := KitWrap {
         theme: root.theme; width: root.width; height: self.preferred-height;
         spacing: KitMetrics.inline-gap(root.theme); alignment: start;

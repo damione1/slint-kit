@@ -112,67 +112,75 @@ fn chip_composites_recover_intrinsic_height_after_repeated_add_remove_and_resize
     app.window().dispatch_event(WindowEvent::KeyReleased {
         text: "native draft".into(),
     });
-    for width in [560., 320., 560.] {
-        app.window().set_size(LogicalSize::new(width, 1200.));
-        for count in [1, 4, 2, 0, 4, 1] {
-            app.set_chips(model(
-                options()
-                    .into_iter()
-                    .take(count)
-                    .map(|r| ChipRow {
-                        token: r.token,
-                        label: r.label,
-                        removable: true,
-                    })
-                    .collect(),
-            ));
-            app.set_selected(model(
-                options()
-                    .into_iter()
-                    .take(count)
-                    .map(|r| SelectionRef {
-                        present: true,
-                        token: r.token,
-                    })
-                    .collect(),
-            ));
-            settle(&app);
-            let tags = component(&app, "KitTagInput");
-            let editor = tags
-                .query_descendants()
-                .match_inherits("KitTextField")
-                .find_first()
-                .unwrap();
-            near(
-                tags.absolute_position().y + tags.size().height,
-                bottom(&editor),
-            );
-            near(app.get_tag_count_top() - app.get_tag_bottom(), 16.);
-            assert_eq!(app.get_draft(), "native draft");
-            let tag_chips = tags
-                .query_descendants()
-                .match_inherits("KitChip")
-                .find_all();
-            if !tag_chips.is_empty() {
-                let last = tag_chips.iter().map(bottom).fold(0., f32::max);
-                near(editor.absolute_position().y - last, app.get_label_gap());
+    for (name, base) in [("light", app.get_theme()), ("dark", app.get_dark_theme())] {
+        for scale in [1, 2] {
+            let mut theme = base.clone();
+            theme.text_scale = if scale == 1 { 1. } else { 2. };
+            app.set_theme(theme);
+            for width in [560., 320., 560.] {
+                app.window().set_size(LogicalSize::new(width, 1200.));
+                for count in [1, 4, 2, 0, 4, 1] {
+                    app.set_chips(model(
+                        options()
+                            .into_iter()
+                            .take(count)
+                            .map(|r| ChipRow {
+                                token: r.token,
+                                label: r.label,
+                                removable: true,
+                            })
+                            .collect(),
+                    ));
+                    app.set_selected(model(
+                        options()
+                            .into_iter()
+                            .take(count)
+                            .map(|r| SelectionRef {
+                                present: true,
+                                token: r.token,
+                            })
+                            .collect(),
+                    ));
+                    settle(&app);
+                    let tags = component(&app, "KitTagInput");
+                    let editor = tags
+                        .query_descendants()
+                        .match_inherits("KitTextField")
+                        .find_first()
+                        .unwrap();
+                    near(
+                        tags.absolute_position().y + tags.size().height,
+                        bottom(&editor),
+                    );
+                    near(app.get_tag_count_top() - app.get_tag_bottom(), 16.);
+                    assert_eq!(app.get_draft(), "native draft");
+                    let tag_chips = tags
+                        .query_descendants()
+                        .match_inherits("KitChip")
+                        .find_all();
+                    if !tag_chips.is_empty() {
+                        let last = tag_chips.iter().map(bottom).fold(0., f32::max);
+                        near(editor.absolute_position().y - last, app.get_label_gap());
+                    }
+                    let multi = component(&app, "KitMultiSelect");
+                    let select = multi
+                        .query_descendants()
+                        .match_inherits("KitSelect")
+                        .find_first()
+                        .unwrap();
+                    let chips = multi
+                        .query_descendants()
+                        .match_inherits("KitChip")
+                        .find_all();
+                    assert_eq!(chips.len(), count);
+                    if !chips.is_empty() {
+                        let last = chips.iter().map(bottom).fold(0., f32::max);
+                        near(select.absolute_position().y - last, app.get_label_gap());
+                    }
+                    near(app.get_multi_count_top() - app.get_multi_bottom(), 16.);
+                }
             }
-            let multi = component(&app, "KitMultiSelect");
-            let select = multi
-                .query_descendants()
-                .match_inherits("KitSelect")
-                .find_first()
-                .unwrap();
-            let chips = multi
-                .query_descendants()
-                .match_inherits("KitChip")
-                .find_all();
-            assert_eq!(chips.len(), count);
-            if !chips.is_empty() {
-                let last = chips.iter().map(bottom).fold(0., f32::max);
-                near(select.absolute_position().y - last, app.get_label_gap());
-            }
-            near(app.get_multi_count_top() - app.get_multi_bottom(), 16.);
+            capture(&app, &format!("chips-{name}-{scale}"));
         }
     }
     capture(&app, "chips-after-cycles");

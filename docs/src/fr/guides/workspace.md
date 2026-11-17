@@ -48,7 +48,7 @@ fn main() {
 
 Lancez `cargo run` dans le dossier du projet. Les sources incluent le point d’entrée, l’initialisation de la validation, le modèle à clés stables, le filtrage et les callbacks d’enregistrement. L’application utilise la présentation Tailwind intégrée avec Inter.
 
-Choisissez `KitThemes.light` ou `.dark` pour changer de mode. Les sources importent `{ InterFont }` depuis `@kit/fonts/inter.slint` et choisissent cette police avec `default-font-family: InterFont.family`. [Configurer le thème et les réglages locaux](/fr/guides/themes/).
+Choisissez `KitThemes.light` ou `.dark` pour changer de mode. Les sources importent `{ InterFont }` depuis `@kit-fonts/inter.slint` et choisissent cette police avec `default-font-family: InterFont.family`. [Configurer le thème et les réglages locaux](/fr/guides/themes/).
 
 ## Garder la responsabilité des données dans l’application
 
@@ -57,3 +57,5 @@ Choisissez `KitThemes.light` ou `.dark` pour changer de mode. Les sources import
 Le composite transmet explicitement son thème à ses enfants et au dialogue. Un rayon, un padding ou une icône locale ne modifie pas les régions voisines. Le dialogue désactive les contrôles d’arrière-plan pendant son ouverture, conserve l’ouvreur et lui rend le focus à la fermeture ou après l’enregistrement.
 
 Lors de l’adaptation, conservez les éditeurs natifs, le clavier, les contraintes de champ et les noms accessibles des actions. Testez le vrai backend avec des libellés longs et du texte agrandi ; la démo navigateur ne qualifie ni l’IME ni les lecteurs d’écran des plateformes.
+
+L’exemple importe `ListView` directement depuis `@kit`. Cette primitive de composition hérite de `ScrollFrame`, de son thème et de ses propriétés de fenêtre visible et de défilement ; elle accepte des enfants répétés et expose un rôle de liste verticale. Elle n’ajoute ni sélection, ni identité de ligne, ni navigation clavier : conservez ces comportements dans le modèle applicatif typé et les composants de ligne, ou utilisez une liste de plus haut niveau du kit.
