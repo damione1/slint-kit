@@ -26,6 +26,9 @@ Slint Kit 0.9.0 passe à **Slint 1.19 et Rust 1.95+**. Consultez le [guide de mi
 
 ### Detailed changes / Détail des changements
 
+- Align the remaining release and preview locks with `async-executor` 1.14.1 and `clipboard-win` 5.4.3, avoiding withdrawn versions and including the upstream Linux executor lifetime fix. No kit API change.
+- Aligne les derniers verrous de release et d’aperçu sur `async-executor` 1.14.1 et `clipboard-win` 5.4.3, pour éviter les versions retirées et inclure le correctif amont de durée de vie de l’exécuteur Linux. Aucune modification d’API du kit.
+
 - `KitDialog` and `KitAlertDialog` now show a short body at its full height, including a one-line action result. Tall bodies still scroll vertically while the footer stays in view.
 - `KitDialog` et `KitAlertDialog` affichent désormais les corps courts sur toute leur hauteur, y compris un résultat d’action d’une ligne. Les corps longs défilent verticalement et les boutons du pied de dialogue restent visibles.
 
