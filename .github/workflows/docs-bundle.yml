@@ -2,12 +2,26 @@ name: Documentation bundle
 # Restore the compiled WASM preview bundle from Cloudflare R2 by bundle key; on a
 # miss, compile it once and store it. Called by Check (push to main) and Release.
 on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Commit or tag to verify; empty means the selected branch'
+        type: string
+        default: ''
+      cache-only:
+        description: 'Fail on a cache miss instead of compiling'
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       ref:
         description: 'Commit or tag to build; empty means the calling commit'
         type: string
         default: ''
+      cache-only:
+        description: 'Fail on a cache miss instead of compiling'
+        type: boolean
+        default: false
     outputs:
       key:
         description: 'Bundle key now stored in R2'
@@ -83,6 +97,11 @@ jobs:
       - name: Pull the bundle from R2
         id: pull
         run: python3 docs/scripts/bundle_cache.py pull --key "${{ steps.key.outputs.key }}"
+      - name: Require the prefilled bundle when checking the cache
+        if: inputs.cache-only && steps.pull.outputs.outcome == 'miss'
+        run: |
+          echo "::error::Bundle cache miss for ${{ steps.key.outputs.key }}; fill R2 before retrying cache-only verification"
+          exit 1
       - name: Add swap space for the WASM compilation
         # The single preview crate links every example and fixture; its rustc
         # exhausted the 16 GB runner (exit 143). Swap on /mnt trades speed for room.
