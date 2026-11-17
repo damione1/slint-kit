@@ -16,14 +16,29 @@ The `slint-kit` CLI creates an independent Cargo project with matching kit depen
 cargo install --git https://github.com/damione1/slint-kit --branch develop slint-kit-cli --locked
 slint-kit new my-app
 cd my-app
+```
+
+The `develop` sources prepare the unpublished 0.9.0 release. Before building, replace the generated kit entries in `Cargo.toml` with matching source dependencies, keeping its Slint dependency and selected features:
+
+```toml
+[dependencies]
+slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+
+[build-dependencies]
+slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+```
+
+```sh
 cargo run
 ```
 
-`slint-kit new` never overwrites an existing path, including an empty directory or symlink. Its parent directory must exist. A package name has at most 64 characters, starts with an ASCII letter and contains only ASCII letters, digits, `-` or `_`; Rust keywords, standard-library crate names and Windows device names are rejected. Use `slint-kit new "folder with spaces" --name my-app` to choose the directory separately from its portable Cargo name. The generator neither runs Cargo nor installs dependencies; the first `cargo run` resolves the matching registry dependencies and writes `Cargo.lock`. Commit that lockfile for reproducible application builds.
+`slint-kit new` never overwrites an existing path, including an empty directory or symlink. Its parent directory must exist. A package name has at most 64 characters, starts with an ASCII letter and contains only ASCII letters, digits, `-` or `_`; Rust keywords, standard-library crate names and Windows device names are rejected. Use `slint-kit new "folder with spaces" --name my-app` to choose the directory separately from its portable Cargo name. The generator neither runs Cargo nor installs dependencies; the first `cargo run` resolves the configured dependencies and writes `Cargo.lock`. Commit that lockfile for reproducible application builds.
 
 The generated `src/main.rs` calls the small `src/lib.rs` factory/entry point; together they contain at most 15 Rust lines. The factory uses the kit's weak-window action adapter. Click **Run action** or focus it and press Space/Enter: Rust updates the visible status. Edit `ui/app.slint` for the layout and theme, and the Rust callback for application behavior. The generated sources use GPL-3.0-or-later; review the [license and adoption limits](/guides/why-slint-kit/) before distributing your application.
 
 ### Include a browser preview
+
+Apply the same source dependency replacements to the generated Web project before building it.
 
 ```sh
 slint-kit new my-web-app --web
