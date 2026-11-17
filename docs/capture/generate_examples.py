@@ -270,7 +270,7 @@ for name,body in bodies.items():
     title=re.sub(r'(?<!^)(?=[A-Z])',' ',name.removeprefix('Kit'))
     header='// SPDX-License-Identifier: GPL-3.0-or-later\n'
     header+='// Display projections are fixtures. Validate accepted domain values in Rust.\n' if any(v in name for v in ['Money','Decimal','Date','Time','Percent','Quantity','Duration','Calendar','Month','Year','Week']) else ''
-    source=header+'import { '+', '.join(sorted(imports))+' } from "@kit/kit.slint";\n\n'
+    source=header+'import { '+', '.join(sorted(imports))+' } from "@kit";\n\n'
     source+='export component Example inherits Window {\n'
     source+=f'    title: "{name} example";\n    preferred-width: {geometry[name][0]}px;\n    preferred-height: {geometry[name][1]}px;\n    max-width: 100000px;\n    max-height: 100000px;\n'
     source+='    background: root.theme.canvas;\n    in-out property <KitTheme> theme: KitThemes.light;\n    in-out property <string> status;\n'

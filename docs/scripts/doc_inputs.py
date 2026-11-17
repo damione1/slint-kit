@@ -272,7 +272,8 @@ def build_inputs():
     files = [path for path in files if path.is_file()]
     files += [path for path, _ in requests.values()]
     files += [image for path, _ in requests.values() for image in local_image_files(path.read_text(), path)]
-    files += [ROOT / 'xtask/src/docs.rs', ROOT / 'Cargo.lock']
+    files += [ROOT / name for name in ['xtask/src/docs.rs', 'Cargo.lock',
+              'crates/kit-build/src/lib.rs', 'crates/kit-slint/build.rs']]
     hashes = source_hashes(files)
     target = DOCS / '.generated/inputs'
     manifest_path = target / 'manifest.json'

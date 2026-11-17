@@ -3,7 +3,7 @@ fn main() {
     if std::env::var_os("CARGO_FEATURE_NATIVE").is_some() {
         slint_build::compile_with_config(
             "src/native_test_ui.slint",
-            slint_build::CompilerConfiguration::new().with_edition((1, 18)),
+            slint_build::CompilerConfiguration::new().with_edition((1, 19)),
         )
         .expect("compile native adapter test fixture");
     }

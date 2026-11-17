@@ -80,7 +80,7 @@ slint-kit-build = "={{ project.version }}"
 
 The manifest above pins the example to Slint {{ project.slint }} for reproducibility. The kit itself accepts Slint 1.19 patch releases from 1.19.0 (`~1.19.0`). Keep the Slint compiler and runtime aligned when updating a patch release.
 
-The build helper explicitly selects Slint language edition 1.18, preserving the existing layout and state behavior on Slint 1.19. Rust 1.95 or later is required.
+The build helper keeps application Slint language edition 1.18 by default. The `@kit` library has its own edition 1.19 project; use `config().with_edition((1, 19))` to opt the application into 1.19 too. Rust 1.95 or later is required.
 
 
 Keep the kit's runtime and build packages on matching releases. Preserve an existing application's compatible backend and renderer. This desktop example uses winit and Skia; see [Getting started](/guides/getting-started/) for platform prerequisites and [Native integration](/guides/native/) for optional host services.

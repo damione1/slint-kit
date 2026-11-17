@@ -28,13 +28,13 @@ L’aperçu de l’éditeur et `slint-viewer` compilent directement votre fichie
 
 Utilisez un viewer et un serveur de langage dont la version correspond à celle de Slint dans l’application (actuellement **{{ project.slint }}**). Un viewer construit pour une version plus ancienne de Slint ne compile pas les fichiers de bibliothèque du kit.
 
-Pour un aperçu autonome d’un fichier, pointez le viewer vers le dossier `ui` du kit. Le fichier d’aperçu doit importer `@kit/kit.slint`, car un alias de dossier résout les imports suffixés :
+Pour un aperçu autonome, liez le fichier projet du kit et les dossiers de ressources optionnelles comme dans l’éditeur :
 
 ```sh
-slint-viewer --auto-reload -L kit=target/slint-editor/vendor/slint-kit-slint/ui --component App ui/preview.slint
+slint-viewer --auto-reload -L kit=target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json -L kit-icons=target/slint-editor/vendor/slint-kit-slint/ui/icons/lucide -L kit-fonts=target/slint-editor/vendor/slint-kit-slint/ui/fonts --component App ui/preview.slint
 ```
 
-Gardez `@kit` comme import dans votre application et utilisez un fichier d’aperçu distinct, comme le décrit le guide de l’éditeur. Ajoutez `--load-data` pour démarrer un aperçu avec des valeurs de propriétés enregistrées.
+Conservez les mêmes imports `@kit`, `@kit-icons/…` et `@kit-fonts/…` que dans l’application. Ajoutez `--load-data` pour démarrer un aperçu avec des valeurs de propriétés enregistrées.
 
 ## `SLINT_LIVE_PREVIEW` n’est pas pris en charge
 

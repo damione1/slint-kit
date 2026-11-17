@@ -14,6 +14,16 @@ fn fixture() -> ChoiceDescriptionFixture {
     window
 }
 
+// Edition 1.19 materializes conditional children during native layout. Resolve
+// the painted row before reading its constraints, as a displayed frame does.
+fn layout(window: &ChoiceDescriptionFixture) {
+    let _ = ElementQuery::from_root(window)
+        .match_inherits("KitCheckbox")
+        .find_first()
+        .unwrap()
+        .size();
+}
+
 fn description_of(window: &ChoiceDescriptionFixture, label: &str) -> Option<String> {
     let wanted = label.to_owned();
     ElementQuery::from_root(window)
@@ -41,6 +51,7 @@ fn helper_text_is_announced_and_grows_the_row() {
     assert!(window.get_check_height() > window.get_plain_height());
     window.set_description("".into());
     slint::platform::update_timers_and_animations();
+    layout(&window);
     assert_eq!(window.get_check_height(), window.get_plain_height());
 }
 
@@ -71,4 +82,41 @@ fn label_position_moves_the_indicator_to_the_trailing_edge() {
         "track ends at {trailing}, row at {row_end}"
     );
     assert!(track.absolute_position().x > leading_x + window.get_toggle_width() / 2.);
+}
+
+#[test]
+fn caption_geometry_at_both_scales_and_sides() {
+    let window = fixture();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        for position in [ChoiceLabelPosition::Start, ChoiceLabelPosition::End] {
+            window.set_position(position);
+            for description in [
+                "",
+                "Receive a summary every Monday.",
+                "Receive a detailed summary every Monday with all new project notifications and the latest activity from every team.",
+            ] {
+                window.set_description(description.into());
+                slint::platform::update_timers_and_animations();
+                layout(&window);
+                assert_eq!(
+                    window.get_application_conditional_height(),
+                    0.,
+                    "the consumer stays on edition 1.18"
+                );
+                assert_eq!(
+                    window.get_check_height(),
+                    window.get_expected_check_height(),
+                    "checkbox {scale} {position:?}: {description}"
+                );
+                assert_eq!(
+                    window.get_switch_height(),
+                    window.get_expected_switch_height(),
+                    "switch {scale} {position:?}: {description}"
+                );
+            }
+        }
+    }
 }

@@ -33,12 +33,14 @@ Fusionnez ce réglage dans `.vscode/settings.json` à la racine du workspace :
 ```json
 {
   "slint.libraryPaths": {
-    "kit": "target/slint-editor/vendor/slint-kit-slint/ui/kit.slint"
+    "kit": "target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json",
+    "kit-icons": "target/slint-editor/vendor/slint-kit-slint/ui/icons/lucide",
+    "kit-fonts": "target/slint-editor/vendor/slint-kit-slint/ui/fonts"
   }
 }
 ```
 
-La clé est `kit`, sans `@` ; la valeur désigne le fichier `kit.slint` lui-même, car l’import `@kit` ne contient aucun nom de fichier. L’extension Slint résout les chemins relatifs depuis la racine du workspace. Conservez les autres alias déjà présents dans cette table. Consultez le [réglage des bibliothèques de l’extension Slint](https://github.com/slint-ui/slint/blob/v1.19.0/editors/vscode/package.json).
+La clé est `kit`, sans `@` ; le fichier projet sélectionne l’édition 1.19 de la bibliothèque et son point d’entrée `kit.slint`. Les icônes et polices optionnelles utilisent leurs alias de dossiers distincts.
 
 ## Zed
 
@@ -51,7 +53,9 @@ Fusionnez ces arguments du serveur de langage dans `.zed/settings.json` à la ra
       "binary": {
         "arguments": [
           "-L",
-          "kit=target/slint-editor/vendor/slint-kit-slint/ui/kit.slint"
+          "kit=target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json",
+          "-L", "kit-icons=target/slint-editor/vendor/slint-kit-slint/ui/icons/lucide",
+          "-L", "kit-fonts=target/slint-editor/vendor/slint-kit-slint/ui/fonts"
         ]
       }
     }
@@ -69,19 +73,19 @@ Relancez la commande de vendoring après une mise à jour de `Cargo.lock` ou un 
 
 ## Applications utilisant un checkout local
 
-Cargo ne copie pas les dépendances locales déclarées par chemin. Si l’application utilise `slint-kit` et `slint-kit-build` depuis un checkout voisin `../slint-kit`, utilisez `../slint-kit/crates/kit-slint/ui/kit.slint` comme chemin de bibliothèque dans VS Code, ou `kit=../slint-kit/crates/kit-slint/ui/kit.slint` dans l’argument `-L` de Zed. Adaptez ce chemin relatif à votre workspace. Pour ouvrir le dépôt Slint Kit lui-même, utilisez `crates/kit-slint/ui/kit.slint`.
+Cargo ne copie pas les dépendances locales déclarées par chemin. Si l’application utilise `slint-kit` et `slint-kit-build` depuis un checkout voisin `../slint-kit`, utilisez `../slint-kit/crates/kit-slint/ui/slint-project.json` comme chemin de bibliothèque dans VS Code, ou `kit=../slint-kit/crates/kit-slint/ui/slint-project.json` dans l’argument `-L` de Zed. Adaptez ce chemin relatif à votre workspace. Pour ouvrir le dépôt Slint Kit lui-même, utilisez `crates/kit-slint/ui/slint-project.json`.
 
 Si l’éditeur affiche encore « Cannot find requested import », vérifiez que le fichier configuré est bien `kit.slint` et existe, que le workspace ouvert correspond à la racine du chemin et que la version de la bibliothèque correspond à votre dépendance Cargo. Un simple chemin d’inclusion n’enregistre pas l’alias de bibliothèque `@kit`. Consultez les [bibliothèques de composants Slint](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
 
-## Imports supplémentaires avec Slint 1.19.0
+## Imports de composants et de ressources en 0.9
 
-Le serveur de langage résout un alias seul comme un fichier et ajoute le suffixe d’un import au chemin configuré. Un alias unique ne peut donc pas résoudre à la fois `@kit` et `@kit/fonts/inter.slint` ou `@kit/icons/lucide/all.slint`. Faire pointer `kit` vers le dossier `ui` résout ces imports supplémentaires, mais laisse `@kit` seul introuvable. Le réglage vers le fichier ci-dessus privilégie l’API des composants.
+Utilisez `@kit` pour les composants et les types. Un projet de bibliothèque Slint expose uniquement son point d’entrée : les anciens sous-imports comme `@kit/button.slint` deviennent `@kit`. Importez Lucide depuis `@kit-icons/all.slint` ou une catégorie comme `@kit-icons/arrows.slint`, et Inter depuis `@kit-fonts/inter.slint`. Les trois alias ci-dessus fonctionnent dans les aperçus éditeur et correspondent au helper de compilation. Voir les [bibliothèques de projet Slint](https://docs.slint.dev/docs/slint/guide/tooling/project-file/#libraries).
 
-Conservez les imports supplémentaires documentés dans votre application : la compilation Cargo via `slint-kit-build` les résout correctement grâce aux métadonnées de module et à son alias de dossier. Avec le réglage éditeur vers le fichier, Slint 1.19.0 peut encore signaler ces imports supplémentaires comme introuvables. Il s’agit d’une limite du serveur de langage, pas d’un défaut de configuration Cargo ; ne remplacez pas les imports racine de l’application par l’ancien chemin `@kit/kit.slint`.
+Avec des dépendances locales, faites pointer ces mêmes alias vers les chemins correspondants sous `../slint-kit/crates/kit-slint/ui`. L’application garde son édition indépendante : `slint-kit-build` choisit 1.18 par défaut ; `config().with_edition((1, 19))` fait passer l’application en 1.19 sans modifier la bibliothèque.
 
-<h2 id="apercus-statiques-et-services-rust">Aperçus statiques et services Rust</h2>
+<h2 id="static-previews-and-rust-services">Aperçus statiques et services Rust</h2>
 
-À partir de Slint Kit 0.7.2, Live Preview dans VS Code et `slint-viewer` affichent les options de sélection déclarées même sans exécuter de Rust. Avec un checkout local, le viewer peut utiliser un alias de dossier si le fichier d’aperçu importe `@kit/kit.slint` ; utilisez un point d’entrée d’aperçu distinct et conservez `@kit` dans l’application. Un alias de fichier pour `@kit` garde la limite des imports supplémentaires décrite plus haut.
+Live Preview dans VS Code et `slint-viewer` affichent les options déclarées sans exécuter Rust. Passez les mêmes trois chemins de bibliothèque au viewer avec `-L` ; le fichier d’aperçu conserve ses imports publics `@kit`.
 
 Ces aperçus montrent la disposition et l’état déclaré ; ils n’installent pas les services Rust. Utilisez `cargo run` avec un appel à `slint_kit::install(&app)` par fenêtre, ou la démo navigateur de la fiche composant, pour exercer les comportements fournis par ces services.
 

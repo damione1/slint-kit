@@ -28,13 +28,13 @@ The editor preview and `slint-viewer` compile your `.slint` file directly and re
 
 Use a viewer and language server whose version matches the application's Slint version (currently **{{ project.slint }}**). A viewer built for an older Slint release cannot compile the kit's library files.
 
-For a standalone preview of one file, point the viewer at the kit's `ui` directory. The preview file must import `@kit/kit.slint`, because a directory alias resolves suffixed imports:
+For a standalone preview, map the kit’s project file and optional resource directories exactly as in the editor:
 
 ```sh
-slint-viewer --auto-reload -L kit=target/slint-editor/vendor/slint-kit-slint/ui --component App ui/preview.slint
+slint-viewer --auto-reload -L kit=target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json -L kit-icons=target/slint-editor/vendor/slint-kit-slint/ui/icons/lucide -L kit-fonts=target/slint-editor/vendor/slint-kit-slint/ui/fonts --component App ui/preview.slint
 ```
 
-Keep `@kit` as the import in your application and use a separate preview entry file, as described in the editor guide. Add `--load-data` to start a preview from saved property values.
+Keep the same `@kit`, `@kit-icons/…` and `@kit-fonts/…` imports as in your application. Add `--load-data` to start a preview from saved property values.
 
 ## `SLINT_LIVE_PREVIEW` is not supported
 

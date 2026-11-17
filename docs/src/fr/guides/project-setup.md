@@ -80,7 +80,7 @@ slint-kit-build = "={{ project.version }}"
 
 Le manifeste ci-dessus épingle l’exemple sur Slint {{ project.slint }} pour sa reproductibilité. Le kit accepte les versions correctives de Slint 1.19 à partir de la 1.19.0 (`~1.19.0`). Gardez le compilateur et le runtime Slint alignés lors d’une mise à jour corrective.
 
-Le compilateur fourni par le kit sélectionne explicitement l’édition 1.18 du langage Slint et conserve les comportements de disposition et d’état avec Slint 1.19. Rust 1.95 ou ultérieur est requis.
+Le helper conserve l’édition 1.18 du langage Slint pour l’application par défaut. La bibliothèque `@kit` possède son propre projet en édition 1.19 ; `config().with_edition((1, 19))` fait aussi passer l’application en 1.19. Rust 1.95 ou ultérieur est requis.
 
 
 Gardez les paquets d’exécution et de compilation du kit sur des versions correspondantes. Conservez le backend et le moteur de rendu compatibles d’une application existante. Cet exemple de bureau utilise winit et Skia ; consultez [Bien démarrer](/fr/guides/getting-started/) pour les prérequis système et l’[intégration native](/fr/guides/native/) pour les services hôtes optionnels.

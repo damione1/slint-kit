@@ -68,7 +68,7 @@ export component Example inherits Window {
 }
 ```
 
-**Inter is an optional font.** Import `{ InterFont } from "@kit/fonts/inter.slint"` and set `default-font-family: InterFont.family` on the window to use it, as the documentation examples do. Without this import, the theme uses the application's font. The four static weights total about 1.6 MB of source files; embedded applications can choose a font appropriate to the device.
+**Inter is an optional font.** Import `{ InterFont } from "@kit-fonts/inter.slint"` and set `default-font-family: InterFont.family` on the window to use it, as the documentation examples do. Without this import, the theme uses the application's font. The four static weights total about 1.6 MB of source files; embedded applications can choose a font appropriate to the device.
 
 For application library aliases, start with `slint_kit_build::config_with_libraries(...)`, then use `slint_kit_build::compile_with_config("ui/app.slint", config)`. The helper preserves application aliases and reserves `kit`. Component height stays intrinsic: content and padding can require more room than the nominal size.
 
@@ -90,7 +90,7 @@ Composite groups, selects, tabs and menus retain their theme, size and compositi
 
 ```slint
 import { KitButton, ButtonIntent, KitThemeContext } from "@kit";
-import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideIcons } from "@kit-icons/all.slint";
 
 component ExportAction inherits KitButton {
     text: "Export";
@@ -138,13 +138,13 @@ A neighboring control without an explicit theme still uses the window context. T
 
 ## Icons
 
-`KitIcon` and `KitIconButton` paint an `IconGlyph`. The kit's own glyphs are `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Every [Lucide](https://lucide.dev) 1.64.0 icon is also available: `@kit/icons/lucide/all.slint` exports `LucideIcons`, and each Lucide category has its own file with the same glyphs, for example `LucideArrows` in `@kit/icons/lucide/arrows.slint`. Each icon is a named function, so a misspelt name fails at compile time, and only the icons an application calls reach its binary.
+`KitIcon` and `KitIconButton` paint an `IconGlyph`. The kit's own glyphs are `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Every [Lucide](https://lucide.dev) 1.64.0 icon is also available: `@kit-icons/all.slint` exports `LucideIcons`, and each Lucide category has its own file with the same glyphs, for example `LucideArrows` in `@kit-icons/arrows.slint`. Each icon is a named function, so a misspelt name fails at compile time, and only the icons an application calls reach its binary.
 
 [Browse all Lucide icons and copy their integration](/components/icon/).
 
 ```slint
 import { KitIcon, KitIconButton, IconPurpose } from "@kit";
-import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideIcons } from "@kit-icons/all.slint";
 
 component Toolbar inherits HorizontalLayout {
     spacing: 8px;
@@ -272,7 +272,7 @@ The site includes browser previews and native captures; their captions identify 
 
 Use `KitAvatar` with `AvatarInteraction.action` for profile navigation: supply an action name and handle `activated`. Static avatars remain images. `KitBadge` and `KitStat` accept optional `leading-icon` glyphs; keep the accompanying status and value readable. Underlined OTP fields still use one native editor. Match visual `slots` with the host’s accepted code length. Tooltips on Kit buttons should bind `target-focused` to `focus-visible`, preserving hover help without turning a pointer click into a keyboard popup.
 
-Custom `KitTypography` values must include `family-monospace`, used by code entry fields. The shipped themes embed and register JetBrains Mono Regular (OFL 1.1) through `@kit/fonts/monospace.slint`, so digits, wide letters and password dots keep equal advances in native and WebAssembly builds. A generic system `monospace` name is not sufficient on all backends. A custom code font must be registered, genuinely monospaced and cover the input alphabet and mask glyphs. `KitTextField.text-cell-width` measures the actual zero glyph for skins that align code cells.
+Custom `KitTypography` values must include `family-monospace`, used by code entry fields. The shipped themes embed and register JetBrains Mono Regular (OFL 1.1) through `@kit-fonts/monospace.slint`, so digits, wide letters and password dots keep equal advances in native and WebAssembly builds. A generic system `monospace` name is not sufficient on all backends. A custom code font must be registered, genuinely monospaced and cover the input alphabet and mask glyphs. `KitTextField.text-cell-width` measures the actual zero glyph for skins that align code cells.
 
 For sliders in a scrollable modal, opt into `KitScrollArea.pan-policy: children-first`. Interactive children keep a press through release; begin a drag on background or text to scroll. Background panning is direct, without inertia. Wheel scrolling, bars and focus reveal keep working. The default `native` policy preserves Slint arbitration.
 

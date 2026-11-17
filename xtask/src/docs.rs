@@ -99,24 +99,17 @@ fn compile_request(request: &Request) -> Result<(), String> {
         .with_debug_info(false)
         .embed_resources(slint_build::EmbedResourcesKind::EmbedFiles);
     if let Some(library) = &request.library {
-        config = config.with_library_paths(std::collections::HashMap::from([(
-            "kit".into(),
-            library.clone(),
-        )]));
+        config = config.with_library_paths(std::collections::HashMap::from([
+            ("kit".into(), library.join("slint-project.json")),
+            ("kit-icons".into(), library.join("icons/lucide")),
+            ("kit-fonts".into(), library.join("fonts")),
+        ]));
     }
-    // Fingerprints deliberately expand the reachable implementation in file
-    // mode. This process is not an application Cargo build and receives no
-    // DEP_KIT module metadata. Normalize only the public root import; keep
-    // the directory alias for supplemental font/icon imports. Prepared
-    // documentation sources already contain absolute local resource paths.
-    let source = std::fs::read_to_string(&request.source).map_err(|error| error.to_string())?;
-    let input = request.output.with_extension("fingerprint.slint");
-    std::fs::write(&input, source.replace("\"@kit\"", "\"@kit/kit.slint\""))
-        .map_err(|error| error.to_string())?;
-    let result = slint_build::compile_with_output_path(&input, request.output.clone(), config)
-        .map_err(|error| error.to_string());
-    let removal = std::fs::remove_file(&input).map_err(|error| error.to_string());
-    result.and(removal)
+    // No Cargo module metadata is present here: expand the public project's
+    // reachable implementation, including its own language edition.
+    slint_build::compile_with_output_path(&request.source, request.output.clone(), config)
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
