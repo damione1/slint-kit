@@ -25,8 +25,13 @@ export component CompositionExample inherits Window {
     default-font-family: InterFont.family;
     width: 360px; height: 220px;
     in-out property <KitTheme> theme: KitThemes.light;
-    ScrollFrame {
+    public function restore-position() { viewport.scroll-to({x: 0px, y: 100px}, ScrollBehavior.instant); }
+    public function reveal-target() { target.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+    viewport := ScrollFrame {
         theme: root.theme; content-width: 720px; content-height: 480px;
-        Rectangle { width: 720px; height: 480px; background: root.theme.surface; }
+        Rectangle {
+            width: 720px; height: 480px; background: root.theme.surface;
+            target := KitButton { x: 500px; y: 360px; width: 180px; theme: root.theme; text: "Target"; }
+        }
     }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCarousel, KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, DrawerInitialFocus, DialogAction, ButtonIntent, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
+import { KitCarousel, KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, DrawerInitialFocus, DialogAction, ButtonIntent, KitTheme, KitThemes, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
 
 export component PaginationFixture inherits Window {
     width: 800px; height: 120px;
@@ -55,6 +55,7 @@ export component CarouselSlidesFixture inherits Window {
 
 export component MenuBarKeysFixture inherits Window {
     width: 220px; height: 120px;
+    in property <KitTheme> theme: KitThemes.light;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
     out property <bool> bar-focused: bar.has-focus;
@@ -64,6 +65,7 @@ export component MenuBarKeysFixture inherits Window {
     VerticalLayout {
         alignment: start;
         bar := KitMenuBar {
+            theme: root.theme;
             rows: root.rows; state: root.state;
             navigate(step) => { root.navigated(step); }
             activate(token, generation) => { root.activated(token, generation); }

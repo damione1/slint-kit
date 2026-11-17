@@ -170,7 +170,7 @@ export component KitDialog inherits KitDialogSurface {
     private property <bool> body-focus;
     changed opened => { if (!root.opened) { root.restore-focus(); } }
     function scroll-to(offset: length) {
-        frame.content-y = clamp(offset, -max(0px, frame.content-height - frame.visible-height), 0px);
+        frame.scroll-to({x: -frame.content-x, y: -offset}, KitThemes.scroll-behavior(root.theme));
     }
     KitDialogPanel {
         theme: root.theme;

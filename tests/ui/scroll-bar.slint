@@ -153,3 +153,51 @@ export component ScrollWidthBoundFixture inherits Window {
         card := WidthBoundCard { }
     }
 }
+
+import { ListView } from "@kit";
+export component NativeRevealFixture inherits Window {
+    width: 640px; height: 260px;
+    background: root.theme.canvas;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <length> nested-x: nested.absolute-position.x;
+    out property <length> nested-y: nested.absolute-position.y;
+    out property <length> nested-width: nested.width;
+    out property <length> nested-height: nested.height;
+    out property <length> frame-width: frame.visible-width;
+    out property <length> frame-height: frame.visible-height;
+    out property <length> extent-width: frame.content-width;
+    out property <length> extent-height: frame.content-height;
+    out property <length> offset-x: frame.content-x;
+    out property <length> offset-y: frame.content-y;
+    out property <length> list-offset: list.content-y;
+    public function reveal-nested() { nested.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+    public function reveal-row(index: int) { list.ensure-row-visible(index, KitThemes.scroll-behavior(root.theme)); }
+    public function restore(x: length, y: length) { frame.scroll-to({x: x, y: y}, ScrollBehavior.instant); }
+    public function reveal-region(top: length, bottom: length) { frame.reveal-vertical(top, bottom, ScrollBehavior.smooth); }
+    public function reveal-horizontal(start: length, end: length) { frame.reveal-horizontal(start, end, ScrollBehavior.smooth); }
+    frame := ScrollFrame {
+        x: 0px; y: 0px; width: 300px; height: 240px;
+        theme: root.theme; content-width: 800px; content-height: 900px;
+        Rectangle {
+            x: 50px; y: 80px; width: 700px; height: 800px;
+            Rectangle {
+                x: 30px; y: 40px; width: 650px; height: 750px;
+                nested := KitButton {
+                    x: 420px; y: 550px; width: 180px; height: 64px * root.theme.text-scale;
+                    theme: root.theme; text: "Target";
+                }
+            }
+        }
+    }
+    list := ListView {
+        x: 320px; y: 0px; width: 300px; height: 240px;
+        theme: root.theme; horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        for index in 20000: Rectangle {
+            height: 32px * root.theme.text-scale;
+            accessible-role: list-item; accessible-label: "Row \{index}";
+            Text { text: "Row \{index}"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; }
+        }
+    }
+}

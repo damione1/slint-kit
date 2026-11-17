@@ -59,3 +59,5 @@ The composite passes its theme to its children and dialog explicitly. A componen
 When adapting the example, keep the native editors, keyboard handling, field constraints and named actions. Test the real target backend with long labels and enlarged text; the browser demo does not qualify platform IME or screen readers.
 
 The example imports `ListView` directly from `@kit`. This composition primitive inherits `ScrollFrame` and its theme, viewport and scrolling properties; it accepts repeated children and exposes a vertical list role. It does not add selection, row identity or keyboard navigation: retain those in the typed application model and row components, or use a higher-level kit list.
+
+For custom virtual lists, call `list.ensure-row-visible(index, KitThemes.scroll-behavior(theme))`; Slint mounts the requested row without materializing the entire model. Invalid indices do nothing. `ScrollFrame.scroll-to({ x: 0px, y: 100px }, ScrollBehavior.instant)` restores the positive content position corresponding to `content-y: -100px`. For a nested materialized target, call its `ensure-visible(...)`; preserve your stable key independently of its current row index.

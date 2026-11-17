@@ -371,19 +371,41 @@ component TableCellView inherits Rectangle {
     // The accessible default action of an interactive cell.
     callback action-requested();
     callback reveal-requested(length, length);
-    // A replacement column model can mount this cell already active. Change
-    // observers start from that state, so mounting must reveal it once too.
-    init => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    in property <length> viewport-width;
+    in property <int> reveal-request;
+    // A ListView constructs a delegate before placing its row. Its first
+    // absolute position is provisional: revealing it then stops the native
+    // row animation at the wrong location. As for NotificationItem focus,
+    // the first event-loop tick is a layout barrier, not an animation delay.
+    private property <bool> initial-layout-pending: true;
+    Timer {
+        running: root.initial-layout-pending && (root.focus-indicated || root.editing);
+        interval: 0ms;
+        triggered => {
+            root.initial-layout-pending = false;
+            if (root.focus-indicated || root.editing) { root.reveal(); }
+        }
+    }
+    function reveal() {
+        if (root.initial-layout-pending) { return; }
+        if (root.width <= root.viewport-width) {
+            root.ensure-visible(root.editing ? ScrollBehavior.instant : KitThemes.scroll-behavior(root.theme));
+        } else {
+            root.reveal-requested(root.absolute-position.x - root.content-origin-x, root.width);
+        }
+    }
+    changed reveal-request => { if (root.focus-indicated || root.editing) { root.reveal(); } }
     in property <length> viewport-offset-x;
+    in property <length> content-origin-x;
     // A manual horizontal scroll moves the viewport, not the column's layout.
     // Keep cursor reveal tied to column changes and the next cell action.
-    changed viewport-offset-x => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    changed viewport-offset-x => { if (root.editing) { root.reveal(); } }
     changed pointed => { if (root.pointed) { root.point-requested(); } }
-    private property <length> reveal-x: root.absolute-position.x - root.viewport-offset-x;
-    changed reveal-x => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    changed width => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    changed focus-indicated => { if (root.focus-indicated) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    changed editing => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    private property <length> reveal-x: root.absolute-position.x - root.content-origin-x;
+    changed reveal-x => { if (root.focus-indicated || root.editing) { root.reveal(); } }
+    changed width => { if (root.focus-indicated || root.editing) { root.reveal(); } }
+    changed focus-indicated => { if (root.focus-indicated) { root.reveal(); } }
+    changed editing => { if (root.editing) { root.reveal(); } }
     // The draft stays separate from the accepted row while its editor is
     // visible. Leaving the viewport cancels the session without committing.
     in-out property <string> draft;
@@ -796,11 +818,10 @@ export component KitDataTable inherits Rectangle {
     out property <bool> end-near: root.rows.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.rows.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.row-height, 0px, max(0px, root.rows.length * root.row-height - list.visible-height)); }
-    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    public function scroll-to-index(index: int) { if (root.rows.length > 0) { list.ensure-row-visible(clamp(index, 0, root.rows.length - 1), KitThemes.scroll-behavior(root.theme)); } }
+    public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
-        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
-        list.content-y = clamp(y, -max(0px, root.rows.length * root.row-height - list.visible-height), 0px);
+        list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y: list.content-y;
@@ -901,7 +922,10 @@ export component KitDataTable inherits Rectangle {
         if (root.edit-session == 2147483647) { return; }
         root.edit-session += 1;
         root.cursor-region = TableCursorRegion.body;
-        root.reveal-active();
+        // Restore the editor's virtual row before mounting/focusing it, as
+        // native TextInput restores its caret immediately. Ordinary navigation
+        // remains smooth; editing has no invisible pending session.
+        list.ensure-row-visible(root.active-index, ScrollBehavior.instant);
         root.edit-row-token = root.rows[root.active-index].token;
         root.edit-column-token = root.display-columns[root.active-column].token;
         root.edit-generation = root.generation;
@@ -1025,16 +1049,16 @@ export component KitDataTable inherits Rectangle {
         root.reveal-active();
     }
     function reveal-cell(x: length, width: length) {
-        let left = list.absolute-position.x + list.viewport-x;
-        if (x < left) { list.content-x += left - x; }
-        else if (x + width > left + list.visible-width) { list.content-x -= x + width - left - list.visible-width; }
+        list.reveal-horizontal(x, x + width, root.edit-open ? ScrollBehavior.instant : KitThemes.scroll-behavior(root.theme));
     }
+    private property <int> cell-reveal-request;
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
-        if (root.active-index >= 0) {
-            if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
-            if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
-        }
+        list.ensure-row-visible(root.active-index, KitThemes.scroll-behavior(root.theme));
+        // A row request stops the Flickable's current animation, even when
+        // already visible. Reveal the materialized active cell afterward so
+        // its native rectangle can move both axes in one request.
+        root.cell-reveal-request += 1;
     }
     min-width: 0px; preferred-width: 700px;
     min-height: 160px; preferred-height: 320px;
@@ -1095,7 +1119,7 @@ export component KitDataTable inherits Rectangle {
             }
             for column[column-index] in root.display-columns: header-cell := Rectangle {
                 private property <bool> active-header: keys.has-focus && root.cursor-region == TableCursorRegion.header && column-index == root.active-column;
-                changed active-header => { if (self.active-header) { root.reveal-cell(self.absolute-position.x, self.width); } }
+                changed active-header => { if (self.active-header) { root.reveal-cell(self.x, self.width); } }
                 private property <int> resize-request: root.keyboard-resize-request;
                 changed resize-request => { if (column-index == root.active-column && column.width.resizable) { root.resize-requested(column.token, clamp(self.width + root.keyboard-resize-delta, root.column-floor(column), root.column-ceiling(column))); } }
                 min-width: root.cell-min(column); max-width: root.cell-max(column); preferred-width: root.cell-preferred(column);
@@ -1272,6 +1296,9 @@ export component KitDataTable inherits Rectangle {
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     viewport-offset-x: list.content-x;
+                    viewport-width: list.visible-width;
+                    reveal-request: root.cell-reveal-request;
+                    content-origin-x: row-action.absolute-position.x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
                     cell: { kind: TableCellKind.text, text: self.data-index >= 0 && self.data-index < row.cells.length ? row.cells[self.data-index] : "" };
                     alignment: root.display-columns[column-index].alignment;
@@ -1304,6 +1331,9 @@ export component KitDataTable inherits Rectangle {
                     action-requested => { root.fire-action(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     viewport-offset-x: list.content-x;
+                    viewport-width: list.visible-width;
+                    reveal-request: root.cell-reveal-request;
+                    content-origin-x: row-action.absolute-position.x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
                     cell: self.data-index >= 0 && self.data-index < row.content.length ? row.content[self.data-index] : { kind: TableCellKind.text };
                     alignment: root.display-columns[column-index].alignment;
@@ -1438,11 +1468,10 @@ export component KitContentList inherits Rectangle {
     out property <bool> end-near: root.items.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.items.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.row-height, 0px, max(0px, root.items.length * root.row-height - list.visible-height)); }
-    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    public function scroll-to-index(index: int) { if (root.items.length > 0) { list.ensure-row-visible(clamp(index, 0, root.items.length - 1), KitThemes.scroll-behavior(root.theme)); } }
+    public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
-        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
-        list.content-y = clamp(y, -max(0px, root.items.length * root.row-height - list.visible-height), 0px);
+        list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y:list.content-y;
@@ -1456,12 +1485,7 @@ export component KitContentList inherits Rectangle {
         return item.title != "" && item.metadata != "" ? item.title + ", " + item.metadata : item.title != "" ? item.title : item.metadata;
     }
     changed active-index => { root.reveal-active(); }
-    public function reveal-active() {
-        if (root.active-index >= 0 && root.active-index < root.items.length) {
-            if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
-            if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
-        }
-    }
+    public function reveal-active() { list.ensure-row-visible(root.active-index, KitThemes.scroll-behavior(root.theme)); }
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
@@ -1619,11 +1643,10 @@ export component KitVirtualTextView inherits Rectangle {
     out property <bool> end-near: root.lines.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.lines.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.line-height, 0px, max(0px, root.lines.length * root.line-height - list.visible-height)); }
-    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    public function scroll-to-index(index: int) { if (root.lines.length > 0) { list.ensure-row-visible(clamp(index, 0, root.lines.length - 1), KitThemes.scroll-behavior(root.theme)); } }
+    public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
-        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
-        list.content-y = clamp(y, -max(0px, root.lines.length * root.line-height - list.visible-height), 0px);
+        list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.line-height));
     out property <length> scroll-y:list.content-y;
@@ -1632,7 +1655,7 @@ export component KitVirtualTextView inherits Rectangle {
     private property <length> edit-height:root.access==TextViewAccess.edit-line ? editor-panel.preferred-height : 0px;
     private property <bool> footer-stacked: root.width < KitMetrics.font-size(root.theme, TypographyRole.control) * 32;
     changed active-index => {root.reveal-active();}
-    public function reveal-active() {if(root.active-index>=0 && root.active-index<root.lines.length){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
+    public function reveal-active() { list.ensure-row-visible(root.active-index, KitThemes.scroll-behavior(root.theme)); }
     min-width:0px;preferred-width:700px;min-height:max(root.theme.spacing.unit * 45,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function select-active() {if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}

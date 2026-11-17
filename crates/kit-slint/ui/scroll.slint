@@ -152,6 +152,31 @@ export component ScrollFrame {
     // Background panning is bounded and direct; wheel/focus/bars remain native.
     in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.native;
     callback scrolled <=> flickable.flicked;
+    // Positive content coordinates; the native Flickable clamps both axes.
+    public function scroll-to(position: Point, behavior: ScrollBehavior) {
+        flickable.scroll-to(position, root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
+    }
+    // Coordinate-based compatibility helpers use a roleless target in the
+    // viewport. Slint handles ancestor offsets, clipping and reduced motion.
+    public function reveal-horizontal(start: length, end: length, behavior: ScrollBehavior) {
+        reveal-target.x = start; reveal-target.y = -flickable.content-y;
+        reveal-target.width = min(flickable.width, max(0px, end - start)); reveal-target.height = 0px;
+        if (end - start > flickable.width
+            && reveal-target.absolute-position.x >= flickable.absolute-position.x
+            && reveal-target.absolute-position.x < flickable.absolute-position.x + flickable.width) { return; }
+        reveal-target.ensure-visible(root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
+    }
+    public function reveal-vertical(start: length, end: length, behavior: ScrollBehavior) {
+        reveal-target.x = -flickable.content-x; reveal-target.y = start;
+        reveal-target.width = 0px; reveal-target.height = min(flickable.height, max(0px, end - start));
+        // Slint 1.19 cannot reveal a rectangle taller than its viewport.
+        // Preserve a visible leading edge; otherwise reveal a viewport-sized
+        // leading slice, keeping the public oversized-region contract.
+        if (end - start > flickable.height
+            && reveal-target.absolute-position.y >= flickable.absolute-position.y
+            && reveal-target.absolute-position.y < flickable.absolute-position.y + flickable.height) { return; }
+        reveal-target.ensure-visible(root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
+    }
     // The std-widgets ScrollView footprint: a scrolled viewport fills its slot.
     min-height: 50px;
     min-width: 50px;
@@ -194,6 +219,10 @@ export component ScrollFrame {
             content-y <=> vertical-bar.value;
             content-x <=> horizontal-bar.value;
             width: pan.width; height: pan.height;
+            reveal-target := Rectangle {
+                x: 0px; y: 0px; width: 0px; height: 0px;
+                accessible-role: none;
+            }
             @children
         }
     }
@@ -227,6 +256,8 @@ export component ScrollFrame {
 // element whose base is called ListView and that exposes the content-* and
 // visible-* lengths. Internal to the kit, like ScrollFrame.
 export component ListView inherits ScrollFrame {
+    // Slint supplies the body from this ListView's virtualized repeater.
+    public function ensure-row-visible(row: int, behavior: ScrollBehavior) {}
     @children
     accessible-role: list;
     accessible-orientation: Orientation.vertical;

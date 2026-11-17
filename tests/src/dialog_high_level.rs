@@ -133,6 +133,7 @@ fn panel_follows_a_short_body_and_a_tall_body_scrolls_inside_the_window() {
     press(&window, Key::End);
     press(&window, Key::Tab);
     press(&window, Key::End);
+    crate::settle_scroll(&window);
     let last = last_line().expect("End scrolls the last line into view");
     assert!(
         last < footer,

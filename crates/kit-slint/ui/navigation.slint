@@ -137,14 +137,7 @@ export component KitMenu inherits Rectangle {
         if (!root.live) { root.focused-row-token = -1; root.focused-row-generation = -1; }
     }
     public function take-focus() { if (root.live) { keyboard.focus(); } }
-    public function ensure-active-visible() {
-        if (root.state.active-index < 0) { return; }
-        let top = root.state.active-index * root.row-height;
-        if (top + list.content-y < 0px) { list.content-y = -top; }
-        else if (top + root.row-height + list.content-y > list.visible-height) {
-            list.content-y = min(0px, list.visible-height - top - root.row-height);
-        }
-    }
+    public function ensure-active-visible() { list.ensure-row-visible(root.state.active-index, KitThemes.scroll-behavior(root.theme)); }
     changed state => { root.ensure-active-visible(); }
     changed row-height => { root.ensure-active-visible(); }
     accessible-role: AccessibleRole.list;
@@ -246,10 +239,7 @@ export component KitMenuBar inherits Rectangle {
     callback typeahead(string);
     out property <bool> has-focus: root.live && keyboard.has-focus;
     public function take-focus() { if (root.live) { keyboard.focus(); } }
-    public function reveal(left: length, right: length) {
-        if (left + viewport.content-x < 0px) { viewport.content-x = -left; }
-        else if (right + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - right); }
-    }
+    public function reveal(left: length, right: length) { viewport.reveal-horizontal(left, right, KitThemes.scroll-behavior(root.theme)); }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.live) { return KitKeyResult.reject; }
         return keyboard.handle-key(event);
@@ -303,7 +293,12 @@ export component KitMenuBar inherits Rectangle {
                     active: root.state.active.present && root.state.active.token == self.entry.token;
                     selected: root.state.selected.present && root.state.selected.token == self.entry.token;
                     focus-indicated: root.live && self.active && (keyboard.has-focus || self.has-focus);
-                    changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
+                    changed active => {
+                        if (self.active) {
+                            if (self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
+                            else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+                        }
+                    }
                     key-event(event) => {
                         if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
                         return KitKeyResult.reject;
@@ -367,13 +362,8 @@ export component KitTabs inherits Rectangle {
     public function take-focus() { if (root.live) { keyboard.focus(); } }
     // Scrolls the strip along its axis so the span from `start` to `end` is visible.
     public function reveal(start: length, end: length) {
-        if (root.vertical) {
-            if (start + viewport.content-y < 0px) { viewport.content-y = -start; }
-            else if (end + viewport.content-y > viewport.visible-height) { viewport.content-y = min(0px, viewport.visible-height - end); }
-        } else {
-            if (start + viewport.content-x < 0px) { viewport.content-x = -start; }
-            else if (end + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - end); }
-        }
+        if (root.vertical) { viewport.reveal-vertical(start, end, KitThemes.scroll-behavior(root.theme)); }
+        else { viewport.reveal-horizontal(start, end, KitThemes.scroll-behavior(root.theme)); }
     }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.live) { return KitKeyResult.reject; }
@@ -456,7 +446,11 @@ export component KitTabs inherits Rectangle {
                         animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
                     }
                     changed active => {
-                        if (self.active) { if (root.vertical) { root.reveal(self.y, self.y + self.height); } else { root.reveal(self.x, self.x + self.width); } }
+                        if (self.active) {
+                            if (root.vertical && self.height > viewport.visible-height) { root.reveal(self.y, self.y + self.height); }
+                            else if (!root.vertical && self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
+                            else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+                        }
                     }
                     key-event(event) => {
                         if (event.text == (root.vertical ? Key.DownArrow : Key.RightArrow) || event.text == (root.vertical ? Key.UpArrow : Key.LeftArrow) || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
@@ -1192,13 +1186,10 @@ export component KitNotificationCenter inherits Rectangle {
     private property <bool> focus-pending;
     private property <int> reveal-serial;
     private property <int> request: root.focus-request;
-    // Rows are uniform in a virtual list, so the index fixes the scroll offset.
+    // Restore a programmatic focus target before its native button takes focus.
     function scroll-to-focus() {
         if (root.rows.length > 32 && root.focus-index >= 0 && root.focus-index < root.rows.length) {
-            let row-height = virtual-list.content-height / root.rows.length;
-            let top = root.focus-index * row-height;
-            if (top + virtual-list.content-y < 0px) { virtual-list.content-y = -top; }
-            if (top + row-height + virtual-list.content-y > virtual-list.visible-height) { virtual-list.content-y = virtual-list.visible-height - top - row-height; }
+            virtual-list.ensure-row-visible(root.focus-index, ScrollBehavior.instant);
         }
     }
     changed request => {
@@ -1732,14 +1723,7 @@ export component KitSidebar inherits Rectangle {
     private property <bool> reserve-icon: !root.collapsed && KitSelectionService.ready && KitSelectionService.sidebar-has-icons(root.rows);
     private property <length> list-width: root.collapsed ? KitMetrics.sidebar-rail-width(root.theme, root.control-size) : KitMetrics.sidebar-width(root.theme);
     out property <int> page-rows: list.visible-height > 0px && root.row-height > 0px ? max(1, Math.floor(list.visible-height / root.row-height)) : 0;
-    public function ensure-active-visible() {
-        if (root.state.active-index < 0) { return; }
-        let top = root.state.active-index * root.row-height;
-        if (top + list.content-y < 0px) { list.content-y = -top; }
-        else if (top + root.row-height + list.content-y > list.visible-height) {
-            list.content-y = min(0px, list.visible-height - top - root.row-height);
-        }
-    }
+    public function ensure-active-visible() { list.ensure-row-visible(root.state.active-index, KitThemes.scroll-behavior(root.theme)); }
     changed state => { root.ensure-active-visible(); }
     function request-expansion(entry: SidebarVisibleRow, open: bool) {
         if (!root.live || entry.row.item.disabled || !entry.expandable || root.collapsed) { return; }

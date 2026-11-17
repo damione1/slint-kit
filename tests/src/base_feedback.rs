@@ -300,14 +300,14 @@ fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating()
         window.set_theme(theme);
         for width in [320., 800.] {
             window.set_viewport_width(width);
-            settle(1);
+            settle(1000);
             let top = card.absolute_position().y
                 - scroll.absolute_position().y
                 - window.get_scroll_offset();
             let bottom = top + card.size().height;
             assert!(bottom - top > window.get_scroll_viewport_height());
             window.invoke_reveal_range(top, bottom);
-            settle(1);
+            settle(1000);
             let offset = window.get_scroll_offset();
             assert!(
                 (offset + top).abs() < 1.,
@@ -315,7 +315,7 @@ fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating()
             );
             for _ in 0..8 {
                 window.invoke_reveal_range(top, bottom);
-                settle(1);
+                settle(1000);
                 assert!(
                     (window.get_scroll_offset() - offset).abs() < 0.1,
                     "repeated focus geometry must not alternate scroll edges"
@@ -327,24 +327,24 @@ fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating()
             let end = target + review.size().height;
             assert!(end - target <= window.get_scroll_viewport_height());
             window.invoke_reveal_range(target, end);
-            settle(1);
+            settle(1000);
             let offset = window.get_scroll_offset();
             assert!(target + offset >= -0.1);
             assert!(end + offset <= window.get_scroll_viewport_height() + 0.1);
             window.invoke_reveal_range(target, end);
-            settle(1);
+            settle(1000);
             assert!((window.get_scroll_offset() - offset).abs() < 0.1);
             // Returning to a large card must preserve an existing scroll
             // position when its leading edge is already on screen.
             window.invoke_reveal_range(0., 1.);
-            settle(1);
+            settle(1000);
             let inset_top = top + 16.;
             assert!(bottom - inset_top > window.get_scroll_viewport_height());
             let offset = window.get_scroll_offset();
             assert!(inset_top + offset >= 0.);
             assert!(inset_top + offset < window.get_scroll_viewport_height());
             window.invoke_reveal_range(inset_top, bottom);
-            settle(1);
+            settle(1000);
             assert!(
                 (window.get_scroll_offset() - offset).abs() < 0.1,
                 "an already visible leading edge must preserve the saved scroll position"

@@ -42,6 +42,7 @@ fn key_without_flush(app: &MenuActiveFocusFixture, text: impl Into<slint::Shared
         .dispatch_event(WindowEvent::KeyReleased { text });
 }
 fn settle(app: &MenuActiveFocusFixture) {
+    crate::settle_scroll(app);
     slint::platform::update_timers_and_animations();
     app.window().take_snapshot().unwrap();
     slint::platform::update_timers_and_animations();
@@ -249,6 +250,7 @@ fn pointer_down_keeps_its_row_press_while_navigation_focus_settles() {
     let events = chosen(&app);
     app.invoke_focus_menu();
     key_without_flush(&app, Key::End);
+    crate::settle_scroll(&app);
     let destination = rows(&app)
         .into_iter()
         .find(|row| row.accessible_label().as_deref() == Some("Row 1999"))
