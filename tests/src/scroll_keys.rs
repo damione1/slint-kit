@@ -216,3 +216,13 @@ fn pressing_the_viewport_background_gives_it_the_keyboard() {
     tap(&window, Key::DownArrow);
     near(window.get_offset_y(), -window.get_line_step());
 }
+
+#[test]
+fn a_vertical_area_gives_width_bound_content_the_viewport_width() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ScrollWidthBoundFixture::new().unwrap();
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    near(window.get_card_width(), window.get_viewport_width());
+    near(window.get_content_width(), window.get_viewport_width());
+}
