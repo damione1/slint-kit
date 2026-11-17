@@ -2,6 +2,9 @@
 
 ## Unreleased — 0.9.0
 
+- Restore collection scroll positions before their first layout, keep the active tab/menu item visible after rapid navigation reversals, and preserve every keyboard scroll step during smooth motion.
+- Restaure les positions des collections avant leur premier placement, garde l’onglet ou l’élément de menu actif visible après une inversion rapide et conserve chaque pas de défilement clavier pendant une animation.
+
 - Keep `KitTheme.reduced-motion` as the application override with Slint 1.19 animation disabling. System reduced motion applies to native animations and scrolling on Windows (winit) and Android; applications must still disable timer/tick effects on every platform. No public API removal.
 - Conserve `KitTheme.reduced-motion` comme réglage applicatif avec la désactivation des animations de Slint 1.19. La réduction système s’applique aux animations et au défilement natifs sous Windows (winit) et Android ; les applications doivent toujours désactiver les effets à base de timers/ticks sur toutes les plateformes. Aucune suppression d’API publique.
 
