@@ -445,10 +445,11 @@ fn remote_labels_do_not_replace_a_focused_native_draft_or_its_undo_and_outside_f
         .window()
         .dispatch_event(WindowEvent::KeyReleased { text: "x".into() });
     let editor = ElementQuery::from_root(&window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Search and select"))
         .find_first()
         .unwrap();
+    let editor = crate::native_editor(&editor);
     assert_eq!(window.get_combo_text(), "Apricotx");
     choices
         .replace(vec![

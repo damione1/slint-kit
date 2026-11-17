@@ -99,7 +99,7 @@ def main():
                 # Test-only backend admission; keep the generated application
                 # Rust/UI bytes intact and record the public manifest above.
                 with (project / 'Cargo.toml').open('a') as output:
-                    output.write('\n[dev-dependencies]\ni-slint-backend-testing = { version = "=1.18.1", features = ["renderer-software"] }\n')
+                    output.write('\n[dev-dependencies]\ni-slint-backend-testing = { version = "=1.19.0", features = ["renderer-software"] }\n')
                 (project / 'tests').mkdir()
                 (project / 'tests/ui.rs').write_text(UI_TEST)
                 run(['cargo', 'test', *manifest, '--test', 'ui'], env={**os.environ, 'SLINT_EMIT_DEBUG_INFO': '1', 'KIT_SCAFFOLD_CAPTURE_DIR': str(args.capture_dir.resolve())})

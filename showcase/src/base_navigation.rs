@@ -1241,10 +1241,10 @@ mod tests {
         let global = window.global::<ui::NavigationExamples>();
         global.invoke_drawer_open(ui::DrawerFocus::Trigger);
         let field = i_slint_backend_testing::ElementQuery::from_root(&window)
-            .match_type_name("TextInput")
+            .match_inherits("KitTextField")
             .match_predicate(|e| e.accessible_label().as_deref() == Some("Collection name"))
             .find_first()
-            .expect("visible native drawer editor");
+            .expect("visible accessible drawer field");
         let _ = field.size();
         i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(1));
         slint::platform::update_timers_and_animations();

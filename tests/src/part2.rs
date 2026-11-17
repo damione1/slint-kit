@@ -28,7 +28,7 @@ fn element(window: &Part2Fixture, label: &str) -> ElementHandle {
 fn editor(window: &Part2Fixture, label: &str) -> ElementHandle {
     let label = label.to_owned();
     ElementQuery::from_root(window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(move |element| {
             element.accessible_label().as_deref() == Some(label.as_str())
         })
@@ -147,7 +147,7 @@ fn comfortable_editor_actions_use_the_full_touch_height_and_preserve_editor_focu
         window.set_search_text("Ada".into());
         window.set_secret_visibility(SecretVisibility::Hidden);
         window.invoke_focus_password();
-        let search_bounds = editor(&window, "Find a person");
+        let search_bounds = crate::native_editor(&editor(&window, "Find a person"));
         click(
             &window,
             LogicalPosition::new(
@@ -160,7 +160,7 @@ fn comfortable_editor_actions_use_the_full_touch_height_and_preserve_editor_focu
             "the visible surface padding belongs to the focus target"
         );
         window.invoke_focus_search();
-        let native_editor = editor(&window, "Find a person");
+        let native_editor = crate::native_editor(&editor(&window, "Find a person"));
         let clear = element(&window, "Clear search");
         let reveal = element(&window, "Show password");
         for action in [&clear, &reveal] {
@@ -210,7 +210,7 @@ fn textarea_newline_theme_and_undo_preserve_one_native_editor() {
     text(&window, "Second 👩‍💻");
     assert_eq!(window.get_area_text().as_str(), "First\nSecond 👩‍💻");
     assert_eq!(commits.get(), 0);
-    let native_editor = editor(&window, "Notes");
+    let native_editor = crate::native_editor(&editor(&window, "Notes"));
     let mut theme = window.get_theme();
     theme.text_scale = 2.;
     window.set_theme(theme);
@@ -546,7 +546,7 @@ fn read_only_combobox_value_is_native_selectable_and_copyable() {
     key(&window, Key::Return);
     assert_eq!(multi_opened.get(), 0);
     let chip = ElementQuery::from_root(&window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Ada Lovelace"))
         .find_first()
         .unwrap();
@@ -710,10 +710,11 @@ fn search_clear_reports_the_empty_semantic_value_once() {
     assert_eq!(window.get_query(), "");
     assert_eq!(&*values.borrow(), &[slint::SharedString::from("")]);
     let native_editor = ElementQuery::from_root(&window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Find people"))
         .find_first()
         .unwrap();
+    let native_editor = crate::native_editor(&native_editor);
     text(&window, "Grace");
     assert!(native_editor.is_valid());
     assert_eq!(window.get_query(), "Grace");
@@ -824,10 +825,11 @@ fn color_byte_editor_filters_letters_and_blocks_out_of_range_or_fractional_commi
     let observed = commits.clone();
     window.on_channel_committed(move |channel, value| observed.borrow_mut().push((channel, value)));
     let red = ElementQuery::from_root(&window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Red"))
         .find_first()
         .unwrap();
+    let red = crate::native_editor(&red);
     red.mock_single_click(PointerEventButton::Left);
     text(&window, "Ada");
     assert_eq!(

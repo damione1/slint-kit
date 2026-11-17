@@ -22,7 +22,12 @@ export component Example inherits Window {
 }
 
 import { ScrollFrame } from "@kit";
-export component CompositionExample inherits ScrollFrame {
-    width: 360px; height: 220px; content-width: 720px; content-height: 480px;
-    Rectangle { width: 720px; height: 480px; background: root.theme.surface; }
+export component CompositionExample inherits Window {
+    default-font-family: InterFont.family;
+    width: 360px; height: 220px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    ScrollFrame {
+        theme: root.theme; content-width: 720px; content-height: 480px;
+        Rectangle { width: 720px; height: 480px; background: root.theme.surface; }
+    }
 }

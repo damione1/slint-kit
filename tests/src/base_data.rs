@@ -301,10 +301,11 @@ fn native_line_edit_commit_and_copy_leave_the_other_49999_lines_unchanged() {
         weak.upgrade().unwrap().set_line_generation(2);
     });
     let editor = ElementQuery::from_root(&window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Edit selected line"))
         .find_first()
         .unwrap();
+    let editor = crate::native_editor(&editor);
     editor.mock_single_click(PointerEventButton::Left);
     shortcut(&window, "a");
     text(&window, "Updated é漢👩‍💻");

@@ -61,7 +61,7 @@ def poster_activation(value):
 
 
 MANIFEST = DOCS / 'content/render-captures.json'
-PROFILE = {'slint': '1.18.1', 'density': 2, 'format': 1, 'reducedMotion': True}
+PROFILE = {'slint': '1.19.0', 'density': 2, 'format': 1, 'reducedMotion': True}
 BROWSER_PROFILE = {'backend': 'browser', 'renderer': 'femtovg', 'pipeline': 1,
                    'captureDriverSha256': digest((DOCS / 'scripts/capture-browser.mjs').read_bytes()),
                    'bundleBuilder': digest((DOCS / 'scripts/build-web-previews.py').read_bytes()),

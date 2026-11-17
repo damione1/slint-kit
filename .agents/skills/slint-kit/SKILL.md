@@ -20,7 +20,7 @@ The public documentation is [English at the site root](https://slint-kit.dev/) a
 - [Typed controller application](https://slint-kit.dev/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
 - [Controllers](https://slint-kit.dev/guides/controllers/), [themes and accessibility](https://slint-kit.dev/guides/themes/) and [native integration](https://slint-kit.dev/guides/native/): domain ownership, presentation and host services.
 
-For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.7.1/source/). Keep runtime and build dependencies on the same `"0.7"` compatibility range.
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.7.1/source/). Keep runtime and build dependencies on the same release line (`"0.7"` for published 0.7 packages).
 
 ## Desktop and mobile targets
 
@@ -28,20 +28,22 @@ The components can be used in desktop Rust applications (macOS, Windows, Linux) 
 
 ## Wire the consumer
 
+The source branch prepares 0.9.0 with Rust 1.95 and Slint 1.19; it is not yet a published release. The following dependencies use matching `develop` sources. For published packages, use their release documentation and supported Slint version.
+
 For a new application, the source CLI is installed with `cargo install --git https://github.com/damione1/slint-kit --branch develop slint-kit-cli --locked`. Run `slint-kit new my-app`, or add `--web` for desktop plus WASM preview; then run Cargo inside the new directory. Existing paths are never overwritten. `--name my-app` separates a portable Cargo name from a directory containing spaces or Unicode. The generated manifest/build helper share the component-download template; the Rust factory installs once and connects a weak-window action. See the bilingual project-setup guide for browser tooling and renderer differences. No CLI registry publication is assumed.
 
-Merge these registry dependencies into the application’s `Cargo.toml`:
+Merge these source dependencies into the application’s `Cargo.toml`:
 
 ```toml
 [dependencies]
-slint-kit = "0.7"
-slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
+slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint = { version = "=1.19.0", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.7"
+slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
 ```
 
-Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.
+Use Rust edition 2024 and Rust 1.95 or later. The kit build helper explicitly selects Slint language edition 1.18 to preserve existing layout and state behavior on Slint 1.19. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.
 
 In `build.rs`, compile through `slint-kit-build` so the `@kit` library and contract verification remain configured:
 
@@ -91,7 +93,7 @@ The Slint language server does not read `build.rs`. For registry consumers, run 
 
 Slint Kit 0.7.2 shows declarative selection options in pure-Slint editor and `slint-viewer` previews without Rust. This is a static presentation: filtering, generation checks and selection acceptance still require `install(&window)`. Single selection marks use the declared reference; multi-selection marks/chips and expanded accordion bodies need explicit `rows`/`choice-rows`/`chips` projections for an exact preview. Calendars need explicit `days` and `title`; typed fields need authored text for a static value. Use the Rust-backed browser demo or `cargo run` to exercise services. See the bilingual editor guide for the component-family matrix.
 
-With Slint 1.18.1, do not set `SLINT_LIVE_PREVIEW`, even to `0` or an empty string: Slint's live-preview generator omits library global exports/implementations (slint-ui/slint#14812). Slint Kit reports this limitation before producing broken Rust. Remove assignments from `build.rs` and development scripts and rebuild. The `slint/live-preview` feature alone does not select that generator; `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` remain usable for runtime debugging. The build helper follows Slint’s metadata default; enable inspection explicitly with that environment variable or `config().with_debug_info(true)` in test builds.
+With Slint 1.19.0, do not set `SLINT_LIVE_PREVIEW`, even to `0` or an empty string: Slint's live-preview generator omits library global exports/implementations (slint-ui/slint#14812). Slint Kit reports this limitation before producing broken Rust. Remove assignments from `build.rs` and development scripts and rebuild. The `slint/live-preview` feature alone does not select that generator; `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` remain usable for runtime debugging. The build helper follows Slint’s metadata default; enable inspection explicitly with that environment variable or `config().with_debug_info(true)` in test builds.
 
 A changed `.slint` file does not reach a running application: use the editor preview or `slint-viewer` for static layout and `cargo run` for behavior backed by `slint_kit::install`. Use `cargo check` for quick Rust feedback. The development loop guide lists measured build times; do not quote build times that were not measured.
 
@@ -303,7 +305,7 @@ KitButton.text-wrap defaults to TextWrap.no-wrap. Use word-wrap/char-wrap with a
 
 Numeric draft grammar is shared by constraints, stepping and typed codecs: NumberInputFormat.canonical uses dot decimals/comma thousands (NumberSyntax::en_ca()/en_us()), decimal-comma uses comma decimals/space-NBSP-NNBSP thousands (NumberSyntax::fr_ca()/fr_fr()). Grouping must be three digits after the first group (Indian en_in: two, last three); signs and outer whitespace are supported, malformed grouped drafts cannot commit. Match DecimalRules.syntax; FieldSpec::integer(syntax, bounds) takes the syntax and bounds. NumberSyntax is an open value type (de_de, de_ch, pt_br, en_in, NumberSyntax::new); the native number-format control knows only canonical and decimal-comma, so use a text control with the typed codec for another syntax. Keep min/max/step/default-value canonical and ungrouped. Lexical filtering permits incomplete native drafts without rewriting caret/undo. Preserve the T returned by FieldSpec::accept; plain draft formatting differs from optional format_decimal/with_display grouped presentation. No extra locale family or Indian grouping is supported. KitNumberStepper buttons disable themselves when a step would change nothing (min/max, step any, read-only), repeat on hold (theme motion.repeat-delay/repeat-interval; KitPressable repeat-on-hold), add no tab stops, and step through the native edit path so edited/value-edited and dirty apply; step-requested fires only for a step that changed the value. Custom themes must set motion.repeat-delay and motion.repeat-interval.
 
-Installed decimal fields use native Text input to preserve incomplete exponents and configured localized drafts under shared HTML validation. With Slint1.18.1 this loses the native editor’s NumberInput mapping and Android numeric input class; the numeric component’s separate spinbox semantics remain. InputMethodHints has no independent numeric purpose. Do not restore Decimal by narrowing the grammar or rewriting native edits, and do not promise a numeric soft keyboard: desktop winit and its WebAssembly helper have different input-purpose mappings. Qualify native IME, device keyboards and screen readers separately; see the forms guide.
+Installed decimal fields use native Text input to preserve incomplete exponents and configured localized drafts under shared HTML validation. With Slint1.18.1 this loses the native editor’s NumberInput mapping and Android numeric input class; the numeric component owns a single spinbox semantic node. Slint 1.19 delegates its native text, caret and selection to the retained editor; the editor and clipboard probe have no duplicate accessible role. InputMethodHints has no independent numeric purpose. Do not restore Decimal by narrowing the grammar or rewriting native edits, and do not promise a numeric soft keyboard: desktop winit and its WebAssembly helper have different input-purpose mappings. Qualify native IME, device keyboards and screen readers separately; see the forms guide.
 
 ## Coordinate forms
 

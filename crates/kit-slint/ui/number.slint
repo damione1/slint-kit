@@ -18,18 +18,13 @@ export { StepDirection } from "shared-contracts.slint";
 export component KitIntegerField inherits KitTextField {
     step: "1"; input-type: InputType.decimal;
     input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };
-    // Slint fixes `accessible-role` at compile time and every text field keeps
-    // one native editor, so the spin button role sits on the numeric component
-    // root with the range and the increment/decrement actions; the editor
-    // below it still exposes its text, caret and selection.
+    // The same accessible owner retains the native editor's text and selection
+    // while adding the numeric range and increment/decrement actions.
     accessible-role: spinbox;
-    accessible-label: root.accessible-name;
     accessible-value: root.text;
     accessible-value-minimum: root.number-range.minimum;
     accessible-value-maximum: root.number-range.maximum;
     accessible-value-step: root.number-range.step;
-    accessible-enabled: root.access != FieldAccess.disabled;
-    accessible-read-only: root.access == FieldAccess.read-only;
     accessible-action-increment => { root.step-by(StepDirection.increment, 1); }
     accessible-action-decrement => { root.step-by(StepDirection.decrement, 1); }
 }

@@ -14,8 +14,8 @@
   <a href="https://github.com/damione1/slint-kit/actions/workflows/check.yml"><img alt="Kit checks on main" src="https://github.com/damione1/slint-kit/actions/workflows/check.yml/badge.svg?branch=main"></a>
   <a href="https://crates.io/crates/slint-kit"><img alt="crates.io version" src="https://img.shields.io/crates/v/slint-kit.svg"></a>
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/License-GPLv3%2B-blue.svg"></a>
-  <img alt="Rust 1.92 or later" src="https://img.shields.io/badge/Rust-1.92%2B-B7410E?logo=rust&amp;logoColor=white">
-  <a href="https://slint.dev"><img alt="Slint 1.18.1" src="https://img.shields.io/badge/Slint-1.18.1-818CF8"></a>
+  <img alt="Rust 1.95 or later" src="https://img.shields.io/badge/Rust-1.95%2B-B7410E?logo=rust&amp;logoColor=white">
+  <a href="https://slint.dev"><img alt="Slint 1.19.0" src="https://img.shields.io/badge/Slint-1.19.0-818CF8"></a>
   <img alt="Native UI" src="https://img.shields.io/badge/UI-native-0D9488">
   <img alt="No unsafe code in the kit's hand-written Rust" src="https://img.shields.io/badge/kit_unsafe-none-success">
   <a href="https://docs.rs/slint-kit"><img alt="docs.rs" src="https://img.shields.io/docsrs/slint-kit"></a>
@@ -91,15 +91,15 @@ Every change passes `cargo run -p xtask -- check` in CI:
 
 ## Try it
 
-Install the toolkit from [crates.io](https://crates.io/crates/slint-kit) with Rust 1.92 or later and the native dependencies required by Slint:
+The next release, 0.9.0, requires Rust 1.95 and Slint 1.19. Until it is published, use the matching `develop` sources below and install Slint’s native dependencies. For released packages on [crates.io](https://crates.io/crates/slint-kit), follow the documentation for that release:
 
 ```toml
 [dependencies]
-slint-kit = "0.7"
-slint = "~1.18.1"
+slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint = "~1.19.0"
 
 [build-dependencies]
-slint-kit-build = "0.7"
+slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
 ```
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
@@ -109,9 +109,9 @@ For `@kit` completion and diagnostics in VS Code or Zed, configure the language 
 
 ## Build the showcase
 
-The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.92+**.
+The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.95+**.
 
-Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.18.1 build guide](https://github.com/slint-ui/slint/blob/v1.18.1/docs/building.md#prerequisites) for platform setup.
+Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.19.0 build guide](https://github.com/slint-ui/slint/blob/v1.19.0/docs/building.md#prerequisites) for platform setup.
 
 ```sh
 git clone https://github.com/damione1/slint-kit.git

@@ -53,14 +53,11 @@ fn spin_button(window: &NumberSteppingFixture, label: &str) -> ElementHandle {
         .unwrap_or_else(|| panic!("missing spin button {label}"))
 }
 fn editor(window: &NumberSteppingFixture, label: &str) -> ElementHandle {
-    let requested = label.to_owned();
-    ElementQuery::from_root(window)
-        .match_accessible_role(AccessibleRole::TextInput)
-        .match_predicate(move |element| {
-            element.accessible_label().as_deref() == Some(requested.as_str())
-        })
+    spin_button(window, label)
+        .query_descendants()
+        .match_id("KitTextField::editor")
         .find_first()
-        .unwrap_or_else(|| panic!("missing editor {label}"))
+        .unwrap_or_else(|| panic!("missing native editor {label}"))
 }
 
 #[test]
@@ -351,7 +348,68 @@ fn numeric_fields_expose_a_spin_button_with_range_and_step_actions() {
             .is_none(),
         "plain text fields are not spin buttons"
     );
-    let _ = editor(&window, "Amount");
+    let native = editor(&window, "Amount");
+    assert_eq!(
+        native.accessible_role(),
+        Some(AccessibleRole::None),
+        "the spin button owns its native text exactly once"
+    );
+    assert!(
+        spin.query_descendants()
+            .match_accessible_role(AccessibleRole::TextInput)
+            .find_all()
+            .is_empty()
+    );
+    assert_eq!(
+        spin.query_descendants()
+            .match_type_name("TextInput")
+            .find_first()
+            .unwrap()
+            .id()
+            .as_deref(),
+        Some("KitTextField::editor"),
+        "Slint delegates wrapper text and selection to the first native editor, never the clipboard probe"
+    );
+}
+
+#[test]
+fn accessible_numeric_owner_delegates_selection_and_editing_to_the_retained_native_editor() {
+    let window = fixture();
+    amount(&window, "1234");
+    let spin = spin_button(&window, "Amount");
+    let native = editor(&window, "Amount");
+    spin.set_accessible_selection_offsets(1, 3);
+    assert_eq!(
+        (window.get_selection_anchor(), window.get_cursor_position()),
+        (1, 3)
+    );
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "9".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "9".into() });
+    assert_eq!(window.get_value(), "194");
+    // Native replacement records deletion and insertion separately.
+    undo(&window);
+    undo(&window);
+    assert_eq!(window.get_value(), "1234");
+    spin.set_accessible_value("56");
+    assert_eq!(window.get_value(), "56");
+    // Native replacement records deletion and insertion separately.
+    undo(&window);
+    undo(&window);
+    assert_eq!(window.get_value(), "1234");
+    assert!(
+        native.is_valid(),
+        "semantic actions retain the mounted native editor"
+    );
+    window.set_access(FieldAccess::ReadOnly);
+    spin.set_accessible_value("88");
+    assert_eq!(window.get_value(), "1234");
+    window.set_access(FieldAccess::Disabled);
+    spin.set_accessible_value("99");
+    assert_eq!(window.get_value(), "1234");
 }
 
 #[test]

@@ -806,7 +806,7 @@ fn table_header_body_and_cell_reveal_share_the_measured_viewport_in_each_directi
                 assert!(window.get_table_editing());
                 let editor = table
                     .query_descendants()
-                    .match_type_name("TextInput")
+                    .match_inherits("KitTextField")
                     .match_predicate(|e| e.accessible_label().as_deref() == Some("Quantity, Row 1"))
                     .find_first()
                     .unwrap();

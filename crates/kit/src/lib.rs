@@ -83,9 +83,5 @@ pub use native_bindings::*;
 
 #[cfg(all(test, feature = "native"))]
 mod native_test_ui {
-    slint::slint! {
-        export component PickerTestWindow inherits Window {
-            in-out property <string> error;
-        }
-    }
+    slint::include_modules!();
 }

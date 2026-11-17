@@ -58,9 +58,12 @@ Duration fields use decimal quantities and a required Rust codec unit: pair `tex
 
 With Slint 1.18.1, installing the shared validation engine makes the native editor of a field declared `input-type: InputType.decimal` use `InputType.text`. This keeps native caret, selection and undo while allowing drafts such as `1e` and a configured decimal comma. The shared HTML engine still rejects incomplete or invalid values at acceptance. Restoring native `Decimal` would filter those drafts before the kit can validate them.
 
-The numeric field component exposes its spin button role, range and increment/decrement actions separately. Its inner native text editor remains a text input: the winit/AccessKit bridge selects `NumberInput` only for native `Number` or `Decimal`. Slint 1.18.1 [input-method hints](https://docs.slint.dev/docs/slint/reference/keyboard-input/textinput/#input-method-hints) cover capitalization, correction and completion; they provide no independent numeric purpose. The kit cannot promise both the complete draft grammar and that native numeric metadata with this SDK.
+The numeric field component exposes its spin button role, range and increment/decrement actions on the same accessible owner. Its inner native editor retains the text input purpose without a separate accessible node: the winit/AccessKit bridge selects `NumberInput` only for native `Number` or `Decimal`. Slint 1.18.1 [input-method hints](https://docs.slint.dev/docs/slint/reference/keyboard-input/textinput/#input-method-hints) cover capitalization, correction and completion; they provide no independent numeric purpose. The kit cannot promise both the complete draft grammar and that native numeric metadata with this SDK.
 
 Backend behavior differs. The Android backend derives its text or numeric input class from that same native type; this is a source-level finding, without a device keyboard test. Desktop winit maps both text and decimal to its normal IME purpose, while the winit WebAssembly input helper does not project the numeric type into an HTML input mode. Numeric soft keyboards, IME composition and native screen-reader behavior require qualification on the target backend; no numeric keyboard restoration is claimed here.
+
+
+Text fields expose one accessible owner: a text input, or a spin button for numeric fields. Slint 1.19 delegates text, caret and selection to the retained native editor. The hidden clipboard probe is excluded and follows the editor in the item tree. Native editing, keyboard focus and undo stay on the same editor; headless checks do not qualify physical screen readers or IME.
 
 ## Drafts and acceptance
 

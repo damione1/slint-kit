@@ -17,7 +17,7 @@ fn fixture() -> ui::HtmlFixture {
 fn element(view: &ui::HtmlFixture, label: &str) -> ElementHandle {
     let label = label.to_string();
     ElementQuery::from_root(view)
-        .match_inherits("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(move |e| e.accessible_label().as_deref() == Some(label.as_str()))
         .find_first()
         .unwrap()

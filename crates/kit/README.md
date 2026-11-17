@@ -18,13 +18,15 @@ Build **desktop Rust applications** for macOS, Windows and Linux. Android and iO
 
 ## Install
 
+These sources prepare 0.9.0 with Rust 1.95 and Slint 1.19. Until that release is published, use matching `develop` dependencies; released packages require their matching Slint version.
+
 ```toml
 [dependencies]
-slint-kit = "0.7"
-slint = { version = "~1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
+slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint = { version = "~1.19.0", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.7"
+slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
 ```
 
 Compile your UI in `build.rs`:
@@ -65,7 +67,7 @@ No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/sli
 
 ## Requirements
 
-Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android and iOS are not announced kit targets; Slint mobile integration requires separate platform setup and device qualification. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
+Rust 1.95 or later and Slint 1.18 (patch releases from 1.19.0). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android and iOS are not announced kit targets; Slint mobile integration requires separate platform setup and device qualification. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
 
 ## License
 
