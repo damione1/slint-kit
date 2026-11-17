@@ -220,7 +220,19 @@ fn read_only_and_disabled_keypads_emit_nothing() {
         window.set_access(access);
         for label in KEYS {
             let key = element(&window, label);
-            assert_eq!(key.accessible_enabled(), Some(false), "{label} {access:?}");
+            // A read-only key stays enabled and reports itself read-only;
+            // only a disabled keypad disables its keys.
+            let read_only = access == FieldAccess::ReadOnly;
+            assert_eq!(
+                key.accessible_enabled(),
+                Some(read_only),
+                "{label} {access:?}"
+            );
+            assert_eq!(
+                key.accessible_read_only(),
+                Some(read_only),
+                "{label} {access:?}"
+            );
             click(&window, &key);
             key.invoke_accessible_default_action();
         }
@@ -705,4 +717,45 @@ fn the_tab_stop_moves_to_an_available_key_when_the_remembered_key_is_unavailable
         activate_focused(&window, &intentions),
         Some(Intention::Confirm)
     );
+}
+
+#[test]
+fn a_focused_key_keeps_focus_through_read_only_and_activates_again_when_editable() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    // Tab reaches key 1; the right arrow moves keyboard focus to key 2.
+    key(&window, Key::Tab);
+    key(&window, Key::RightArrow);
+    window.set_access(FieldAccess::ReadOnly);
+    // The read-only key keeps focus but Space, Return and typed digits emit nothing.
+    key(&window, Key::Space);
+    key(&window, Key::Return);
+    type_text(&window, "5");
+    assert!(intentions.borrow().is_empty());
+    // Roving focus still moves between read-only keys.
+    key(&window, Key::RightArrow);
+    window.set_access(FieldAccess::Editable);
+    key(&window, Key::Space);
+    assert_eq!(*intentions.borrow(), [Intention::Digit(3)]);
+}
+
+#[test]
+fn read_only_keys_take_no_pointer_or_keyboard_activation_and_start_no_feedback() {
+    let (window, intentions) = fixture();
+    let starts = Rc::new(std::cell::Cell::new(0));
+    let observed = starts.clone();
+    window.on_activation_started(move || observed.set(observed.get() + 1));
+    window.set_can_confirm(true);
+    window.set_access(FieldAccess::ReadOnly);
+    for label in KEYS {
+        let key = element(&window, label);
+        click(&window, &key);
+        key.invoke_accessible_default_action();
+    }
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    key(&window, Key::Space);
+    key(&window, Key::Return);
+    assert!(intentions.borrow().is_empty());
+    assert_eq!(starts.get(), 0);
 }
