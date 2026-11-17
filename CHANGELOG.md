@@ -26,6 +26,9 @@ Slint Kit 0.9.0 passe à **Slint 1.19 et Rust 1.95+**. Consultez le [guide de mi
 
 ### Detailed changes / Détail des changements
 
+- `KitDialog` and `KitAlertDialog` now show a short body at its full height, including a one-line action result. Tall bodies still scroll vertically while the footer stays in view.
+- `KitDialog` et `KitAlertDialog` affichent désormais les corps courts sur toute leur hauteur, y compris un résultat d’action d’une ligne. Les corps longs défilent verticalement et les boutons du pied de dialogue restent visibles.
+
 - Provide runnable starters and browser previews for all 139 public components, including router/screen composition, sidebar, popover, dropdown/context menus and dialogs.
 - Fournit des starters exécutables et aperçus navigateur pour les 139 composants publics, dont les compositions de routes/écrans, la barre latérale, les popovers, menus déroulants/contextuels et dialogues.
 

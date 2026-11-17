@@ -31,14 +31,20 @@ export component AlertDialogFixture inherits Window {
     width: 800px; height: 600px;
     in property <DialogState> state;
     in property <ButtonIntent> confirm-intent: ButtonIntent.primary;
+    in property <KitTheme> theme: KitThemeContext.current;
+    private property <string> status;
     callback dismissed(CloseReason);
     callback confirmed();
     callback cancelled();
     KitAlertDialog {
-        width: root.width; height: root.height; state: root.state; confirm-intent: root.confirm-intent;
+        width: root.width; height: root.height; state: root.state; confirm-intent: root.confirm-intent; theme: root.theme;
         title: "Delete project?"; description: "This cannot be undone."; confirm-text: "Delete"; cancel-text: "Keep";
         dismiss(reason) => { root.dismissed(reason); }
         confirmed => { root.confirmed(); }
-        cancelled => { root.cancelled(); }
+        cancelled => { root.status = "Project kept"; root.cancelled(); }
+        if root.status != "": Text {
+            text: root.status; font-size: 12px * root.theme.text-scale;
+            color: root.theme.text-secondary; vertical-stretch: 0;
+        }
     }
 }

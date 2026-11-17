@@ -19,16 +19,7 @@ cd my-app
 ```
 
 {% if not project.registryExamples %}
-The `develop` sources prepare the unpublished 0.9.0 release. Before building, replace the generated kit entries in `Cargo.toml` with matching source dependencies, keeping its Slint dependency and selected features:
-
-```toml
-[dependencies]
-slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
-
-[build-dependencies]
-slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
-```
-
+This guide follows the `develop` branch. Before building, copy the `slint-kit` and `slint-kit-build` entries from the [Cargo manifest below](#cargo-dependencies) into the generated `Cargo.toml`. Keep the generated Slint dependency and its features.
 {% endif %}
 
 ```sh
@@ -62,7 +53,7 @@ Configure a Rust application once, then use each component through an `@kit` imp
 
 The build helper uses Slint’s experimental module compilation to share the kit's Rust/Slint contracts. Keep runtime and build packages on the same release and follow the supported Slint patch range. See [build compatibility](https://docs.rs/crate/slint-kit-build/latest) and [adoption limits](/guides/why-slint-kit/).
 
-## Dependencies
+<h2 id="cargo-dependencies">Dependencies</h2>
 
 Use Rust **{{ project.rust }}+**, edition **2024**, and Slint **{{ project.slint }}**. Start with `cargo new my-app` and add the runtime and build packages to `Cargo.toml`:
 
@@ -74,11 +65,11 @@ edition = "2024"
 rust-version = "{{ project.rust }}"
 
 [dependencies]
-slint-kit = "={{ project.version }}"
+slint-kit = {% if project.registryExamples %}"={{ project.version }}"{% else %}{ git = "https://github.com/damione1/slint-kit", branch = "develop" }{% endif %}
 slint = { version = "={{ project.slint }}", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "={{ project.version }}"
+slint-kit-build = {% if project.registryExamples %}"={{ project.version }}"{% else %}{ git = "https://github.com/damione1/slint-kit", branch = "develop" }{% endif %}
 ```
 
 The manifest above pins the example to Slint {{ project.slint }} for reproducibility. The kit itself accepts Slint 1.19 patch releases from 1.19.0 (`~1.19.0`). Keep the Slint compiler and runtime aligned when updating a patch release.
@@ -88,7 +79,7 @@ The build helper keeps application Slint language edition 1.18 by default. The `
 
 Keep the kit's runtime and build packages on matching releases. Preserve an existing application's compatible backend and renderer. This desktop example uses winit and Skia; see [Getting started](/guides/getting-started/) for platform prerequisites and [Native integration](/guides/native/) for optional host services.
 
-These examples target Slint Kit **{{ project.version }}**. To develop against a source checkout instead, replace the two kit dependencies above with local paths. For an application beside a `slint-kit` checkout:
+These examples target Slint Kit **{{ project.version }}**. To build against a local checkout, replace the two kit dependencies above with paths. For an application beside a `slint-kit` checkout:
 
 ```toml
 [dependencies]
@@ -98,7 +89,7 @@ slint-kit = { path = "../slint-kit/crates/kit" }
 slint-kit-build = { path = "../slint-kit/crates/kit-build" }
 ```
 
-Keep the Slint dependency from the first manifest. Downloads target the matching registry release; local paths are an alternative for source development. Keep the Cargo dependency name `slint-kit`: Slint's generated module code references `slint_kit::ui`.
+Keep the Slint dependency from the first manifest. {% if project.registryExamples %}The downloadable projects use the same registry pins.{% else %}For a downloaded project, replace the two kit registry pins with the Git or local path entries above, then run `cargo run` to refresh its lockfile.{% endif %} Keep the Cargo dependency name `slint-kit` because Slint’s generated module code references `slint_kit::ui`.
 
 <h2 id="desktop-and-mobile-targets">Desktop, mobile, web and embedded targets</h2>
 

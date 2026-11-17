@@ -19,16 +19,7 @@ cd my-app
 ```
 
 {% if not project.registryExamples %}
-Les sources `develop` préparent la version 0.9.0 non encore publiée. Avant de compiler, remplacez les entrées du kit générées dans `Cargo.toml` par les sources correspondantes, en conservant la dépendance Slint et les fonctionnalités choisies :
-
-```toml
-[dependencies]
-slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
-
-[build-dependencies]
-slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
-```
-
+Ce guide suit la branche `develop`. Avant de compiler, copiez les entrées `slint-kit` et `slint-kit-build` du [manifeste Cargo ci-dessous](#cargo-dependencies) dans le `Cargo.toml` généré. Conservez la dépendance Slint générée et ses fonctionnalités.
 {% endif %}
 
 ```sh
@@ -62,7 +53,7 @@ Configurez l’application Rust une seule fois, puis utilisez chaque composant a
 
 Le helper build utilise la compilation expérimentale de modules de Slint pour partager les contrats Rust/Slint du kit. Gardez les paquets runtime et build sur la même version et suivez la plage corrective Slint prise en charge. Consultez la [compatibilité du build](https://docs.rs/crate/slint-kit-build/latest) et les [limites d’adoption](/fr/guides/why-slint-kit/).
 
-## Dépendances
+<h2 id="cargo-dependencies">Dépendances</h2>
 
 Utilisez Rust **{{ project.rust }}+**, l’édition **2024** et Slint **{{ project.slint }}**. Lancez `cargo new my-app` et ajoutez les paquets d’exécution et de compilation dans `Cargo.toml` :
 
@@ -74,11 +65,11 @@ edition = "2024"
 rust-version = "{{ project.rust }}"
 
 [dependencies]
-slint-kit = "={{ project.version }}"
+slint-kit = {% if project.registryExamples %}"={{ project.version }}"{% else %}{ git = "https://github.com/damione1/slint-kit", branch = "develop" }{% endif %}
 slint = { version = "={{ project.slint }}", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "={{ project.version }}"
+slint-kit-build = {% if project.registryExamples %}"={{ project.version }}"{% else %}{ git = "https://github.com/damione1/slint-kit", branch = "develop" }{% endif %}
 ```
 
 Le manifeste ci-dessus épingle l’exemple sur Slint {{ project.slint }} pour sa reproductibilité. Le kit accepte les versions correctives de Slint 1.19 à partir de la 1.19.0 (`~1.19.0`). Gardez le compilateur et le runtime Slint alignés lors d’une mise à jour corrective.
@@ -88,7 +79,7 @@ Le helper conserve l’édition 1.18 du langage Slint pour l’application par d
 
 Gardez les paquets d’exécution et de compilation du kit sur des versions correspondantes. Conservez le backend et le moteur de rendu compatibles d’une application existante. Cet exemple de bureau utilise winit et Skia ; consultez [Bien démarrer](/fr/guides/getting-started/) pour les prérequis système et l’[intégration native](/fr/guides/native/) pour les services hôtes optionnels.
 
-Ces exemples ciblent Slint Kit **{{ project.version }}**. Pour développer depuis les sources, remplacez les deux dépendances du kit ci-dessus par des chemins locaux. Pour une application voisine d’un checkout `slint-kit` :
+Ces exemples ciblent Slint Kit **{{ project.version }}**. Pour compiler avec un checkout local, remplacez les deux dépendances du kit ci-dessus par des chemins. Pour une application voisine d’un checkout `slint-kit` :
 
 ```toml
 [dependencies]
@@ -98,7 +89,7 @@ slint-kit = { path = "../slint-kit/crates/kit" }
 slint-kit-build = { path = "../slint-kit/crates/kit-build" }
 ```
 
-Conservez la dépendance Slint du premier manifeste. Les téléchargements ciblent la version correspondante du registre ; les chemins locaux permettent de développer depuis les sources. Gardez le nom Cargo `slint-kit` : le code de modules généré par Slint référence `slint_kit::ui`.
+Conservez la dépendance Slint du premier manifeste. {% if project.registryExamples %}Les projets téléchargeables utilisent les mêmes versions du registre.{% else %}Dans un projet téléchargé, remplacez les deux versions du kit provenant du registre par les entrées Git ou les chemins locaux ci-dessus, puis lancez `cargo run` pour actualiser le fichier de verrouillage.{% endif %} Gardez le nom de dépendance Cargo `slint-kit`, car le code de modules généré par Slint référence `slint_kit::ui`.
 
 <h2 id="desktop-and-mobile-targets">Cibles bureau, mobile, web et embarquées</h2>
 

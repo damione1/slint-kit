@@ -38,15 +38,29 @@ test('published guide dependency snippets use the central version', () => {
 });
 
 
-test('unpublished source guide dependencies share the workspace repository and develop branch', () => {
+test('project setup renders matching CLI and Cargo sources for each documentation mode', async () => {
+  const { default: nunjucks } = await import('nunjucks');
+  const env = new nunjucks.Environment(null, { autoescape: false, throwOnUndefined: true });
+  const workspace = loadProject();
   for (const locale of ['en', 'fr']) {
     const source = fs.readFileSync(new URL(`../src/${locale}/guides/project-setup.md`, import.meta.url), 'utf8');
-    const blocks = Array.from(source.matchAll(/```toml\n([\s\S]*?)```/g), match => match[1])
-      .filter(block => /git\s*=/.test(block));
-    assert.equal(blocks.length, 1, `${locale}: one source dependency manifest`);
-    const dependencies = blocks[0].split('\n').filter(line => /^slint-kit(?:-build)?\s*=/.test(line));
-    assert.deepEqual(dependencies.map(line => line.match(/^(\S+)\s*=/)[1]), ['slint-kit', 'slint-kit-build']);
-    for (const dependency of dependencies) assertSourceDependency(dependency, locale);
+    const body = source.slice(source.indexOf('\n---\n', 4) + 5);
+    for (const registryExamples of [false, true]) {
+      const rendered = env.renderString(body, { project: { ...workspace, registryExamples } });
+      const blocks = Array.from(rendered.matchAll(/```toml\n([\s\S]*?)```/g), match => match[1]);
+      const manifests = blocks.filter(block => block.startsWith('[package]'));
+      assert.equal(manifests.length, 1, `${locale}: one complete application manifest`);
+      const [manifest] = manifests;
+      assert.ok(manifest.includes(`slint = { version = "=${workspace.slint}", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }`));
+      const dependencies = manifest.split('\n').filter(line => /^slint-kit(?:-build)?\s*=/.test(line));
+      assert.deepEqual(dependencies.map(line => line.split(' = ')[0]), ['slint-kit', 'slint-kit-build']);
+      for (const dependency of dependencies) {
+        if (registryExamples) assert.equal(dependency.split(' = ')[1], `"=${workspace.version}"`);
+        else assertSourceDependency(dependency, locale);
+      }
+      const cliRef = registryExamples ? `--tag v${workspace.version}` : '--branch develop';
+      assert.ok(rendered.includes(`cargo install --git https://github.com/damione1/slint-kit ${cliRef} slint-kit-cli --locked`));
+    }
   }
 });
 
@@ -79,7 +93,8 @@ test('quickstart pages distinguish development APIs from immutable registry exam
           const rendered = env.renderString(template, { component: { slug }, locale, project: { registryExamples, version }, quickstart: { ...starters[slug], en: 'English usage.', fr: 'Usage français.' } });
           const development = !registryExamples || version === '0.7.2';
           if (development) {
-            assert.doesNotMatch(rendered, /cargo run --locked|\/quickstart\/projects\//);
+            assert.doesNotMatch(rendered, /cargo run --locked/);
+            assert.ok(rendered.includes(`/quickstart/projects/${slug}.zip`));
             assert.match(rendered, /(?:cannot compile|ne compilent pas)/);
             assert.match(rendered, /crates\/kit-build/);
             assert.ok(rendered.includes(`https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/${slug}`));
@@ -95,9 +110,12 @@ test('quickstart pages distinguish development APIs from immutable registry exam
   }
   const flagged = env.renderString(template, { component: { slug: 'arbitrary-new-api' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { development: true, en: 'Usage.', fr: 'Usage.' } });
   assert.match(flagged, /cannot compile/);
-  assert.doesNotMatch(flagged, /cargo run --locked|\/quickstart\/projects\//);
+  assert.doesNotMatch(flagged, /cargo run --locked/);
+  assert.ok(flagged.includes('/quickstart/projects/arbitrary-new-api.zip'));
   const existing = env.renderString(template, { component: { slug: 'button' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { en: 'Usage.', fr: 'Usage.' } });
-  assert.match(existing, /cargo run --locked/);
+  assert.doesNotMatch(existing, /cargo run --locked/);
+  assert.match(existing, /crates\/kit-build/);
+  assert.ok(existing.includes('/quickstart/projects/button.zip'));
 });
 
 test('verification-code examples retain typed accepted codes without exposing them in status or logs', () => {
@@ -139,13 +157,21 @@ test('released starters offer registry projects while unpublished examples retai
   env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
   const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
   const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
-  assert.equal(starters['avatar-group'].registryExample, true);
   for (const locale of ['en', 'fr']) {
     const project = { registryExamples: true, version: loadProject().version };
-    const released = env.renderString(template, { component: { slug: 'avatar-group' }, locale, project, quickstart: starters['avatar-group'] });
-    assert(released.includes('cargo run --locked'));
-    assert(released.includes('/quickstart/projects/avatar-group.zip'));
-    assert(!released.includes('tree/v0.7.2/'));
+    for (const slug of ['avatar-group', 'tab-panel']) {
+      assert.equal(starters[slug].registryExample, true);
+      const released = env.renderString(template, { component: { slug }, locale, project, quickstart: starters[slug] });
+      assert(released.includes('cargo run --locked'));
+      assert(released.includes(`/quickstart/projects/${slug}.zip`));
+      assert(!released.includes('tree/v0.7.2/'));
+    }
+    for (const [slug, quickstart] of Object.entries(starters).filter(([, starter]) => starter.newComponent)) {
+      const development = env.renderString(template, { component: { slug }, locale, project: { ...project, registryExamples: false }, quickstart });
+      assert(development.includes(`/quickstart/projects/${slug}.zip`), slug);
+      assert(development.includes('crates/kit-build'), slug);
+      assert(!development.includes('tree/v0.7.2/'), slug);
+    }
     const pending = env.renderString(template, { component: { slug: 'unpublished-component' }, locale, project, quickstart: { ...starters['avatar-group'], registryExample: false } });
     assert(!pending.includes('cargo run --locked'));
     assert(pending.includes('/quickstart/projects/unpublished-component.zip'));

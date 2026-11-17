@@ -38,6 +38,6 @@ Les littéraux de thèmes personnalisés doivent inclure les nouvelles couleurs 
 
 Le [guide de démarrage](/fr/guides/getting-started/) explique la répartition entre interface Slint et application Rust. La [configuration du projet](/fr/guides/project-setup/#desktop-and-mobile-targets) renvoie désormais vers les guides officiels de packaging desktop, Android, iOS, WebAssembly et de déploiement embarqué. Le support des microcontrôleurs dans Slint ne signifie pas que Slint Kit possède un portage `no_std`.
 
-Les 139 composants publics disposent désormais d’un starter exécutable complet et d’un aperçu navigateur, dont la navigation entre écrans, la barre latérale, les popovers, menus et dialogues.
+Les 139 composants publics disposent désormais d’un starter exécutable complet et d’un aperçu navigateur, dont la navigation entre écrans, la barre latérale, les popovers, menus et dialogues. Les dialogues affichent les résultats d’action d’une ligne sur toute leur hauteur. Les contenus plus longs défilent verticalement et les boutons du pied de dialogue restent visibles.
 
 Pour tous les changements d’API et de comportement du kit, au-delà de la mise à jour de Slint et dans les versions précédentes, consultez le [changelog complet](https://github.com/damione1/slint-kit/blob/v0.9.0/CHANGELOG.md).
