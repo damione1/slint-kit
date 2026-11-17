@@ -22,6 +22,7 @@ class ReleaseTests(unittest.TestCase):
         self.root = Path(self.directory.name)
         (self.root / 'LICENSE').write_text('GPL fixture')
         (self.root / 'Cargo.toml').write_text('[workspace.package]\nversion = "0.1.0"\n')
+        (self.root / 'CHANGELOG.md').write_text('## 0.1.0\nRelease fixture\n')
         for name, directory in release.PACKAGES.items():
             folder = self.root / directory
             folder.mkdir(parents=True)
@@ -115,6 +116,30 @@ class ReleaseTests(unittest.TestCase):
                         '## 0.1.0\nFirst\n## 0.1.0\nDuplicate']:
             (self.root / 'CHANGELOG.md').write_text(content)
             with self.subTest(content=content), self.assertRaises(ValueError):
+                release.release_notes('0.1.0')
+
+    def test_validate_rejects_oversized_notes_before_publication(self):
+        (self.root / 'CHANGELOG.md').write_text('## 0.1.0\n' + 'x' * (release.MAX_RELEASE_NOTES + 1))
+        with self.assertRaisesRegex(ValueError, 'explicit release summary'):
+            release.validate('v0.1.0')
+
+    def test_explicit_bilingual_summary_links_the_complete_tagged_changelog(self):
+        summary = '### Highlights\nKeep selection.\n\n### Points forts\nConserve la sélection.'
+        (self.root / 'CHANGELOG.md').write_text(
+            '## 0.1.0\n<!-- release-summary:start -->\n' + summary +
+            '\n<!-- release-summary:end -->\n' + 'details ' * release.MAX_RELEASE_NOTES)
+        expected = summary + ('\n\n[Full changelog / Changelog complet]'
+                              '(https://github.com/damione1/slint-kit/blob/v0.1.0/CHANGELOG.md)')
+        self.assertEqual(release.release_notes('0.1.0'), expected)
+        self.assertEqual(release.validate('v0.1.0'), ('0.1.0', 'abc123'))
+
+    def test_release_summary_must_be_unique_complete_nonempty_and_bounded(self):
+        start, end = '<!-- release-summary:start -->', '<!-- release-summary:end -->'
+        for content in [start, end, start + end, end + 'text' + start,
+                        start + 'text' + end + start,
+                        start + 'x' * release.MAX_RELEASE_NOTES + end]:
+            (self.root / 'CHANGELOG.md').write_text('## 0.1.0\n' + content)
+            with self.subTest(content=content[:100]), self.assertRaises(ValueError):
                 release.release_notes('0.1.0')
 
     def test_latest_compares_numeric_stable_versions_not_dates(self):

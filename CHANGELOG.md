@@ -2,9 +2,29 @@
 
 ## 0.9.0
 
-Slint Kit 0.9.0 integrates Slint 1.19 with Rust 1.95+, edition-aware library imports, native reveals and reduced-motion handling. Read the [migration summary](https://slint-kit.dev/changelog/) and the [official Slint 1.19 release notes](https://github.com/slint-ui/slint/releases/tag/v1.19.0). The getting-started and project-setup guides now explain the Rust/Slint application structure and link to official Android, WebAssembly and embedded deployment documentation; Slint Kit does not provide a `no_std` microcontroller port.
+<!-- release-summary:start -->
+### Highlights
 
-Slint Kit 0.9.0 intègre Slint 1.19 avec Rust 1.95+, les imports de bibliothèque par édition, les révélations natives et la réduction des animations. Consultez la [synthèse de migration](https://slint-kit.dev/fr/changelog/) et les [notes officielles de Slint 1.19](https://github.com/slint-ui/slint/releases/tag/v1.19.0). Les guides de démarrage et de configuration expliquent désormais la structure Rust/Slint et renvoient vers la documentation officielle de déploiement Android, WebAssembly et embarqué ; Slint Kit ne fournit pas de portage `no_std` pour microcontrôleur.
+Slint Kit 0.9.0 upgrades to **Slint 1.19 and Rust 1.95+**. Read the [migration guide](https://slint-kit.dev/changelog/) before upgrading.
+
+- The kit uses Slint language edition 1.19; applications retain edition 1.18 by default. Replace component sub-imports with `@kit`, Lucide imports with `@kit-icons/...` and Inter with `@kit-fonts/inter.slint`. Update editor library aliases to the project file and resource directories.
+- Native list, menu, tab and field reveals replace manual scrolling. **Behavior change:** `scroll-to-index` reveals the nearest edge instead of aligning every row at the top. Saved offsets restore immediately, rapid reversals stay visible, and keyboard scroll steps preserve repeated input.
+- Reduced-motion handling keeps the application override and uses `animate.enabled`. Text and numeric fields retain native editing with a single accessible owner; physical IME and screen-reader qualification remains platform-specific.
+- All **139 public components** have runnable projects and browser previews, including screen navigation, sidebar, popovers, menus and dialogs. Updated English/French guides explain application structure and link to official Android, WebAssembly and embedded deployment documentation. Slint Kit still requires Rust `std`.
+- The full changelog lists the remaining component, typed-controller and theme changes. In particular, custom theme literals need the added control/choice colors, inset surface and display typography tokens; review every breaking API entry before migrating a custom integration.
+
+### Points forts
+
+Slint Kit 0.9.0 passe à **Slint 1.19 et Rust 1.95+**. Consultez le [guide de migration](https://slint-kit.dev/fr/changelog/) avant de mettre à jour.
+
+- Le kit utilise l’édition Slint 1.19 ; les applications conservent la 1.18 par défaut. Remplacez les sous-imports de composants par `@kit`, les imports Lucide par `@kit-icons/...` et Inter par `@kit-fonts/inter.slint`. Adaptez les alias de l’éditeur au fichier projet et aux répertoires de ressources.
+- Les révélations natives des listes, menus, onglets et champs remplacent le défilement manuel. **Rupture de comportement :** `scroll-to-index` révèle le bord le plus proche plutôt que d’aligner chaque ligne en haut. Les positions sauvegardées sont restaurées immédiatement ; inversions rapides et répétitions clavier restent cohérentes.
+- La réduction des animations garde le réglage applicatif et utilise `animate.enabled`. Les champs texte et numériques conservent l’édition native avec un seul propriétaire accessible ; la qualification physique IME/lecteur d’écran reste propre à chaque plateforme.
+- Les **139 composants publics** disposent de projets exécutables et d’aperçus navigateur, dont navigation entre écrans, barre latérale, popovers, menus et dialogues. Les guides EN/FR expliquent la structure applicative et renvoient vers les documents officiels Android, WebAssembly et embarqués. Slint Kit requiert toujours Rust `std`.
+- Le changelog intégral détaille les autres changements de composants, contrôleurs typés et thèmes. Les littéraux de thèmes personnalisés doivent notamment ajouter couleurs de contrôles/sélection, surface en retrait et typographie display ; consultez toutes les ruptures d’API avant de migrer une intégration personnalisée.
+<!-- release-summary:end -->
+
+### Detailed changes / Détail des changements
 
 - Provide runnable starters and browser previews for all 139 public components, including router/screen composition, sidebar, popover, dropdown/context menus and dialogs.
 - Fournit des starters exécutables et aperçus navigateur pour les 139 composants publics, dont les compositions de routes/écrans, la barre latérale, les popovers, menus déroulants/contextuels et dialogues.
