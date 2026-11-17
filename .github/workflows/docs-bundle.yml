@@ -83,9 +83,25 @@ jobs:
       - name: Pull the bundle from R2
         id: pull
         run: python3 docs/scripts/bundle_cache.py pull --key "${{ steps.key.outputs.key }}"
+      - name: Add swap space for the WASM compilation
+        # The single preview crate links every example and fixture; its rustc
+        # exhausted the 16 GB runner (exit 143). Swap on /mnt trades speed for room.
+        if: steps.pull.outputs.outcome == 'miss'
+        run: |
+          sudo swapoff -a
+          sudo rm -f /mnt/swapfile
+          sudo fallocate -l 24G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile
+          sudo swapon /mnt/swapfile
+          free -m
       - name: Compile the bundle on a cache miss
         if: steps.pull.outputs.outcome == 'miss'
-        run: python3 docs/scripts/build-web-previews.py
+        run: |
+          (while sleep 60; do date -u '+%H:%M:%S'; awk '/^(MemAvailable|SwapFree):/' /proc/meminfo; ps -eo rss,comm --sort=-rss | sed -n '2,4p'; done) &
+          monitor=$!
+          trap 'kill "$monitor" 2>/dev/null || true' EXIT
+          python3 docs/scripts/build-web-previews.py
       - name: Store the bundle in R2
         if: steps.pull.outputs.outcome == 'miss'
         run: python3 docs/scripts/bundle_cache.py push --key "${{ steps.key.outputs.key }}"
