@@ -2,6 +2,9 @@
 
 ## Unreleased — 0.9.0
 
+- Add `ScrollFrame.scroll-to`, `reveal-horizontal` and `reveal-vertical`, native `ListView.ensure-row-visible`, and `KitThemes.scroll-behavior(theme)` for custom compositions and application reduced motion.
+- Ajoute `ScrollFrame.scroll-to`, `reveal-horizontal` et `reveal-vertical`, `ListView.ensure-row-visible` natif et `KitThemes.scroll-behavior(theme)` pour les compositions personnalisées et la réduction des animations applicative.
+
 - **Breaking behavior:** `scroll-to-index` now reveals the nearest row edge instead of always aligning it to the top; already visible rows remain in place. User reveal helpers complete asynchronously unless reduced motion is enabled. `set-scroll` keeps immediate signed-offset restoration.
 - **Rupture de comportement :** `scroll-to-index` révèle le bord le plus proche au lieu de toujours aligner la ligne en haut ; une ligne déjà visible reste en place. Les fonctions de révélation terminent de façon asynchrone sauf avec réduction des animations. `set-scroll` conserve la restauration immédiate des décalages signés.
 
