@@ -128,6 +128,7 @@ fn overflowing_multiline_editor_preserves_mouse_selection_and_has_scrollbar() {
                         == Some(i_slint_backend_testing::AccessibleRole::TextInput)
                 })
                 .unwrap();
+            let editor = crate::native_editor(&editor);
             let bounds = editor.absolute_position();
             let start = slint::LogicalPosition::new(bounds.x + 4., bounds.y + 8.);
             let end = slint::LogicalPosition::new(bounds.x + 140., bounds.y + 30.);
@@ -322,7 +323,7 @@ fn right_click_editor(app: &TextFieldBehaviorFixture) {
     let editor = ElementHandle::find_by_accessible_label(app, "Name")
         .find(|element| element.accessible_role() == Some(AccessibleRole::TextInput))
         .unwrap();
-    editor.mock_single_click(slint::platform::PointerEventButton::Right);
+    crate::native_editor(&editor).mock_single_click(slint::platform::PointerEventButton::Right);
     slint::platform::update_timers_and_animations();
 }
 #[test]

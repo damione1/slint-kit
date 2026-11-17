@@ -135,10 +135,11 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
     assert!(placeholder.size().width > 100.0);
     let search = combobox
         .query_descendants()
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Workspace"))
         .find_first()
         .unwrap();
+    let search = crate::native_editor(&search);
     window.set_query("a very long query ".repeat(30).into());
     assert!(
         search.is_valid(),

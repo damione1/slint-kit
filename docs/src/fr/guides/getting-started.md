@@ -85,4 +85,4 @@ La composition IME et les lecteurs d’écran ont chacun leur procédure manuell
 
 Le code et les ressources incluses sont sous [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE) ; conservez les notices des dépendances.
 
-Les aperçus de l’éditeur affichent les déclarations statiques sans exécuter les services Rust. Consultez les [aperçus statiques et la limite du live-preview de Slint 1.18.1](../editor/#apercus-statiques-et-services-rust) avant d’activer `SLINT_LIVE_PREVIEW`.
+Les aperçus de l’éditeur affichent les déclarations statiques sans exécuter les services Rust. Consultez les [aperçus statiques et la limite du live-preview de Slint 1.19.0](../editor/#apercus-statiques-et-services-rust) avant d’activer `SLINT_LIVE_PREVIEW`.

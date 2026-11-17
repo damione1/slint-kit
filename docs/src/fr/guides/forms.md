@@ -62,6 +62,9 @@ Le composant numérique expose séparément son rôle de bouton compteur, ses bo
 
 Les backends diffèrent. Celui d’Android déduit sa classe de saisie textuelle ou numérique de ce même type natif ; ce constat vient du code source, sans essai de clavier sur appareil. Winit sur ordinateur associe texte et décimal à sa finalité IME normale, tandis que son auxiliaire de saisie WebAssembly ne projette pas le type numérique dans un mode de saisie HTML. Clavier numérique logiciel, composition IME et lecteur d’écran natif doivent être qualifiés sur le backend cible ; aucun rétablissement du clavier numérique n’est affirmé ici.
 
+
+Les champs exposent un seul propriétaire accessible : une entrée de texte, ou un compteur pour les champs numériques. Slint 1.19 délègue le texte, le curseur et la sélection à l’éditeur natif conservé. La sonde cachée du presse-papiers est exclue et suit cet éditeur dans l’arbre. L’édition native, le focus clavier et l’annulation restent sur le même éditeur ; les tests sans affichage ne qualifient ni lecteur d’écran physique ni IME.
+
 ## Brouillon et acceptation
 
 `text` reste le brouillon de l’éditeur natif, y compris lorsqu’il est incomplet. `field-state` expose valeur acceptée, brouillon, indicateurs dirty/touched et dernière transition ; `accepted-text` projette le dernier texte accepté. `committed(FieldCommit)` contient le candidat et ses contraintes. La clé du codec est une donnée applicative, indépendante de la position visuelle.

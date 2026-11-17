@@ -362,10 +362,11 @@ fn controlled_adjustment_acknowledges_without_clobbering_native_caret_undo_or_ac
     frame(&app);
     app.invoke_focus_editor();
     let editor = ElementQuery::from_root(&app)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Adjustable time"))
         .find_first()
         .unwrap();
+    let editor = crate::native_editor(&editor);
     click(&app, "Increase Minutes");
     assert_eq!(app.get_text(), "09:45");
     assert_eq!(app.get_value(), value(9, 30, 0));

@@ -23,6 +23,8 @@ fn fixture() -> ColorPopupFixture {
     app
 }
 fn settle(app: &ColorPopupFixture) -> slint::SharedPixelBuffer<slint::Rgba8Pixel> {
+    // Native focus reveal is animated in Slint 1.19.
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_secs(1));
     slint::platform::update_timers_and_animations();
     app.window().take_snapshot().unwrap();
     slint::platform::update_timers_and_animations();
@@ -42,12 +44,23 @@ fn id(app: &ColorPopupFixture, id: &str) -> ElementHandle {
         .unwrap()
 }
 fn button(app: &ColorPopupFixture, label: &str) -> ElementHandle {
+    let requested = label.to_owned();
     let label = label.to_owned();
     ElementQuery::from_root(app)
         .match_inherits("KitButton")
         .match_predicate(move |e| e.accessible_label().as_deref() == Some(label.as_str()))
         .find_first()
-        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "missing {requested}; buttons: {:?}",
+                ElementQuery::from_root(app)
+                    .match_inherits("KitButton")
+                    .find_all()
+                    .iter()
+                    .map(|element| (element.id(), element.accessible_label(), element.size()))
+                    .collect::<Vec<_>>()
+            )
+        })
 }
 // ElementHandle positions inside ChildWindow omit its offset (SDK1.18.1).
 // Map the actual popup-local child geometry into the tested host rectangle.

@@ -38,7 +38,7 @@ Merge this setting into `.vscode/settings.json` at the workspace root:
 }
 ```
 
-The key is `kit`, without `@`; the value points to the `kit.slint` file itself, because the import is `@kit` without a filename. The Slint extension resolves relative library paths against the workspace root. Preserve any other library aliases already in this map. See the [Slint extension's library path setting](https://github.com/slint-ui/slint/blob/v1.18.1/editors/vscode/package.json).
+The key is `kit`, without `@`; the value points to the `kit.slint` file itself, because the import is `@kit` without a filename. The Slint extension resolves relative library paths against the workspace root. Preserve any other library aliases already in this map. See the [Slint extension's library path setting](https://github.com/slint-ui/slint/blob/v1.19.0/editors/vscode/package.json).
 
 ## Zed
 
@@ -59,7 +59,7 @@ Merge these language-server arguments into `.zed/settings.json` at the workspace
 }
 ```
 
-Keep existing server arguments and add this `-L` pair. Zed starts the server in the project worktree, so this path is relative to that root. The [Slint Zed extension](https://github.com/slint-ui/slint/blob/v1.18.1/editors/zed/src/slint.rs) forwards `binary.arguments` to `slint-lsp`. Other editors can pass the same arguments with the workspace root as the server's working directory.
+Keep existing server arguments and add this `-L` pair. Zed starts the server in the project worktree, so this path is relative to that root. The [Slint Zed extension](https://github.com/slint-ui/slint/blob/v1.19.0/editors/zed/src/slint.rs) forwards `binary.arguments` to `slint-lsp`. Other editors can pass the same arguments with the workspace root as the server's working directory.
 
 ## Check and refresh
 
@@ -73,11 +73,11 @@ Cargo does not vendor local path dependencies. If your application uses `slint-k
 
 If the editor still reports “Cannot find requested import”, check that the configured file is `kit.slint` and exists, the opened workspace matches the path's root, and the selected library version matches your Cargo dependency. An include path alone does not register the `@kit` library alias. See [Slint component libraries](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
 
-## Supplemental imports in Slint 1.18.1
+## Supplemental imports in Slint 1.19.0
 
 The language server resolves a bare alias as a file and joins a suffixed import onto the configured path. A single alias cannot therefore resolve both `@kit` and `@kit/fonts/inter.slint` or `@kit/icons/lucide/all.slint`. Mapping `kit` to the `ui` directory supports those supplemental imports, but makes bare `@kit` unresolved. The file mapping above prioritizes the component API.
 
-Keep the documented supplemental imports in your application: Cargo compilation through `slint-kit-build` resolves them correctly using its module metadata and directory alias. With the editor file mapping, Slint 1.18.1 can still report unresolved supplemental imports. This is a language-server limitation, not a failure of the Cargo configuration; do not replace the application's root imports with the old `@kit/kit.slint` path.
+Keep the documented supplemental imports in your application: Cargo compilation through `slint-kit-build` resolves them correctly using its module metadata and directory alias. With the editor file mapping, Slint 1.19.0 can still report unresolved supplemental imports. This is a language-server limitation, not a failure of the Cargo configuration; do not replace the application's root imports with the old `@kit/kit.slint` path.
 
 <h2 id="static-previews-and-rust-services">Static previews and Rust services</h2>
 
@@ -99,7 +99,7 @@ These previews show layout and declared state; they do not install Rust services
 
 Do not set a service's `ready` property manually: it means its Rust callbacks are installed. Local ownership does not replace installation. Static preview does not qualify keyboard/IME or assistive technology behavior on a target device.
 
-## Rust live-preview limitation in Slint 1.18.1
+## Rust live-preview limitation in Slint 1.19.0
 
 The `SLINT_LIVE_PREVIEW` environment variable selects a different Rust code generator. That generator omits the shared library global exports and `Global` implementations required by Slint Kit ([upstream issue #14812](https://github.com/slint-ui/slint/issues/14812)). This affects every window using `slint_kit::install`, including windows whose visible controls are unrelated to selection.
 

@@ -107,15 +107,17 @@ fn incomplete_parts_show_only_their_own_error_and_focus_the_invalid_editor() {
     // The syntax error belongs below the date editor, before the valid time.
     app.window().take_snapshot().unwrap();
     let date = ElementQuery::from_root(&app)
-        .match_inherits("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Appointment — date"))
         .find_first()
         .unwrap();
     let time = ElementQuery::from_root(&app)
-        .match_inherits("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Appointment — time"))
         .find_first()
         .unwrap();
+    let date = crate::native_editor(&date);
+    let time = crate::native_editor(&time);
     let error = ElementQuery::from_root(&app)
         .match_inherits("KitFieldError")
         .find_first()

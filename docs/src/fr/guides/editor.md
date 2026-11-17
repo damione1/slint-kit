@@ -38,7 +38,7 @@ Fusionnez ce réglage dans `.vscode/settings.json` à la racine du workspace :
 }
 ```
 
-La clé est `kit`, sans `@` ; la valeur désigne le fichier `kit.slint` lui-même, car l’import `@kit` ne contient aucun nom de fichier. L’extension Slint résout les chemins relatifs depuis la racine du workspace. Conservez les autres alias déjà présents dans cette table. Consultez le [réglage des bibliothèques de l’extension Slint](https://github.com/slint-ui/slint/blob/v1.18.1/editors/vscode/package.json).
+La clé est `kit`, sans `@` ; la valeur désigne le fichier `kit.slint` lui-même, car l’import `@kit` ne contient aucun nom de fichier. L’extension Slint résout les chemins relatifs depuis la racine du workspace. Conservez les autres alias déjà présents dans cette table. Consultez le [réglage des bibliothèques de l’extension Slint](https://github.com/slint-ui/slint/blob/v1.19.0/editors/vscode/package.json).
 
 ## Zed
 
@@ -59,7 +59,7 @@ Fusionnez ces arguments du serveur de langage dans `.zed/settings.json` à la ra
 }
 ```
 
-Conservez les arguments existants et ajoutez cette paire `-L`. Zed démarre le serveur dans le worktree du projet : le chemin est donc relatif à cette racine. L’[extension Slint pour Zed](https://github.com/slint-ui/slint/blob/v1.18.1/editors/zed/src/slint.rs) transmet `binary.arguments` à `slint-lsp`. Les autres éditeurs peuvent transmettre les mêmes arguments en utilisant la racine du workspace comme répertoire de travail du serveur.
+Conservez les arguments existants et ajoutez cette paire `-L`. Zed démarre le serveur dans le worktree du projet : le chemin est donc relatif à cette racine. L’[extension Slint pour Zed](https://github.com/slint-ui/slint/blob/v1.19.0/editors/zed/src/slint.rs) transmet `binary.arguments` à `slint-lsp`. Les autres éditeurs peuvent transmettre les mêmes arguments en utilisant la racine du workspace comme répertoire de travail du serveur.
 
 ## Vérifier et actualiser
 
@@ -73,11 +73,11 @@ Cargo ne copie pas les dépendances locales déclarées par chemin. Si l’appli
 
 Si l’éditeur affiche encore « Cannot find requested import », vérifiez que le fichier configuré est bien `kit.slint` et existe, que le workspace ouvert correspond à la racine du chemin et que la version de la bibliothèque correspond à votre dépendance Cargo. Un simple chemin d’inclusion n’enregistre pas l’alias de bibliothèque `@kit`. Consultez les [bibliothèques de composants Slint](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
 
-## Imports supplémentaires avec Slint 1.18.1
+## Imports supplémentaires avec Slint 1.19.0
 
 Le serveur de langage résout un alias seul comme un fichier et ajoute le suffixe d’un import au chemin configuré. Un alias unique ne peut donc pas résoudre à la fois `@kit` et `@kit/fonts/inter.slint` ou `@kit/icons/lucide/all.slint`. Faire pointer `kit` vers le dossier `ui` résout ces imports supplémentaires, mais laisse `@kit` seul introuvable. Le réglage vers le fichier ci-dessus privilégie l’API des composants.
 
-Conservez les imports supplémentaires documentés dans votre application : la compilation Cargo via `slint-kit-build` les résout correctement grâce aux métadonnées de module et à son alias de dossier. Avec le réglage éditeur vers le fichier, Slint 1.18.1 peut encore signaler ces imports supplémentaires comme introuvables. Il s’agit d’une limite du serveur de langage, pas d’un défaut de configuration Cargo ; ne remplacez pas les imports racine de l’application par l’ancien chemin `@kit/kit.slint`.
+Conservez les imports supplémentaires documentés dans votre application : la compilation Cargo via `slint-kit-build` les résout correctement grâce aux métadonnées de module et à son alias de dossier. Avec le réglage éditeur vers le fichier, Slint 1.19.0 peut encore signaler ces imports supplémentaires comme introuvables. Il s’agit d’une limite du serveur de langage, pas d’un défaut de configuration Cargo ; ne remplacez pas les imports racine de l’application par l’ancien chemin `@kit/kit.slint`.
 
 <h2 id="apercus-statiques-et-services-rust">Aperçus statiques et services Rust</h2>
 
@@ -99,7 +99,7 @@ Ces aperçus montrent la disposition et l’état déclaré ; ils n’installent
 
 Ne forcez pas la propriété `ready` d’un service : elle signifie que ses callbacks Rust sont installés. La propriété locale ne remplace pas l’installation. Un aperçu statique ne qualifie ni clavier/IME ni technologies d’assistance sur un appareil cible.
 
-## Limite du live-preview Rust dans Slint 1.18.1
+## Limite du live-preview Rust dans Slint 1.19.0
 
 La variable d’environnement `SLINT_LIVE_PREVIEW` sélectionne un autre générateur Rust. Celui-ci omet les exports de globals de bibliothèque et les implémentations `Global` nécessaires à Slint Kit ([issue amont #14812](https://github.com/slint-ui/slint/issues/14812)). Toutes les fenêtres utilisant `slint_kit::install` sont concernées, même si leurs contrôles visibles ne dépendent pas de la sélection.
 

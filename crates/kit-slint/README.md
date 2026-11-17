@@ -10,7 +10,7 @@ Applications normally use the [`slint-kit` facade](https://crates.io/crates/slin
 import { KitButton, KitTextField } from "@kit";
 ```
 
-Rust 1.92 or later and Slint 1.18.1 are required. The default `adapter` feature exposes Rust bindings; disabling it leaves the installed Slint library available to build tools without a UI runtime.
+Rust 1.95 or later and Slint 1.19.0 are required. The default `adapter` feature exposes Rust bindings; disabling it leaves the installed Slint library available to build tools without a UI runtime.
 
 Original implementation under [GNU GPL v3.0 or later](LICENSE). Dependencies retain their own licenses.
 

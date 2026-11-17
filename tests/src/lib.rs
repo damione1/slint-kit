@@ -5,6 +5,17 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+// Metadata belongs to the field; pointer geometry and retention target its native editor.
+fn native_editor(
+    field: &i_slint_backend_testing::ElementHandle,
+) -> i_slint_backend_testing::ElementHandle {
+    field
+        .query_descendants()
+        .match_id("KitTextField::editor")
+        .find_first()
+        .expect("retained native editor")
+}
+
 mod accessible_expansion;
 mod avatar_group;
 mod calendar_marks;

@@ -30,7 +30,9 @@ pub fn config_with_libraries(
         libraries.insert("kit".into(), ui_directory()).is_none(),
         "kit is a reserved library alias"
     );
-    slint_build::CompilerConfiguration::new().with_library_paths(libraries)
+    slint_build::CompilerConfiguration::new()
+        .with_edition((1, 18))
+        .with_library_paths(libraries)
 }
 
 pub fn config() -> slint_build::CompilerConfiguration {
@@ -52,7 +54,7 @@ pub fn compile_with_config(
     println!("cargo:rerun-if-env-changed=SLINT_LIVE_PREVIEW");
     if std::env::var_os("SLINT_LIVE_PREVIEW").is_some() {
         return Err(slint_build::CompileError::CompileError(vec![
-            "SLINT_LIVE_PREVIEW is not supported with Slint Kit's shared library globals in Slint 1.18.1 (slint-ui/slint#14812). Unset SLINT_LIVE_PREVIEW, including in build.rs, and rebuild. The slint/mcp feature and SLINT_EMIT_DEBUG_INFO remain supported; editor/slint-viewer static previews do not require this variable.".into(),
+            "SLINT_LIVE_PREVIEW is not supported with Slint Kit's shared library globals in Slint 1.19.0 (slint-ui/slint#14812). Unset SLINT_LIVE_PREVIEW, including in build.rs, and rebuild. The slint/mcp feature and SLINT_EMIT_DEBUG_INFO remain supported; editor/slint-viewer static previews do not require this variable.".into(),
         ]));
     }
     let diagnostic =

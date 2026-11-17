@@ -69,6 +69,20 @@ component InputFieldAction inherits Rectangle {
 // All variants retain this one native TextInput throughout theme, validation,
 // placeholder and reveal changes. Parsing and grapheme counting belong to Rust.
 export component KitTextField inherits KitField {
+    // One accessible owner delegates text, selection and caret to the native editor.
+    accessible-role: text-input;
+    forward-focus: editor;
+    accessible-action-set-value(value) => { if (!KitModalContext.inert(root.modal-layer)) { root.replace-draft(value); } }
+    accessible-action-set-selection-offsets(anchor, focus) => {
+        if (root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer)) { editor.set-selection-offsets(anchor, focus); }
+    }
+    accessible-enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
+    accessible-read-only: root.access == FieldAccess.read-only || !root.mask-ready || ((root.length-policy == TextLengthPolicy.limit || root.edit-filter.kind != TextFilterKind.unfiltered) && !root.length-limit-ready);
+    accessible-label: root.accessible-name;
+    accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
+    accessible-placeholder-text: root.placeholder;
+    accessible-description: KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(root.effective-validation == ValidationPresentation.invalid ? root.effective-error : "", root.description), root.required ? root.required-label : ""), root.prefix), root.suffix), root.show-character-count ? root.character-count-text : ""), root.activity-label);
+
     in property <bool> implicit-form-submit: true;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     in property <Ownership> ownership: Ownership.local;
@@ -380,7 +394,7 @@ export component KitTextField inherits KitField {
         if (root.context-menu != TextContextMenu.standard || root.access == FieldAccess.disabled || !KitFieldService.ready || editor.preedit-text != "") { return; }
         root.menu-options = KitFieldService.text-menu-options(
             {undo: root.undo-label, redo: root.redo-label, cut: root.cut-label, copy: root.copy-label, paste: root.paste-label, select-all: root.select-all-label},
-            {editable: root.access == FieldAccess.editable, selection: root.cursor-position != root.selection-anchor, hidden-password: root.hidden-password, has-text: root.text != ""});
+            {editable: root.access == FieldAccess.editable, selection: editor.has-selection, hidden-password: root.hidden-password, has-text: root.text != ""});
         root.menu-geometry = KitFieldService.text-menu-placement({origin-x: context-area.absolute-position.x, origin-y: context-area.absolute-position.y, anchor-x: anchor.x, anchor-y: anchor.y, width: root.menu-width, height: root.menu-height});
         if (root.menu-geometry.valid) { text-menu.show(); }
     }
@@ -455,13 +469,6 @@ export component KitTextField inherits KitField {
             underflow-message: root.underflow-message; overflow-message: root.overflow-message;
             step-message: root.step-message; bad-input-message: root.bad-input-message;
             invalid => { root.invalid(); }
-        }
-        // Slint 1.18.1 filters numeric key events but not native clipboard
-        // shortcuts. Read the clipboard through its public paste API before
-        // letting the real editor handle it; never rewrite its text/history.
-        clipboard-probe := TextInput {
-            visible: false; enabled: false;
-            x: 0px; y: 0px; width: 0px; height: 0px;
         }
         // Behind the editor and action: the visual padding is part of the
         // field's focus target without intercepting native caret/selection.
@@ -569,11 +576,7 @@ export component KitTextField inherits KitField {
                             letter-spacing: root.text-letter-spacing;
                             horizontal-alignment: root.effective-text-alignment;
                             vertical-alignment: root.multiline ? top : center;
-                            accessible-enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
-                            accessible-label: root.accessible-name;
-                            accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
-                            accessible-placeholder-text: root.placeholder;
-                            accessible-description: KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(root.effective-validation == ValidationPresentation.invalid ? root.effective-error : "", root.description), root.required ? root.required-label : ""), root.prefix), root.suffix), root.show-character-count ? root.character-count-text : ""), root.activity-label);
+                            accessible-role: none;
                             key-pressed(event) => {
                                 if (self.preedit-text == "") {
                                     if (root.key-pressed(event) == KitKeyResult.accept) { return accept; }
@@ -738,6 +741,12 @@ export component KitTextField inherits KitField {
             // Slint has one children surface. Native layout-order places the
             // existing Start/End parts while retaining declaration-order Tab.
             @children
+        }
+        // The real editor must precede this hidden clipboard probe: Slint
+        // delegates accessible text and selection to the first TextInput.
+        clipboard-probe := TextInput {
+            visible: false; enabled: false; accessible-role: none;
+            x: 0px; y: 0px; width: 0px; height: 0px;
         }
     }
     if root.show-validation-message && root.effective-validation == ValidationPresentation.invalid && root.effective-error != "": KitFieldError { theme: root.theme; text: root.effective-error; }

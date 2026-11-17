@@ -126,14 +126,7 @@ fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {
             .match_inherits("KitTextField")
             .find_first()
             .unwrap();
-        let editor = field
-            .query_descendants()
-            .match_type_name("TextInput")
-            .match_predicate(|element| {
-                element.accessible_label().as_deref() == Some("Project name")
-            })
-            .find_first()
-            .unwrap();
+        let editor = crate::native_editor(&field);
         let label = field
             .query_descendants()
             .match_type_name("Text")

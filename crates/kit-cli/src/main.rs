@@ -214,7 +214,7 @@ fn manifest(project: &NewProject) -> String {
     };
     MANIFEST.replace("__PACKAGE_NAME__", &project.name.package)
         .replace("__RUNTIME_DEPENDENCY__", &format!("slint-kit = \"={}\"", env!("CARGO_PKG_VERSION")))
-        .replace("__SLINT_DEPENDENCY__", &format!("slint = {{ version = \"=1.18.1\", default-features = false, features = [\"std\", \"compat-1-18\", \"backend-winit\", \"{renderer}\", \"accessibility\"] }}"))
+        .replace("__SLINT_DEPENDENCY__", &format!("slint = {{ version = \"=1.19.0\", default-features = false, features = [\"std\", \"compat-1-18\", \"backend-winit\", \"{renderer}\", \"accessibility\"] }}"))
         .replace("__EXTRA_DEPENDENCIES__", extra)
         .replace("__KIT_VERSION__", env!("CARGO_PKG_VERSION"))
         .replace("__LIBRARY_CONFIGURATION__", library)

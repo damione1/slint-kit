@@ -27,6 +27,9 @@ fn by_id(app: &FieldDirectionFixture, id: &str) -> ElementHandle {
         .unwrap_or_else(|| panic!("missing fixture element {id}"))
 }
 fn named(scope: &ElementHandle, role: AccessibleRole, label: &str) -> ElementHandle {
+    if role == AccessibleRole::TextInput {
+        return crate::native_editor(scope);
+    }
     let label = label.to_owned();
     scope
         .query_descendants()

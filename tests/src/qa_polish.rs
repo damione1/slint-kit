@@ -146,6 +146,8 @@ fn color_popup_actions_fit_inside_the_popup_at_both_text_scales() {
         theme.text_scale = scale;
         app.set_theme(theme);
         app.invoke_open_color();
+        // Let Slint 1.19 finish revealing the focused popup action.
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_secs(1));
         slint::platform::update_timers_and_animations();
         let bounds = ElementQuery::from_root(&app)
             .match_id("KitColorField::popup-keys")

@@ -1221,7 +1221,7 @@ fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
             let frame = app.window().take_snapshot().unwrap();
             assert_eq!(app.get_text(), "123456");
             assert_eq!(selected, (1, 4));
-            let native = code(&app);
+            let native = crate::native_editor(&code(&app));
             let surface = ElementQuery::from_root(&app)
                 .match_inherits("KitOtpField")
                 .find_first()
@@ -1250,14 +1250,14 @@ fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
             );
             assert_eq!(
                 ElementQuery::from_root(&app)
-                    .match_type_name("TextInput")
+                    .match_inherits("KitTextField")
                     .match_predicate(
                         |item| item.accessible_label().as_deref() == Some("Verification code")
                     )
                     .find_all()
                     .len(),
                 1,
-                "all boxes share one real editor"
+                "all boxes share one accessible owner"
             );
             crate::choice_presentation::save_capture(
                 &frame,

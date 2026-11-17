@@ -16,14 +16,29 @@ Le CLI `slint-kit` crée un projet Cargo indépendant avec les dépendances du k
 cargo install --git https://github.com/damione1/slint-kit --branch develop slint-kit-cli --locked
 slint-kit new my-app
 cd my-app
+```
+
+Les sources `develop` préparent la version 0.9.0 non encore publiée. Avant de compiler, remplacez les entrées du kit générées dans `Cargo.toml` par les sources correspondantes, en conservant la dépendance Slint et les fonctionnalités choisies :
+
+```toml
+[dependencies]
+slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+
+[build-dependencies]
+slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+```
+
+```sh
 cargo run
 ```
 
-`slint-kit new` n’écrase jamais un chemin existant, même un dossier vide ou un lien symbolique. Le dossier parent doit exister. Un nom de paquet comporte au plus 64 caractères, commence par une lettre ASCII et contient seulement des lettres ASCII, chiffres, `-` ou `_` ; mots-clés Rust, noms de crates de la bibliothèque standard et noms de périphériques Windows sont refusés. `slint-kit new "dossier avec espaces" --name my-app` sépare le chemin du nom Cargo portable. Le générateur n’exécute pas Cargo et n’installe aucune dépendance ; le premier `cargo run` résout les versions du registre et écrit `Cargo.lock`. Versionnez ce verrou pour reproduire les builds de l’application.
+`slint-kit new` n’écrase jamais un chemin existant, même un dossier vide ou un lien symbolique. Le dossier parent doit exister. Un nom de paquet comporte au plus 64 caractères, commence par une lettre ASCII et contient seulement des lettres ASCII, chiffres, `-` ou `_` ; mots-clés Rust, noms de crates de la bibliothèque standard et noms de périphériques Windows sont refusés. `slint-kit new "dossier avec espaces" --name my-app` sépare le chemin du nom Cargo portable. Le générateur n’exécute pas Cargo et n’installe aucune dépendance ; le premier `cargo run` résout les dépendances configurées et écrit `Cargo.lock`. Versionnez ce verrou pour reproduire les builds de l’application.
 
 Le `src/main.rs` généré appelle la petite fabrique et le point d’entrée de `src/lib.rs` ; leur total ne dépasse pas 15 lignes Rust. La fabrique utilise l’adaptateur d’action à fenêtre faible du kit. Cliquez sur **Run action** ou focalisez-le et appuyez sur Espace/Entrée : Rust actualise le statut visible. Modifiez `ui/app.slint` pour la présentation et le thème, puis le callback Rust pour le comportement métier. Les sources générées utilisent GPL-3.0-or-later ; consultez [la licence et les limites d’adoption](/fr/guides/why-slint-kit/) avant de distribuer l’application.
 
 ### Ajouter un aperçu navigateur
+
+Appliquez les mêmes dépendances source au projet Web généré avant de le compiler.
 
 ```sh
 slint-kit new my-web-app --web
@@ -63,7 +78,10 @@ slint = { version = "={{ project.slint }}", default-features = false, features =
 slint-kit-build = "={{ project.version }}"
 ```
 
-Le manifeste ci-dessus épingle l’exemple sur Slint {{ project.slint }} pour sa reproductibilité. Le kit accepte les versions correctives de Slint 1.18 à partir de la 1.18.1 (`~1.18.1`). Gardez le compilateur et le runtime Slint alignés lors d’une mise à jour corrective.
+Le manifeste ci-dessus épingle l’exemple sur Slint {{ project.slint }} pour sa reproductibilité. Le kit accepte les versions correctives de Slint 1.19 à partir de la 1.19.0 (`~1.19.0`). Gardez le compilateur et le runtime Slint alignés lors d’une mise à jour corrective.
+
+Le compilateur fourni par le kit sélectionne explicitement l’édition 1.18 du langage Slint et conserve les comportements de disposition et d’état avec Slint 1.19. Rust 1.95 ou ultérieur est requis.
+
 
 Gardez les paquets d’exécution et de compilation du kit sur des versions correspondantes. Conservez le backend et le moteur de rendu compatibles d’une application existante. Cet exemple de bureau utilise winit et Skia ; consultez [Bien démarrer](/fr/guides/getting-started/) pour les prérequis système et l’[intégration native](/fr/guides/native/) pour les services hôtes optionnels.
 
