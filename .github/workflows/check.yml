@@ -47,7 +47,9 @@ jobs:
     # Components use the Slint testing backend and software renderer; the
     # documentation consumers are compiled only. No display server is needed.
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # The full Linux check took 58m51s on the previous upgrade; keep room for
+    # edition 1.19 code generation without dropping any validation stages.
+    timeout-minutes: 90
     env:
       CARGO_BUILD_JOBS: '2'
     steps:

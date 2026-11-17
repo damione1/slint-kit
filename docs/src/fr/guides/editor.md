@@ -83,7 +83,7 @@ Utilisez `@kit` pour les composants et les types. Un projet de bibliothèque Sli
 
 Avec des dépendances locales, faites pointer ces mêmes alias vers les chemins correspondants sous `../slint-kit/crates/kit-slint/ui`. L’application garde son édition indépendante : `slint-kit-build` choisit 1.18 par défaut ; `config().with_edition((1, 19))` fait passer l’application en 1.19 sans modifier la bibliothèque.
 
-<h2 id="static-previews-and-rust-services">Aperçus statiques et services Rust</h2>
+<h2 id="apercus-statiques-et-services-rust">Aperçus statiques et services Rust</h2>
 
 Live Preview dans VS Code et `slint-viewer` affichent les options déclarées sans exécuter Rust. Passez les mêmes trois chemins de bibliothèque au viewer avec `-L` ; le fichier d’aperçu conserve ses imports publics `@kit`.
 
