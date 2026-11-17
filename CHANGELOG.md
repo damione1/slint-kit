@@ -2,6 +2,9 @@
 
 ## Unreleased — 0.9.0
 
+- Use Slint 1.19 native scrolling for list, tab, menu and field reveals. Public scroll helpers remain available; user reveals animate with the system motion preference and position restoration remains immediate.
+- Utilise le défilement natif de Slint 1.19 pour révéler les éléments des listes, onglets, menus et champs. Les fonctions publiques de défilement restent disponibles ; les révélations suivent la préférence système de mouvement et la restauration de position reste immédiate.
+
 - Let edition 1.19 measure checkbox/switch captions and wrapping chip content directly. Remove duplicate hidden label/description measurements and redundant chip height forwarding while preserving control minimums, wrapped-text heights, native editor retention and stable navigation scrollbar gutters.
 - Laisse l’édition 1.19 mesurer directement les légendes des cases/interrupteurs et le contenu des chips à retour à la ligne. Supprime les doubles mesures cachées de libellé/description et le relais redondant de hauteur des chips, tout en conservant les minimums des contrôles, les hauteurs du texte à retour, l’éditeur natif et les gouttières stables de navigation.
 
