@@ -140,3 +140,28 @@ jobs:
         run: |
           python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
           python3 -B -m unittest discover -s docs/scripts -p 'test_*.py'
+      - name: Record failed documentation input identities
+        if: failure()
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'docs/scripts')
+          from doc_inputs import runtime_inputs
+          destination = Path('docs/.generated/inputs/runtime.json')
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          destination.write_text(json.dumps(runtime_inputs(), indent=2, sort_keys=True))
+          PYTHON
+      - name: Upload failed documentation input identities
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-input-diagnostics
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            docs/.generated/inputs/manifest.json
+            docs/.generated/inputs/runtime.json
+            docs/.generated/inputs/compiler.log
+            docs/.generated/inputs/catalogue--integer-field--en--light.rs
