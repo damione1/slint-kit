@@ -153,7 +153,7 @@ export component KitProgress inherits VerticalLayout {
             y: 0px; height: parent.height; border-radius: parent.border-radius; background: KitProgressInks.ink(root.theme, root.intent);
             width: root.mode == ProgressMode.indeterminate ? parent.width * root.segment : parent.width * root.bounded-value;
             x: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? -self.width + (parent.width + self.width) * Math.mod(animation-tick() / 1.6s, 1) : 0px;
-            animate width { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
+            animate width { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }
         }
     }
 }
@@ -180,7 +180,7 @@ export component KitRadialProgress inherits Rectangle {
     private property <float> visual-value: root.mode == ProgressMode.indeterminate ? 0.25 : root.bounded-value;
     // Where the arc starts, measured from twelve o'clock.
     private property <angle> start: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? 360deg * Math.mod(animation-tick() / 1.2s, 1) : 0deg;
-    animate visual-value { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
+    animate visual-value { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }
     Path {
         width: root.width; height: root.height;
         viewbox-width: 100; viewbox-height: 100;

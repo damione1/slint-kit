@@ -262,7 +262,23 @@ Utilisez `ThemeMode::System` quand rien n’est stocké ou que `parse_mode` renv
 
 ## Agrandissement du texte et mouvement
 
-Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Pour réduire le mouvement, réglez `reduced-motion` sur `true`. Ce sont des choix du thème applicatif ; l’hôte doit les relier aux préférences réelles du système si nécessaire. Laissez grandir le texte et les contrôles plutôt que de les couper dans un contenu de hauteur fixe.
+Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Laissez grandir le texte et les contrôles plutôt que de les couper dans un contenu de hauteur fixe.
+
+`KitTheme.reduced-motion` reste le réglage applicatif. Réglez-le sur `true` pour désactiver les transitions `animate` du kit, immobiliser les indicateurs de progression et arrêter les timers décoratifs de rotation/pulsation. Reliez-le à une préférence applicative ou à une intégration hôte ; Slint 1.19 ne fournit aucun accesseur public Slint ou Rust pour lire la préférence système de mouvement.
+
+| Plateforme / effet | Comportement de Slint 1.19 |
+| --- | --- |
+| Windows avec winit ; Android | Lit automatiquement la préférence système pour les blocs `animate` et le défilement SDK : révélations animées, molette, inertie et retour depuis un bord. Le déplacement direct au pointeur reste disponible. |
+| macOS, Linux, iOS, Web ; autres backends | Ne lit pas la préférence système. L’application doit renseigner `theme.reduced-motion` pour les effets du kit et utiliser `KitThemes.scroll-behavior(theme)` pour ses révélations natives personnalisées. |
+| Effets `Timer` et `animation-tick()`, sur **toutes** les plateformes | La préférence système ne les arrête pas. Les indicateurs d’attente des boutons, `KitSpinner`, les pulsations de `KitSkeleton` et la progression indéterminée requièrent toujours le flag applicatif, y compris sous Windows et Android. |
+
+Le flag ne peut pas réactiver une animation supprimée par le système. Une modification de la préférence système concerne les animations démarrées ensuite ; une animation déjà en cours se termine à son rythme. Le flag n’est pas une préférence globale de défilement SDK : le kit protège ses fonctions de révélation, mais l’application doit configurer ses propres défilements et inerties si nécessaire. Les timers fonctionnels de focus, validation, actions maintenues et placement différé continuent. Les valeurs publiques `transition` des recettes de choix et de barre de défilement restent nulles avec le flag applicatif ; les durées personnalisées non nulles restent respectées lorsque le mouvement est autorisé. Voir la [réduction des animations dans Slint 1.19](https://releases.slint.dev/1.19.0/docs/slint/reference/language/animations/#reduced-motion).
+
+```rust
+let mut theme = window.get_theme();
+theme.reduced_motion = true;
+window.set_theme(theme);
+```
 
 ## Vérifier l’expérience native
 

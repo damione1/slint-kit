@@ -443,7 +443,7 @@ export component KitTabs inherits Rectangle {
                         height: root.vertical ? tab-action.height : root.theme.shape.border-width-strong;
                         background: root.theme.accent;
                         opacity: tab-action.selected ? 1 : 0;
-                        animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+                        animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
                     }
                     changed active => {
                         if (self.active) {
@@ -584,7 +584,7 @@ export component KitCollapse inherits VerticalLayout {
     Rectangle {
         clip: true; visible: root.open || self.height > 0px;
         height: root.open ? body.preferred-height + 2 * root.inset-y : 0px;
-        animate height { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-in-out; }
+        animate height { enabled: !root.theme.reduced-motion; duration: root.theme.motion.base; easing: ease-in-out; }
         vertical-stretch: 0;
         body := VerticalLayout { x: root.inset-x; y: root.inset-y; width: max(0px,root.width - 2 * root.inset-x); height: self.preferred-height; spacing: root.theme.spacing.unit * 2; alignment: start; @children }
     }
@@ -653,7 +653,7 @@ export component KitAccordion inherits VerticalLayout {
         Rectangle {
             height: section.disclosure.expanded ? answer.preferred-height + 2 * root.inset-y : 0px;
             clip: true; vertical-stretch: 0;
-            animate height { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-in-out; }
+            animate height { enabled: !root.theme.reduced-motion; duration: root.theme.motion.base; easing: ease-in-out; }
             answer := Text {
                 x: root.inset-x; y: root.inset-y; width: max(0px,parent.width - 2 * root.inset-x);
                 text: section.disclosure.item.description; color: root.theme.text-secondary;
@@ -1115,7 +1115,7 @@ component NotificationItem inherits Rectangle {
     changed identity-token => { root.phase = NotificationItemPhase.visible; }
     changed identity-generation => { root.phase = NotificationItemPhase.visible; }
     opacity: root.phase == NotificationItemPhase.dismissing ? 0 : 1;
-    animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+    animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
     Timer {
         running: root.phase == NotificationItemPhase.dismissing;
         interval: root.theme.reduced-motion ? 0ms : root.theme.motion.fast;

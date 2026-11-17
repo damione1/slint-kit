@@ -59,7 +59,7 @@ export component KitScrollBar inherits Rectangle {
     accessible-role: none;
     background: root.active ? root.recipe.active-track : root.recipe.track;
     border-radius: min(root.theme.shape.radius-pill, (root.horizontal ? self.height : self.width) / 2);
-    animate background { duration: root.recipe.transition; }
+    animate background { enabled: !root.theme.reduced-motion; duration: root.recipe.transition; }
     thumb := Rectangle {
         visible: root.range > 0px;
         x: root.horizontal ? root.thumb-start : root.width - root.recipe.inset - self.width;
@@ -68,7 +68,7 @@ export component KitScrollBar inherits Rectangle {
         height: root.horizontal ? root.thumb-thickness : root.thumb-length;
         border-radius: min(root.theme.shape.radius-pill, root.thumb-thickness / 2);
         background: root.active ? root.recipe.active-thumb : root.recipe.thumb;
-        animate width, height, background { duration: root.recipe.transition; }
+        animate width, height, background { enabled: !root.theme.reduced-motion; duration: root.recipe.transition; }
     }
     // Two timers, because a running Timer keeps its period: the delay timer
     // hands over to the interval timer after its first trigger.

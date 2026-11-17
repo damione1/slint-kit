@@ -262,7 +262,23 @@ Fall back to `ThemeMode::System` when nothing is stored or `parse_mode` returns 
 
 ## Text scaling and motion
 
-For 200% text, copy a theme value and set its `text-scale` to `2`. For reduced motion set `reduced-motion` to `true`. These are application theme choices; a host must connect the actual operating-system preferences when needed. Let text and control heights grow instead of clipping them inside fixed-height content.
+For 200% text, copy a theme value and set its `text-scale` to `2`. Let text and control heights grow instead of clipping them inside fixed-height content.
+
+`KitTheme.reduced-motion` remains the application override. Set it to `true` to disable kit `animate` transitions, park progress marks and stop the decorative spinner/pulse timers. Keep it connected to an application preference or a host integration; Slint 1.19 exposes no public Slint or Rust getter for the system motion preference.
+
+| Platform / effect | Slint 1.19 behavior |
+| --- | --- |
+| Windows with winit; Android | Reads the system preference automatically for `animate` blocks and SDK scrolling: smooth reveals, wheel movement, flinging and edge snap-back. Direct pointer panning still works. |
+| macOS, Linux, iOS, Web; other backends | Does not read the system preference. The application must set `theme.reduced-motion` for kit effects and use `KitThemes.scroll-behavior(theme)` for custom native reveals. |
+| `Timer` and `animation-tick()` effects, on **every** platform | The system preference does not stop them. Button busy marks, `KitSpinner`, `KitSkeleton` pulses and indeterminate progress still require the application flag, including on Windows and Android. |
+
+The flag cannot re-enable an animation suppressed by the system. A system preference change affects animations started afterwards; an already running animation finishes at its own pace. The flag is not a global SDK scrolling preference: the kit guards its reveal helpers, but applications must configure their own scrolling and inertia where needed. Functional timers for focus, validation, held actions and deferred placement keep running. Public choice and scrollbar recipe `transition` values still become zero with the application flag; custom nonzero recipe durations remain honored when motion is allowed. See [Slint 1.19 reduced motion](https://releases.slint.dev/1.19.0/docs/slint/reference/language/animations/#reduced-motion).
+
+```rust
+let mut theme = window.get_theme();
+theme.reduced_motion = true;
+window.set_theme(theme);
+```
 
 ## Verify the native experience
 

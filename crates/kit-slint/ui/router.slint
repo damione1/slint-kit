@@ -18,7 +18,7 @@ export component KitScreen inherits Rectangle {
     private property <length> travel: root.theme.spacing.unit * 6
         * (root.change == RouteChange.push ? 1 : root.change == RouteChange.pop ? -1 : 0)
         * (root.theme.direction == ChoiceFlow.right-to-left ? -1 : 1);
-    animate progress { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-out; }
+    animate progress { enabled: !root.theme.reduced-motion; duration: root.theme.motion.base; easing: ease-out; }
     changed active => { if (root.active) { scope.focus(); } }
     // Move focus into the screen, as navigation does when the screen appears.
     public function take-focus() { if (root.active) { scope.focus(); } }
