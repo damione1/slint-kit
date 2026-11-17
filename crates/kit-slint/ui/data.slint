@@ -818,9 +818,19 @@ export component KitDataTable inherits Rectangle {
     out property <bool> end-near: root.rows.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.rows.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { if (root.rows.length > 0) { list.ensure-row-visible(clamp(index, 0, root.rows.length - 1), KitThemes.scroll-behavior(root.theme)); } }
+    // Uniform rows have exact content geometry before materialization. Reveal
+    // their rectangle natively, without leaving a pending repeater request that
+    // a newer coordinate restoration cannot cancel in Slint 1.19. Seed the
+    // extent per command: a content-height binding disables native row seeking.
+    function reveal-row(index: int, behavior: ScrollBehavior) {
+        if (index < 0 || index >= root.rows.length) { return; }
+        list.content-height = root.rows.length * root.row-height;
+        list.reveal-vertical(index * root.row-height, (index + 1) * root.row-height, behavior);
+    }
+    public function scroll-to-index(index: int) { root.reveal-row(clamp(index, 0, root.rows.length - 1), KitThemes.scroll-behavior(root.theme)); }
     public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
+        list.content-height = root.rows.length * root.row-height;
         list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
@@ -925,7 +935,7 @@ export component KitDataTable inherits Rectangle {
         // Restore the editor's virtual row before mounting/focusing it, as
         // native TextInput restores its caret immediately. Ordinary navigation
         // remains smooth; editing has no invisible pending session.
-        list.ensure-row-visible(root.active-index, ScrollBehavior.instant);
+        root.reveal-row(root.active-index, ScrollBehavior.instant);
         root.edit-row-token = root.rows[root.active-index].token;
         root.edit-column-token = root.display-columns[root.active-column].token;
         root.edit-generation = root.generation;
@@ -1054,9 +1064,8 @@ export component KitDataTable inherits Rectangle {
     private property <int> cell-reveal-request;
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
-        list.ensure-row-visible(root.active-index, KitThemes.scroll-behavior(root.theme));
-        // A row request stops the Flickable's current animation, even when
-        // already visible. Reveal the materialized active cell afterward so
+        root.reveal-row(root.active-index, KitThemes.scroll-behavior(root.theme));
+        // Reveal the materialized active cell after the row so
         // its native rectangle can move both axes in one request.
         root.cell-reveal-request += 1;
     }
@@ -1468,9 +1477,19 @@ export component KitContentList inherits Rectangle {
     out property <bool> end-near: root.items.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.items.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { if (root.items.length > 0) { list.ensure-row-visible(clamp(index, 0, root.items.length - 1), KitThemes.scroll-behavior(root.theme)); } }
+    // Uniform rows have exact content geometry before materialization. Reveal
+    // their rectangle natively, without leaving a pending repeater request that
+    // a newer coordinate restoration cannot cancel in Slint 1.19. Seed the
+    // extent per command: a content-height binding disables native row seeking.
+    function reveal-row(index: int, behavior: ScrollBehavior) {
+        if (index < 0 || index >= root.items.length) { return; }
+        list.content-height = root.items.length * root.row-height;
+        list.reveal-vertical(index * root.row-height, (index + 1) * root.row-height, behavior);
+    }
+    public function scroll-to-index(index: int) { root.reveal-row(clamp(index, 0, root.items.length - 1), KitThemes.scroll-behavior(root.theme)); }
     public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
+        list.content-height = root.items.length * root.row-height;
         list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
@@ -1485,7 +1504,7 @@ export component KitContentList inherits Rectangle {
         return item.title != "" && item.metadata != "" ? item.title + ", " + item.metadata : item.title != "" ? item.title : item.metadata;
     }
     changed active-index => { root.reveal-active(); }
-    public function reveal-active() { list.ensure-row-visible(root.active-index, KitThemes.scroll-behavior(root.theme)); }
+    public function reveal-active() { root.reveal-row(root.active-index, KitThemes.scroll-behavior(root.theme)); }
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
@@ -1643,9 +1662,19 @@ export component KitVirtualTextView inherits Rectangle {
     out property <bool> end-near: root.lines.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.lines.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { if (root.lines.length > 0) { list.ensure-row-visible(clamp(index, 0, root.lines.length - 1), KitThemes.scroll-behavior(root.theme)); } }
+    // Uniform rows have exact content geometry before materialization. Reveal
+    // their rectangle natively, without leaving a pending repeater request that
+    // a newer coordinate restoration cannot cancel in Slint 1.19. Seed the
+    // extent per command: a content-height binding disables native row seeking.
+    function reveal-row(index: int, behavior: ScrollBehavior) {
+        if (index < 0 || index >= root.lines.length) { return; }
+        list.content-height = root.lines.length * root.line-height;
+        list.reveal-vertical(index * root.line-height, (index + 1) * root.line-height, behavior);
+    }
+    public function scroll-to-index(index: int) { root.reveal-row(clamp(index, 0, root.lines.length - 1), KitThemes.scroll-behavior(root.theme)); }
     public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
+        list.content-height = root.lines.length * root.line-height;
         list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.line-height));
@@ -1655,7 +1684,7 @@ export component KitVirtualTextView inherits Rectangle {
     private property <length> edit-height:root.access==TextViewAccess.edit-line ? editor-panel.preferred-height : 0px;
     private property <bool> footer-stacked: root.width < KitMetrics.font-size(root.theme, TypographyRole.control) * 32;
     changed active-index => {root.reveal-active();}
-    public function reveal-active() { list.ensure-row-visible(root.active-index, KitThemes.scroll-behavior(root.theme)); }
+    public function reveal-active() { root.reveal-row(root.active-index, KitThemes.scroll-behavior(root.theme)); }
     min-width:0px;preferred-width:700px;min-height:max(root.theme.spacing.unit * 45,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function select-active() {if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}

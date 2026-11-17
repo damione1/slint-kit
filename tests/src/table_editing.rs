@@ -3268,3 +3268,47 @@ fn a_distant_active_cell_reveals_both_axes_before_editing() {
             <= viewport.absolute_position().y + viewport.size().height + 0.1
     );
 }
+
+#[test]
+fn restoring_after_an_immediate_distant_edit_cancels_the_session_without_late_scroll() {
+    let editing = editing(
+        (1..=20_000)
+            .map(|token| {
+                record(
+                    token,
+                    &format!("Row {token}"),
+                    12,
+                    "Owner",
+                    FieldAccess::Editable,
+                )
+            })
+            .collect(),
+    );
+    let window = &editing.window;
+    window.set_table_active_column(1);
+    window.set_table_active(19_900);
+    crate::settle_scroll(window);
+    // Establish an offscreen active row before the two competing commands.
+    window.invoke_restore_table_scroll(0., 0.);
+    crate::settle_scroll(window);
+    window.invoke_edit_table();
+    assert!(window.get_table_editing());
+    // No layout or event-loop turn between arming the editor and restoring.
+    window.invoke_restore_table_scroll(0., -3200.25);
+    crate::settle_scroll(window);
+    assert!(
+        (window.get_table_scroll() + 3200.25).abs() < 0.1,
+        "restored offset: {}",
+        window.get_table_scroll()
+    );
+    assert!(!window.get_table_editing());
+    assert!(editors(window).is_empty());
+    assert!(editing.commits.borrow().is_empty());
+    assert!(delegates(window, "KitDataTable").len() < 40);
+    crate::settle_scroll(window);
+    assert!(
+        (window.get_table_scroll() + 3200.25).abs() < 0.1,
+        "restored offset: {}",
+        window.get_table_scroll()
+    );
+}

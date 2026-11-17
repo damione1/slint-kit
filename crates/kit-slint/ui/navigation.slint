@@ -295,6 +295,9 @@ export component KitMenuBar inherits Rectangle {
                     focus-indicated: root.live && self.active && (keyboard.has-focus || self.has-focus);
                     changed active => {
                         if (self.active) {
+                            // ensure-visible leaves an existing animation running
+                            // when its new target is already visible.
+                            viewport.scroll-to({x: -viewport.content-x, y: -viewport.content-y}, ScrollBehavior.instant);
                             if (self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
                             else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
                         }
@@ -447,6 +450,9 @@ export component KitTabs inherits Rectangle {
                     }
                     changed active => {
                         if (self.active) {
+                            // ensure-visible leaves an existing animation running
+                            // when its new target is already visible.
+                            viewport.scroll-to({x: -viewport.content-x, y: -viewport.content-y}, ScrollBehavior.instant);
                             if (root.vertical && self.height > viewport.visible-height) { root.reveal(self.y, self.y + self.height); }
                             else if (!root.vertical && self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
                             else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
