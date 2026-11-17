@@ -12,6 +12,8 @@ enum Intention {
     Digit(i32),
     Delete,
     Confirm,
+    Extra,
+    Cancel,
 }
 
 fn fixture() -> (KeypadFixture, Rc<RefCell<Vec<Intention>>>) {
@@ -25,6 +27,10 @@ fn fixture() -> (KeypadFixture, Rc<RefCell<Vec<Intention>>>) {
     window.on_deleted(move || observed.borrow_mut().push(Intention::Delete));
     let observed = intentions.clone();
     window.on_confirmed(move || observed.borrow_mut().push(Intention::Confirm));
+    let observed = intentions.clone();
+    window.on_extra_pressed(move || observed.borrow_mut().push(Intention::Extra));
+    let observed = intentions.clone();
+    window.on_cancelled(move || observed.borrow_mut().push(Intention::Cancel));
     (window, intentions)
 }
 fn with_text_scale(window: &KeypadFixture, scale: f32) {
@@ -214,7 +220,19 @@ fn read_only_and_disabled_keypads_emit_nothing() {
         window.set_access(access);
         for label in KEYS {
             let key = element(&window, label);
-            assert_eq!(key.accessible_enabled(), Some(false), "{label} {access:?}");
+            // A read-only key stays enabled and reports itself read-only;
+            // only a disabled keypad disables its keys.
+            let read_only = access == FieldAccess::ReadOnly;
+            assert_eq!(
+                key.accessible_enabled(),
+                Some(read_only),
+                "{label} {access:?}"
+            );
+            assert_eq!(
+                key.accessible_read_only(),
+                Some(read_only),
+                "{label} {access:?}"
+            );
             click(&window, &key);
             key.invoke_accessible_default_action();
         }
@@ -473,4 +491,325 @@ fn keyboard_press_feedback_can_revoke_access_or_confirmation_before_commit() {
     window.on_activation_started(move || weak.unwrap().set_can_confirm(false));
     key(&window, Key::Return);
     assert!(intentions.borrow().is_empty());
+}
+
+#[test]
+fn full_code_disables_digits_and_empty_code_disables_delete() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    window.set_digits_enabled(false);
+    window.set_can_delete(false);
+    let five = element(&window, "5");
+    let delete = element(&window, "Delete");
+    assert_eq!(five.accessible_enabled(), Some(false));
+    assert_eq!(delete.accessible_enabled(), Some(false));
+    click(&window, &five);
+    click(&window, &delete);
+    type_text(&window, "5");
+    key(&window, Key::Backspace);
+    key(&window, Key::Delete);
+    assert!(intentions.borrow().is_empty());
+    // The other keys stay usable.
+    window.set_can_confirm(true);
+    click(&window, &element(&window, "Unlock"));
+    window.set_digits_enabled(true);
+    window.set_can_delete(true);
+    assert_eq!(five.accessible_enabled(), Some(true));
+    click(&window, &five);
+    key(&window, Key::Delete);
+    assert_eq!(
+        *intentions.borrow(),
+        [Intention::Confirm, Intention::Digit(5), Intention::Delete]
+    );
+}
+
+#[test]
+fn hidden_confirm_frees_its_slot_for_one_extra_key() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.set_show_confirm(false);
+    window.set_extra_label(".".into());
+    window.invoke_focus_keypad();
+    // Return no longer confirms; the extra key emits `extra`.
+    key(&window, Key::Return);
+    let extra = element(&window, ".");
+    assert_eq!(extra.accessible_enabled(), Some(true));
+    click(&window, &extra);
+    window.set_extra_enabled(false);
+    assert_eq!(extra.accessible_enabled(), Some(false));
+    click(&window, &extra);
+    assert_eq!(*intentions.borrow(), [Intention::Extra]);
+}
+
+#[test]
+fn escape_cancels_only_when_the_host_opts_in() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    key(&window, Key::Escape);
+    assert!(intentions.borrow().is_empty());
+    window.set_handle_escape(true);
+    key(&window, Key::Escape);
+    assert_eq!(*intentions.borrow(), [Intention::Cancel]);
+    intentions.borrow_mut().clear();
+    window.set_access(FieldAccess::ReadOnly);
+    key(&window, Key::Escape);
+    assert!(intentions.borrow().is_empty());
+}
+
+/// Presses Return on whichever key holds focus and reports what it asked for.
+fn activate_focused(
+    window: &KeypadFixture,
+    intentions: &Rc<RefCell<Vec<Intention>>>,
+) -> Option<Intention> {
+    intentions.borrow_mut().clear();
+    key(window, Key::Return);
+    let asked = intentions.borrow().last().copied();
+    intentions.borrow_mut().clear();
+    asked
+}
+
+#[test]
+fn arrow_keys_move_focus_between_keys_without_wrapping() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(1))
+    );
+    key(&window, Key::RightArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(5))
+    );
+    key(&window, Key::DownArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(0))
+    );
+    key(&window, Key::RightArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Confirm)
+    );
+    // The edges stop the movement instead of wrapping.
+    key(&window, Key::RightArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Confirm)
+    );
+    key(&window, Key::UpArrow);
+    key(&window, Key::UpArrow);
+    key(&window, Key::UpArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(3))
+    );
+    key(&window, Key::UpArrow);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(2))
+    );
+    key(&window, Key::LeftArrow);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(1))
+    );
+}
+
+#[test]
+fn home_and_end_move_to_the_ends_of_the_row() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    key(&window, Key::DownArrow);
+    key(&window, Key::End);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(6))
+    );
+    key(&window, Key::Home);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(4))
+    );
+}
+
+#[test]
+fn arrow_keys_skip_unavailable_keys_and_modified_arrows_pass_through() {
+    let (window, intentions) = fixture();
+    // Confirm waits for the host, so the bottom row ends at zero.
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    for _ in 0..3 {
+        key(&window, Key::DownArrow);
+    }
+    key(&window, Key::RightArrow);
+    key(&window, Key::RightArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(0))
+    );
+    // Delete is unavailable on an empty code: Up from zero still lands on 8,
+    // and Left from zero stops there.
+    window.set_can_delete(false);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(0))
+    );
+    // A modified arrow is not navigation.
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::UpArrow.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::UpArrow.into(),
+    });
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(8))
+    );
+}
+
+#[test]
+fn the_keys_form_one_tab_stop_that_remembers_the_last_focused_key() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    key(&window, Key::RightArrow);
+    // Tab leaves the keypad instead of visiting key 3.
+    key(&window, Key::Tab);
+    let after_tab = activate_focused(&window, &intentions);
+    assert_ne!(after_tab, Some(Intention::Digit(3)));
+    // Coming back by keyboard reaches the key that last had focus.
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(2))
+    );
+}
+
+#[test]
+fn the_tab_stop_moves_to_an_available_key_when_the_remembered_key_is_unavailable() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    window.set_digits_enabled(false);
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    // Only delete and confirm remain; delete is the first of them.
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Delete)
+    );
+    key(&window, Key::RightArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Confirm)
+    );
+}
+
+#[test]
+fn a_focused_key_keeps_focus_through_read_only_and_activates_again_when_editable() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    // Tab reaches key 1; the right arrow moves keyboard focus to key 2.
+    key(&window, Key::Tab);
+    key(&window, Key::RightArrow);
+    window.set_access(FieldAccess::ReadOnly);
+    // The read-only key keeps focus but Space, Return and typed digits emit nothing.
+    key(&window, Key::Space);
+    key(&window, Key::Return);
+    type_text(&window, "5");
+    assert!(intentions.borrow().is_empty());
+    // Roving focus still moves between read-only keys.
+    key(&window, Key::RightArrow);
+    window.set_access(FieldAccess::Editable);
+    key(&window, Key::Space);
+    assert_eq!(*intentions.borrow(), [Intention::Digit(3)]);
+}
+
+#[test]
+fn read_only_keys_take_no_pointer_or_keyboard_activation_and_start_no_feedback() {
+    let (window, intentions) = fixture();
+    let starts = Rc::new(std::cell::Cell::new(0));
+    let observed = starts.clone();
+    window.on_activation_started(move || observed.set(observed.get() + 1));
+    window.set_can_confirm(true);
+    window.set_access(FieldAccess::ReadOnly);
+    for label in KEYS {
+        let key = element(&window, label);
+        click(&window, &key);
+        key.invoke_accessible_default_action();
+    }
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    key(&window, Key::Space);
+    key(&window, Key::Return);
+    assert!(intentions.borrow().is_empty());
+    assert_eq!(starts.get(), 0);
+}
+
+#[test]
+fn key_height_and_digit_role_grow_the_keys_without_moving_the_grid() {
+    let (window, _) = fixture();
+    let heights = |window: &KeypadFixture| -> Vec<f32> {
+        KEYS.iter()
+            .map(|label| element(window, label).size().height)
+            .collect()
+    };
+    let default = heights(&window);
+    assert!(default.iter().all(|height| *height >= 48.));
+    let default_keypad = window.get_keypad_height();
+    // A taller key: every key of the four rows grows to it.
+    window.set_key_height(64.);
+    let tall = heights(&window);
+    assert!(tall.iter().all(|height| *height >= 64.), "{tall:?}");
+    // Four rows of at least 64px, above the default comfortable grid.
+    assert!(
+        window.get_keypad_height() >= 4. * 64. && window.get_keypad_height() > default_keypad,
+        "four rows grew: {} from {default_keypad}",
+        window.get_keypad_height()
+    );
+    // Display digits at the default key height: a digit line of 48px plus
+    // its block padding exceeds the touch minimum, so the rows grow again.
+    window.set_key_height(48.);
+    window.set_digit_role(TypographyRole::Display);
+    let display = heights(&window);
+    let theme = window.get_light();
+    assert!(
+        display
+            .iter()
+            .all(|height| *height >= theme.typography.size_display * 1.4),
+        "{display:?}"
+    );
+    for (label, height) in KEYS.iter().zip(&display) {
+        assert!(
+            *height > default[0],
+            "{label} grew from {} to {height}",
+            default[0]
+        );
+    }
+    // The keys still form a 3 by 4 grid that the keypad measures exactly.
+    let keys: Vec<ElementHandle> = KEYS.iter().map(|label| element(&window, label)).collect();
+    for row in keys.chunks(3) {
+        let top = row[0].absolute_position().y;
+        for key in row {
+            assert_eq!(key.absolute_position().y, top);
+        }
+    }
+    let last = &keys[11];
+    let first = &keys[0];
+    let bottom = last.absolute_position().y + last.size().height - first.absolute_position().y;
+    assert!((bottom - window.get_keypad_height()).abs() < 0.01);
 }

@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe, ChoiceFlow, ControlSize, ButtonIntent, DialogSize, KitMetrics, TypographyRole } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
 import { ElevatedSurface } from "elevation.slint";
+import { KitModalContext } from "modal.slint";
+import { KitButton, KitIconButton } from "button.slint";
+import { ScrollFrame } from "scroll.slint";
+import { FocusOutline } from "focus.slint";
 export { DialogState, CloseReason } from "contracts.slint";
+export { DialogSize } from "theme.slint";
 export enum DialogTabPolicy { host, native }
 
 // Modal host: rendered last in its window. Topmost is projected by OverlayStack;
@@ -14,12 +19,35 @@ export component KitDialogSurface inherits Rectangle {
     // Native traversal follows the actual mounted controls. Its window host
     // must make background controls ineligible while this modal is open.
     in property <DialogTabPolicy> tab-policy: DialogTabPolicy.host;
+    // A positive layer makes every kit control that does not declare the same
+    // `modal-layer` inert while this modal is open and topmost, so the background
+    // needs no focus token. Give nested modals distinct layers. 0 leaves the
+    // background to the host.
+    in property <int> modal-layer: 0;
     callback dismiss(CloseReason);
     callback focus-next(bool);
     // Fallback keyboard scope when a modal contains no eligible control.
     public function take-scope-focus() {
         if (root.state.open && root.state.topmost) { keys.focus(); }
     }
+    // A busy modal has no eligible control: every action is disabled and a
+    // disabled control keeps focus without handling keys. The scope takes focus
+    // there so keys stay in the modal. It cannot steal a host focus request,
+    // because nothing is eligible to receive one while busy.
+    private property <bool> sealed: root.state.open && root.state.topmost && root.state.busy;
+    private property <bool> publishes: root.modal-layer > 0 && root.state.open && root.state.topmost;
+    init => {
+        if (root.publishes) { KitModalContext.enter(root.modal-layer); }
+        if (root.sealed) { keys.focus(); }
+    }
+    changed publishes => {
+        if (root.publishes) { KitModalContext.enter(root.modal-layer); }
+        else { KitModalContext.leave(root.modal-layer); }
+    }
+    changed modal-layer => {
+        if (root.publishes) { KitModalContext.enter(root.modal-layer); }
+    }
+    changed sealed => { if (root.sealed) { keys.focus(); } }
     visible: root.state.open;
     background: root.theme.scrim;
     keys := FocusScope {
@@ -95,6 +123,159 @@ export component KitDialogFooter inherits Rectangle {
         cross-axis-line-alignment: start;
         flex-wrap: wrap;
         @children
+    }
+}
+
+// One footer button of a KitDialog. `token` is the application's stable key for
+// the action, never its position.
+export struct DialogAction { token: int, text: string, intent: ButtonIntent, disabled: bool }
+
+export component DialogActionButton inherits KitButton {
+    // Takes focus when it becomes true, or when it is created already true.
+    in property <bool> claim-focus;
+    init => { if (root.claim-focus) { root.take-focus(); } }
+    changed claim-focus => { if (root.claim-focus) { root.take-focus(); } }
+}
+export component DialogCloseButton inherits KitIconButton {
+    in property <bool> claim-focus;
+    init => { if (root.claim-focus) { root.take-focus(); } }
+    changed claim-focus => { if (root.claim-focus) { root.take-focus(); } }
+}
+
+// A centered modal dialog: title, optional description, a close button, a body
+// that scrolls when it is taller than the window allows, and a footer of
+// actions. Mount it at the Window root after scrollable content and give it the
+// full viewport, like KitDrawer. The panel width follows `size`; its height
+// follows the content and stops at the window height less a margin, past which
+// the body scrolls. Children are the body. Opening focuses the close button, or
+// the first action when `show-close-button` is false.
+export component KitDialog inherits KitDialogSurface {
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <string> title;
+    in property <string> description;
+    in property <string> close-label: "Close dialog";
+    in property <bool> show-close-button: true;
+    in property <DialogSize> size: DialogSize.medium;
+    // Footer buttons in reading order; the last one is the primary action. An
+    // empty model shows no footer.
+    in property <[DialogAction]> actions;
+    // The accessible name of the scrollable body when it overflows and takes focus.
+    in property <string> body-label;
+    callback action-activated(int);
+    callback restore-focus();
+    callback close-focus-observed(bool);
+    private property <bool> opened: root.state.open;
+    private property <length> inset: root.theme.spacing.unit * 6;
+    private property <bool> overflowing: frame.content-height > frame.visible-height;
+    private property <bool> body-focus;
+    changed opened => { if (!root.opened) { root.restore-focus(); } }
+    function scroll-to(offset: length) {
+        frame.scroll-to({x: -frame.content-x, y: -offset}, KitThemes.scroll-behavior(root.theme));
+    }
+    KitDialogPanel {
+        theme: root.theme;
+        accessible-name: root.title;
+        accessible-description-text: root.description;
+        width: min(max(0px, root.width - 2 * KitMetrics.dialog-margin(root.theme)), KitMetrics.dialog-width(root.theme, root.size));
+        height: min(max(0px, root.height - 2 * KitMetrics.dialog-margin(root.theme)), layout.preferred-height);
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        layout := VerticalLayout {
+            padding: root.inset; spacing: root.theme.spacing.unit * 4;
+            HorizontalLayout {
+                vertical-stretch: 0;
+                spacing: root.theme.spacing.unit * 3;
+                Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
+                if root.show-close-button: DialogCloseButton {
+                    theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.close;
+                    accessible-name: root.close-label;
+                    modal-layer: root.modal-layer;
+                    claim-focus: root.state.open;
+                    disabled: root.state.busy || !root.state.topmost;
+                    focus-observed(focused) => { root.close-focus-observed(focused); }
+                    activated => { root.dismiss(CloseReason.close-button); }
+                }
+            }
+            if root.description != "": Text { vertical-stretch: 0; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
+            scroller := FocusScope {
+                preferred-height: body.preferred-height;
+                min-height: min(self.preferred-height, root.theme.spacing.unit * 16);
+                enabled: !KitModalContext.inert(root.modal-layer);
+                accessible-enabled: !KitModalContext.inert(root.modal-layer);
+                focus-on-tab-navigation: root.overflowing;
+                focus-on-click: false;
+                accessible-role: groupbox;
+                accessible-label: root.body-label == "" ? root.title : root.body-label;
+                focus-gained(reason) => { root.body-focus = reason == FocusReason.tab-navigation || reason == FocusReason.programmatic; }
+                focus-lost(reason) => { root.body-focus = false; }
+                key-pressed(event) => {
+                    if (!root.overflowing || event.modifiers.control || event.modifiers.alt || event.modifiers.meta) { return reject; }
+                    let line = root.theme.spacing.unit * 10;
+                    let page = max(line, frame.visible-height - line);
+                    if (event.text == Key.DownArrow) { root.scroll-to(frame.content-y - line); return accept; }
+                    if (event.text == Key.UpArrow) { root.scroll-to(frame.content-y + line); return accept; }
+                    if (event.text == Key.PageDown || (event.text == Key.Space && !event.modifiers.shift)) { root.scroll-to(frame.content-y - page); return accept; }
+                    if (event.text == Key.PageUp || (event.text == Key.Space && event.modifiers.shift)) { root.scroll-to(frame.content-y + page); return accept; }
+                    if (event.text == Key.Home) { root.scroll-to(0px); return accept; }
+                    if (event.text == Key.End) { root.scroll-to(-frame.content-height); return accept; }
+                    return reject;
+                }
+                frame := ScrollFrame {
+                    theme: root.theme;
+                    width: scroller.width; height: scroller.height;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                    content-width: self.visible-width;
+                    content-height: max(self.visible-height, body.preferred-height);
+                    body := VerticalLayout {
+                        y: 0px;
+                        width: frame.content-width;
+                        height: self.preferred-height;
+                        spacing: root.theme.spacing.unit * 3;
+                        alignment: start;
+                        @children
+                    }
+                }
+                if root.body-focus && scroller.has-focus: FocusOutline {
+                    ring: KitThemes.inset-focus(root.theme); radius: 0px; host-width: scroller.width; host-height: scroller.height;
+                }
+            }
+            if root.actions.length > 0: KitDialogFooter {
+                theme: root.theme;
+                for action[index] in root.actions: DialogActionButton {
+                    theme: root.theme; control-size: root.control-size;
+                    text: action.text; intent: action.intent;
+                    modal-layer: root.modal-layer;
+                    claim-focus: index == 0 && !root.show-close-button && root.state.open;
+                    disabled: action.disabled || root.state.busy || !root.state.topmost;
+                    activated => { root.action-activated(action.token); }
+                }
+            }
+        }
+    }
+}
+
+// A confirmation dialog: a question, a cancel button and a confirm button. It
+// has no close button and ignores backdrop presses, so the user answers
+// explicitly; Escape and system Back still report `dismiss`. Opening focuses
+// Cancel, so a stray Return never confirms. Give `confirm-intent` the destructive
+// intent when confirming deletes something. Children, if any, appear between the
+// description and the buttons.
+export component KitAlertDialog inherits KitDialog {
+    in property <string> confirm-text: "Confirm";
+    in property <string> cancel-text: "Cancel";
+    in property <ButtonIntent> confirm-intent: ButtonIntent.primary;
+    in property <bool> confirm-disabled;
+    callback confirmed();
+    callback cancelled();
+    show-close-button: false;
+    dismiss-on-backdrop: false;
+    size: DialogSize.small;
+    actions: [
+        { token: 0, text: root.cancel-text, intent: ButtonIntent.secondary, disabled: false },
+        { token: 1, text: root.confirm-text, intent: root.confirm-intent, disabled: root.confirm-disabled },
+    ];
+    action-activated(token) => {
+        if (token == 1) { root.confirmed(); } else { root.cancelled(); }
     }
 }
 

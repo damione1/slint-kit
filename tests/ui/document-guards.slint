@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitVirtualTextView, KitTextField, TextLine, TextViewAccess, KitTheme, KitThemes } from "@kit";
+import { KitVirtualTextView, KitTextField, TextLine, TextViewAccess, TextViewFont, KitTheme, KitThemes } from "@kit";
 export component DocumentGuardsFixture inherits Window {
     preferred-width: 900px; preferred-height: 720px;
     in-out property <KitTheme> theme: KitThemes.light;
@@ -8,12 +8,16 @@ export component DocumentGuardsFixture inherits Window {
     in property <int> generation: 7;
     in property <int> active-index: -1;
     in property <TextViewAccess> access: TextViewAccess.edit-line;
+    in property <TextViewFont> document-font: TextViewFont.proportional;
+    in property <bool> show-line-numbers: true;
     in-out property <string> draft;
     out property <int> page-rows: document.page-rows;
     out property <string> clipboard-text: clipboard.text;
     callback selected(int,int);
     callback committed(int,int,string);
     callback copied(int,int);
+    callback line-copied(int,int,string);
+    public function copy-active-line() { document.copy-active-line(); }
     public function focus-document() { document.take-focus(); }
     public function seed-clipboard() { clipboard.text = "Clipboard sentinel"; clipboard.take-focus(); clipboard.select-all(); clipboard.copy-selection(); }
     public function paste-clipboard() { clipboard.text = ""; clipboard.take-focus(); clipboard.paste(); }
@@ -22,12 +26,14 @@ export component DocumentGuardsFixture inherits Window {
         document := KitVirtualTextView {
             theme: root.theme; height: 500px;
             lines: root.lines; generation: root.generation; active-index: root.active-index;
+            font: root.document-font; show-line-numbers: root.show-line-numbers;
             access: root.access; line-draft <=> root.draft;
             label: "Document"; editor-label: "Edit selected line";
             save-label: "Save line"; copy-label: "Copy line";
             select-line(token,generation) => { root.selected(token,generation); }
             commit-line(token,generation,text) => { root.committed(token,generation,text); }
             copy-requested(token,generation) => { root.copied(token,generation); }
+            copy-line-text(token,generation,text) => { root.line-copied(token,generation,text); }
         }
         clipboard := KitTextField { theme: root.theme; label: "Clipboard proof"; implicit-form-submit: false; }
     }

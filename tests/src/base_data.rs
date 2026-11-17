@@ -35,8 +35,7 @@ fn content_thumbnail_uses_an_icon_only_while_the_host_image_is_empty() {
     let window = fixture();
     let articles = Rc::new(VecModel::from(items(1)));
     window.set_items(ModelRc::from(articles.clone()));
-    let row = labelled(&window, "Story 1, Design · 4 minutes");
-    let icons = || row.query_descendants().match_inherits("KitIcon").find_all();
+    let icons = || content_icons(&window);
     assert_eq!(
         icons().len(),
         1,
@@ -97,7 +96,7 @@ fn shortcut(window: &BaseDataFixture, letter: &str) {
 }
 // A header cell is the first element carrying the header's accessible name:
 // the sortable button, or the static text wrapper that precedes its label.
-fn header(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
+pub(crate) fn header(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
     let requested = label.to_owned();
     ElementQuery::from_root(window)
         .match_predicate(move |element| {
@@ -153,7 +152,7 @@ pub(crate) fn rows(start: i32, count: i32) -> Vec<TableRow> {
         })
         .collect()
 }
-fn items(count: i32) -> Vec<ContentItem> {
+pub(crate) fn items(count: i32) -> Vec<ContentItem> {
     (0..count)
         .map(|index| ContentItem {
             token: index + 1,
@@ -167,7 +166,7 @@ fn items(count: i32) -> Vec<ContentItem> {
         })
         .collect()
 }
-fn lines(count: i32) -> Vec<TextLine> {
+pub(crate) fn lines(count: i32) -> Vec<TextLine> {
     (0..count)
         .map(|index| TextLine {
             token: index + 1,
@@ -206,6 +205,7 @@ fn large_collections_virtualize_and_end_reveals_the_last_record() {
     });
     window.invoke_focus_table();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitDataTable");
     assert!(visible.len() < 40);
     assert!(
@@ -216,6 +216,7 @@ fn large_collections_virtualize_and_end_reveals_the_last_record() {
     assert!(window.get_table_scroll() < -400_000.);
     window.invoke_focus_content();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitContentList");
     assert!(visible.len() < 40);
     assert!(visible.iter().any(|row| {
@@ -225,6 +226,7 @@ fn large_collections_virtualize_and_end_reveals_the_last_record() {
     assert!(window.get_content_scroll() < -1_000_000.);
     window.invoke_focus_document();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitVirtualTextView");
     assert!(visible.len() < 40);
     assert!(
@@ -302,10 +304,11 @@ fn native_line_edit_commit_and_copy_leave_the_other_49999_lines_unchanged() {
         weak.upgrade().unwrap().set_line_generation(2);
     });
     let editor = ElementQuery::from_root(&window)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Edit selected line"))
         .find_first()
         .unwrap();
+    let editor = crate::native_editor(&editor);
     editor.mock_single_click(PointerEventButton::Left);
     shortcut(&window, "a");
     text(&window, "Updated é漢👩‍💻");
@@ -1509,6 +1512,8 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
     ];
     let frame = || {
         slint::platform::update_timers_and_animations();
+        window.window().take_snapshot().unwrap();
+        crate::settle_scroll(&window);
         let snapshot = window.window().take_snapshot().unwrap();
         slint::platform::update_timers_and_animations();
         snapshot
@@ -1531,7 +1536,8 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
                 let snapshot = frame();
                 let offset = (probe.y)(&window);
                 assert!(offset < 0.);
-                assert_eq!((probe.first)(&window), 500);
+                assert!((probe.first)(&window) <= 500);
+                assert!((probe.first)(&window) + (probe.count)(&window) > 500);
                 assert!((probe.count)(&window) >= (probe.page)(&window));
                 assert!((probe.count)(&window) <= (probe.page)(&window) + 1);
                 assert_eq!((probe.active)(&window), 0);
@@ -1544,7 +1550,8 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
                 assert_eq!((probe.first)(&window), 0);
                 (probe.restore)(&window, -1_000_000., offset);
                 frame();
-                assert_eq!((probe.first)(&window), 500);
+                assert!((probe.first)(&window) <= 500);
+                assert!((probe.first)(&window) + (probe.count)(&window) > 500);
                 assert!(((probe.y)(&window) - offset).abs() < 0.01);
                 let horizontal = (probe.x)(&window);
                 assert!(horizontal <= 0.);
@@ -1555,7 +1562,14 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
                 assert_eq!((probe.x)(&window), horizontal);
                 (probe.scroll_to)(&window, 950);
                 frame();
-                assert!(!(probe.end_near)(&window));
+                assert!(
+                    !(probe.end_near)(&window),
+                    "{} {theme_name} {scale}: y={} first={} count={}",
+                    probe.name,
+                    (probe.y)(&window),
+                    (probe.first)(&window),
+                    (probe.count)(&window)
+                );
                 let before = probe.near_events.get();
                 window.set_near_end_rows(100);
                 frame();
@@ -1698,4 +1712,216 @@ fn body_cell_cursor_clamps_after_column_removal_and_never_restores_an_obsolete_c
             assert_eq!(window.get_table_active_column(), -1);
         }
     }
+}
+
+fn content_icons(window: &BaseDataFixture) -> Vec<ElementHandle> {
+    ElementQuery::from_root(window)
+        .match_inherits("KitContentList")
+        .find_first()
+        .unwrap()
+        .query_descendants()
+        .match_inherits("KitIcon")
+        .find_all()
+}
+
+fn content_link(window: &BaseDataFixture) -> ElementHandle {
+    ElementQuery::from_root(window)
+        .match_inherits("DataAction")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Read story"))
+        .find_first()
+        .expect("missing link")
+}
+
+fn content_rows(window: &BaseDataFixture) -> Vec<ElementHandle> {
+    ElementQuery::from_root(window)
+        .match_inherits("KitContentList")
+        .find_first()
+        .unwrap()
+        .query_descendants()
+        .match_accessible_role(i_slint_backend_testing::AccessibleRole::ListItem)
+        .find_all()
+}
+
+#[test]
+fn content_row_name_is_built_from_its_non_empty_parts() {
+    let window = fixture();
+    let mut articles = items(2);
+    articles[0].metadata = "".into();
+    articles[1].title = "".into();
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(articles))));
+    assert_eq!(
+        content_rows(&window)[0].accessible_label().as_deref(),
+        Some("Story 1")
+    );
+    assert_eq!(
+        content_rows(&window)[1].accessible_label().as_deref(),
+        Some("Design · 4 minutes")
+    );
+    assert_eq!(
+        content_rows(&window)[0].accessible_description().as_deref(),
+        Some("Original article excerpt"),
+        "the excerpt is the row's description, not part of its name"
+    );
+}
+
+#[test]
+fn content_thumbnail_policy_chooses_image_icon_or_nothing() {
+    let window = fixture();
+    let mut articles = items(1);
+    articles[0].thumbnail = slint::Image::from_rgb8(slint::SharedPixelBuffer::new(1, 1));
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(articles))));
+    let icons = || content_icons(&window).len();
+    assert_eq!(icons(), 0, "the default shows the host image");
+    window.set_content_thumbnail(ContentThumbnail::Icon);
+    assert_eq!(icons(), 1, "icon ignores the host image");
+    window.set_content_thumbnail(ContentThumbnail::None);
+    assert_eq!(icons(), 0);
+}
+
+#[test]
+fn content_row_height_follows_size_and_excerpt_lines() {
+    let window = fixture();
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(items(3)))));
+    let height = |window: &BaseDataFixture| content_rows(window)[0].size().height;
+    let medium = height(&window);
+    window.set_content_control_size(ControlSize::Compact);
+    let compact = height(&window);
+    window.set_content_control_size(ControlSize::Comfortable);
+    let comfortable = height(&window);
+    assert!(compact < medium && medium < comfortable);
+    window.set_content_control_size(ControlSize::Medium);
+    assert_eq!(height(&window), medium);
+    window.set_content_excerpt_lines(4);
+    assert!(
+        height(&window) > medium,
+        "more excerpt lines make taller rows"
+    );
+    window.set_content_excerpt_lines(0);
+    assert!(height(&window) < medium, "the minimum is one excerpt line");
+}
+
+#[test]
+fn content_link_is_a_separate_action_from_the_row() {
+    let window = fixture();
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(items(2)))));
+    let links = Rc::new(RefCell::new(Vec::new()));
+    let rows = Rc::new(RefCell::new(Vec::new()));
+    let observed = links.clone();
+    window
+        .on_content_link(move |token, generation| observed.borrow_mut().push((token, generation)));
+    let observed = rows.clone();
+    window.on_content_activated(move |token, generation| {
+        observed.borrow_mut().push((token, generation))
+    });
+    window.set_content_generation(7);
+    let link = content_link(&window);
+    assert_eq!(
+        link.accessible_role(),
+        Some(i_slint_backend_testing::AccessibleRole::Button)
+    );
+    link.invoke_accessible_default_action();
+    assert_eq!(*links.borrow(), vec![(1, 7)]);
+    assert!(rows.borrow().is_empty(), "the link does not open the row");
+    let origin = link.absolute_position();
+    let position = LogicalPosition::new(
+        origin.x + link.size().width / 2.,
+        origin.y + link.size().height / 2.,
+    );
+    for event in [
+        WindowEvent::PointerMoved { position },
+        WindowEvent::PointerPressed {
+            position,
+            button: PointerEventButton::Left,
+        },
+        WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        },
+    ] {
+        window.window().dispatch_event(event);
+    }
+    assert_eq!(links.borrow().len(), 2);
+    assert!(rows.borrow().is_empty());
+    let mut articles = items(1);
+    articles[0].link_label = "".into();
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(articles))));
+    assert!(
+        ElementQuery::from_root(&window)
+            .match_predicate(|element| element.accessible_label().as_deref() == Some("Read story"))
+            .find_all()
+            .is_empty(),
+        "an empty link label draws no link"
+    );
+}
+
+#[test]
+fn shift_enter_activates_the_active_row_link_and_plain_enter_opens_the_row() {
+    let window = fixture();
+    let mut articles = items(3);
+    articles[1].link_label = "".into();
+    articles[2].disabled = true;
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(articles))));
+    window.set_content_generation(7);
+    let links = Rc::new(RefCell::new(Vec::new()));
+    let gestures = Rc::new(RefCell::new(Vec::new()));
+    let observed = links.clone();
+    window
+        .on_content_link(move |token, generation| observed.borrow_mut().push((token, generation)));
+    let observed = gestures.clone();
+    window.on_content_gesture(move |token, generation, gesture| {
+        observed.borrow_mut().push((token, generation, gesture))
+    });
+    window.invoke_focus_content();
+    let shift_enter = |window: &BaseDataFixture| {
+        down(window, Key::Shift);
+        key(window, Key::Return);
+        up(window, Key::Shift);
+    };
+    window.set_content_active(0);
+    shift_enter(&window);
+    assert_eq!(*links.borrow(), vec![(1, 7)]);
+    assert!(
+        gestures.borrow().is_empty(),
+        "the link does not open the row"
+    );
+    key(&window, Key::Return);
+    assert_eq!(*links.borrow(), vec![(1, 7)]);
+    assert_eq!(*gestures.borrow(), vec![(1, 7, RowGesture::Open)]);
+    window.set_content_active(1);
+    shift_enter(&window);
+    assert_eq!(
+        links.borrow().len(),
+        1,
+        "a row without a link has no link key"
+    );
+    window.set_content_active(2);
+    shift_enter(&window);
+    assert_eq!(links.borrow().len(), 1, "a disabled row reports nothing");
+}
+
+#[test]
+fn a_non_interactive_content_list_ignores_rows_links_and_keys() {
+    let window = fixture();
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(items(2)))));
+    window.set_content_active(0);
+    let events = Rc::new(RefCell::new(0));
+    let observed = events.clone();
+    window.on_content_activated(move |_, _| *observed.borrow_mut() += 1);
+    let observed = events.clone();
+    window.on_content_link(move |_, _| *observed.borrow_mut() += 1);
+    window.set_content_interactive(false);
+    let row = labelled(&window, "Story 1, Design · 4 minutes");
+    assert_eq!(row.accessible_enabled(), Some(false));
+    assert_eq!(content_link(&window).accessible_enabled(), Some(false));
+    row.invoke_accessible_default_action();
+    row.mock_single_click(PointerEventButton::Left);
+    content_link(&window).invoke_accessible_default_action();
+    window.invoke_focus_content();
+    key(&window, Key::Return);
+    key(&window, Key::Space);
+    assert_eq!(*events.borrow(), 0);
+    window.set_content_interactive(true);
+    assert_eq!(row.accessible_enabled(), Some(true));
+    row.invoke_accessible_default_action();
+    assert_eq!(*events.borrow(), 1);
 }

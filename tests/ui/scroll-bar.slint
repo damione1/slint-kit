@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe, ScrollPanPolicy } from "@kit";
+import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe, ScrollPanPolicy, ScrollAxes, ScrollEdge } from "@kit";
 
-import { ScrollFrame } from "@kit/scroll.slint";
+import { ScrollFrame } from "@kit";
 
 export component ScrollBarFixture inherits Window {
     width: 480px; height: 400px;
@@ -93,6 +93,111 @@ export component PanPriorityFixture inherits Window {
                 }
                 moved => { if (self.pressed && root.adjusting) { root.draft = clamp(self.mouse-y / self.height,0,1); } }
             }
+        }
+    }
+}
+
+export component ScrollKeysFixture inherits Window {
+    width: 300px; height: 200px;
+    in property <ScrollAxes> axes: ScrollAxes.vertical;
+    in property <bool> focusable: true;
+    out property <length> offset-x: area.content-x;
+    out property <length> offset-y: area.content-y;
+    out property <length> line-step: area.line-step;
+    out property <length> viewport-height: area.visible-height;
+    out property <length> viewport-width: area.visible-width;
+    out property <length> content-height: area.content-height;
+    out property <bool> at-start: area.at-start;
+    out property <bool> at-end: area.at-end;
+    out property <bool> scrollable: area.scrollable;
+    out property <bool> ring: area.keyboard-focus;
+    out property <bool> button-focused: first.has-focus;
+    in-out property <int> starts;
+    in-out property <int> ends;
+    in-out property <int> scrolls;
+    in-out property <int> activations;
+    public function to-end() { area.scroll-to-end(); }
+    public function to-start() { area.scroll-to-start(); }
+    public function resize-content(height: length) { tail.height = height; }
+    area := KitScrollArea {
+        x: 0px; y: 0px; width: 200px; height: 120px;
+        axes: root.axes; focusable: root.focusable; label: "Terms";
+        scrolled => { root.scrolls += 1; }
+        edge-reached(edge) => { if (edge == ScrollEdge.start) { root.starts += 1; } else { root.ends += 1; } }
+        first := KitButton { text: "First action"; activated => { root.activations += 1; } }
+        tail := Rectangle { width: 600px; height: 400px; }
+    }
+}
+
+// A child whose minimum width follows its own width, like a card that sizes
+// an inner row from its width; a scroll area must lay it out without a
+// binding loop and give it the viewport width.
+component WidthBoundCard inherits Rectangle {
+    min-width: 0px; preferred-width: 280px; horizontal-stretch: 1;
+    VerticalLayout {
+        padding: 8px;
+        HorizontalLayout {
+            width: max(0px, root.width - 16px);
+            Text { text: "A card title that wraps when the card is narrow"; wrap: word-wrap; }
+        }
+    }
+}
+
+export component ScrollWidthBoundFixture inherits Window {
+    width: 300px; height: 200px;
+    out property <length> viewport-width: area.visible-width;
+    out property <length> card-width: card.width;
+    out property <length> content-width: area.content-width;
+    area := KitScrollArea {
+        x: 0px; y: 0px; width: 200px; height: 120px;
+        card := WidthBoundCard { }
+    }
+}
+
+import { ListView } from "@kit";
+export component NativeRevealFixture inherits Window {
+    width: 640px; height: 260px;
+    background: root.theme.canvas;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <length> nested-x: nested.absolute-position.x;
+    out property <length> nested-y: nested.absolute-position.y;
+    out property <length> nested-width: nested.width;
+    out property <length> nested-height: nested.height;
+    out property <length> frame-width: frame.visible-width;
+    out property <length> frame-height: frame.visible-height;
+    out property <length> extent-width: frame.content-width;
+    out property <length> extent-height: frame.content-height;
+    out property <length> offset-x: frame.content-x;
+    out property <length> offset-y: frame.content-y;
+    out property <length> list-offset: list.content-y;
+    public function reveal-nested() { nested.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+    public function reveal-row(index: int) { list.ensure-row-visible(index, KitThemes.scroll-behavior(root.theme)); }
+    public function restore(x: length, y: length) { frame.scroll-to({x: x, y: y}, ScrollBehavior.instant); }
+    public function reveal-region(top: length, bottom: length) { frame.reveal-vertical(top, bottom, ScrollBehavior.smooth); }
+    public function reveal-horizontal(start: length, end: length) { frame.reveal-horizontal(start, end, ScrollBehavior.smooth); }
+    frame := ScrollFrame {
+        x: 0px; y: 0px; width: 300px; height: 240px;
+        theme: root.theme; content-width: 800px; content-height: 900px;
+        Rectangle {
+            x: 50px; y: 80px; width: 700px; height: 800px;
+            Rectangle {
+                x: 30px; y: 40px; width: 650px; height: 750px;
+                nested := KitButton {
+                    x: 420px; y: 550px; width: 180px; height: 64px * root.theme.text-scale;
+                    theme: root.theme; text: "Target";
+                }
+            }
+        }
+    }
+    list := ListView {
+        x: 320px; y: 0px; width: 300px; height: 240px;
+        theme: root.theme; horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        for index in 20000: Rectangle {
+            height: 32px * root.theme.text-scale;
+            accessible-role: list-item; accessible-label: "Row \{index}";
+            Text { text: "Row \{index}"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; }
         }
     }
 }

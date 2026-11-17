@@ -33,12 +33,14 @@ Merge this setting into `.vscode/settings.json` at the workspace root:
 ```json
 {
   "slint.libraryPaths": {
-    "kit": "target/slint-editor/vendor/slint-kit-slint/ui/kit.slint"
+    "kit": "target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json",
+    "kit-icons": "target/slint-editor/vendor/slint-kit-slint/ui/icons/lucide",
+    "kit-fonts": "target/slint-editor/vendor/slint-kit-slint/ui/fonts"
   }
 }
 ```
 
-The key is `kit`, without `@`; the value points to the `kit.slint` file itself, because the import is `@kit` without a filename. The Slint extension resolves relative library paths against the workspace root. Preserve any other library aliases already in this map. See the [Slint extension's library path setting](https://github.com/slint-ui/slint/blob/v1.18.1/editors/vscode/package.json).
+The key is `kit`, without `@`; the project file selects the library’s edition 1.19 and its `kit.slint` entry point. Optional icon and font imports use their separate directory aliases. The Slint extension resolves relative library paths against the workspace root. Preserve any other library aliases already in this map. See the [Slint extension's library path setting](https://github.com/slint-ui/slint/blob/v1.19.0/editors/vscode/package.json).
 
 ## Zed
 
@@ -51,7 +53,9 @@ Merge these language-server arguments into `.zed/settings.json` at the workspace
       "binary": {
         "arguments": [
           "-L",
-          "kit=target/slint-editor/vendor/slint-kit-slint/ui/kit.slint"
+          "kit=target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json",
+          "-L", "kit-icons=target/slint-editor/vendor/slint-kit-slint/ui/icons/lucide",
+          "-L", "kit-fonts=target/slint-editor/vendor/slint-kit-slint/ui/fonts"
         ]
       }
     }
@@ -59,7 +63,7 @@ Merge these language-server arguments into `.zed/settings.json` at the workspace
 }
 ```
 
-Keep existing server arguments and add this `-L` pair. Zed starts the server in the project worktree, so this path is relative to that root. The [Slint Zed extension](https://github.com/slint-ui/slint/blob/v1.18.1/editors/zed/src/slint.rs) forwards `binary.arguments` to `slint-lsp`. Other editors can pass the same arguments with the workspace root as the server's working directory.
+Keep existing server arguments and add this `-L` pair. Zed starts the server in the project worktree, so this path is relative to that root. The [Slint Zed extension](https://github.com/slint-ui/slint/blob/v1.19.0/editors/zed/src/slint.rs) forwards `binary.arguments` to `slint-lsp`. Other editors can pass the same arguments with the workspace root as the server's working directory.
 
 ## Check and refresh
 
@@ -69,19 +73,19 @@ Rerun the vendoring command after updating `Cargo.lock` or running `cargo clean`
 
 ## Applications using a local checkout
 
-Cargo does not vendor local path dependencies. If your application uses `slint-kit` and `slint-kit-build` from a sibling `../slint-kit` checkout, use `../slint-kit/crates/kit-slint/ui/kit.slint` as the VS Code library path, or `kit=../slint-kit/crates/kit-slint/ui/kit.slint` in Zed's `-L` argument. Adjust that relative path to your workspace layout. When opening the Slint Kit repository itself, use `crates/kit-slint/ui/kit.slint`.
+Cargo does not vendor local path dependencies. If your application uses `slint-kit` and `slint-kit-build` from a sibling `../slint-kit` checkout, use `../slint-kit/crates/kit-slint/ui/slint-project.json` as the VS Code library path, or `kit=../slint-kit/crates/kit-slint/ui/slint-project.json` in Zed's `-L` argument. Adjust that relative path to your workspace layout. When opening the Slint Kit repository itself, use `crates/kit-slint/ui/slint-project.json`.
 
-If the editor still reports “Cannot find requested import”, check that the configured file is `kit.slint` and exists, the opened workspace matches the path's root, and the selected library version matches your Cargo dependency. An include path alone does not register the `@kit` library alias. See [Slint component libraries](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
+If the editor still reports “Cannot find requested import”, check that the configured file is `slint-project.json` and exists, the opened workspace matches the path's root, and the selected library version matches your Cargo dependency. An include path alone does not register the `@kit` library alias. See [Slint component libraries](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
 
-## Supplemental imports in Slint 1.18.1
+## Component and resource imports in 0.9
 
-The language server resolves a bare alias as a file and joins a suffixed import onto the configured path. A single alias cannot therefore resolve both `@kit` and `@kit/fonts/inter.slint` or `@kit/icons/lucide/all.slint`. Mapping `kit` to the `ui` directory supports those supplemental imports, but makes bare `@kit` unresolved. The file mapping above prioritizes the component API.
+Use `@kit` for components and types. A Slint library project exposes its entry point only: former sub-imports such as `@kit/button.slint` must become `@kit`. Import optional Lucide icons from `@kit-icons/all.slint` or a category such as `@kit-icons/arrows.slint`, and Inter from `@kit-fonts/inter.slint`. The three aliases above work in editor previews and match the build helper. See [Slint project libraries](https://docs.slint.dev/docs/slint/guide/tooling/project-file/#libraries).
 
-Keep the documented supplemental imports in your application: Cargo compilation through `slint-kit-build` resolves them correctly using its module metadata and directory alias. With the editor file mapping, Slint 1.18.1 can still report unresolved supplemental imports. This is a language-server limitation, not a failure of the Cargo configuration; do not replace the application's root imports with the old `@kit/kit.slint` path.
+For local source dependencies, point the same three aliases at the corresponding paths under `../slint-kit/crates/kit-slint/ui`. Keep the application’s own edition separate: `slint-kit-build` defaults to 1.18; `config().with_edition((1, 19))` opts the application into 1.19 without changing the library.
 
 <h2 id="static-previews-and-rust-services">Static previews and Rust services</h2>
 
-Starting with Slint Kit 0.7.2, VS Code Live Preview and `slint-viewer` display declarative selection options even though no Rust code runs. For a local checkout, the viewer can use a directory alias if the preview file imports `@kit/kit.slint`; use a separate preview entry file and keep the application's public imports as `@kit`. A file alias for `@kit` has the supplemental-import limitation described above.
+VS Code Live Preview and `slint-viewer` display declarative selection options without running Rust. Pass the same three library paths to the viewer with `-L`; the preview file can keep its public `@kit` imports.
 
 These previews show layout and declared state; they do not install Rust services. Use `cargo run` with `slint_kit::install(&app)` once per window, or the component page's browser demo, for service-backed behavior.
 
@@ -99,7 +103,7 @@ These previews show layout and declared state; they do not install Rust services
 
 Do not set a service's `ready` property manually: it means its Rust callbacks are installed. Local ownership does not replace installation. Static preview does not qualify keyboard/IME or assistive technology behavior on a target device.
 
-## Rust live-preview limitation in Slint 1.18.1
+## Rust live-preview limitation in Slint 1.19.0
 
 The `SLINT_LIVE_PREVIEW` environment variable selects a different Rust code generator. That generator omits the shared library global exports and `Global` implementations required by Slint Kit ([upstream issue #14812](https://github.com/slint-ui/slint/issues/14812)). This affects every window using `slint_kit::install`, including windows whose visible controls are unrelated to selection.
 
@@ -110,3 +114,5 @@ For runtime inspection, keep `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` with the 
 ## Runtime inspection metadata
 
 The build helper follows Slint’s default debug metadata policy. For runtime element inspection with the testing backend or MCP, set `SLINT_EMIT_DEBUG_INFO=1` before building, or pass `slint_kit_build::config().with_debug_info(true)` to `compile_with_config`. Ordinary release builds do not force element names and source locations into the generated application.
+
+For the editing loop, preview options and measured build times, see the [development loop guide](../development-loop/).

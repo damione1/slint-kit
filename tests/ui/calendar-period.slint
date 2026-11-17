@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDatePicker, KitTheme, KitThemes, CalendarViewMode, CivilDateView, FieldAccess, Ownership } from "@kit";
+export component CalendarPeriodFixture inherits Window {
+    width: 600px; height: 700px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in property <string> min;
+    in property <string> max;
+    in-out property <CivilDateView> focused: {year: 2026, month: 10, day: 31};
+    in-out property <CivilDateView> selected: {year: 2026, month: 10, day: 1};
+    in-out property <CalendarViewMode> view-mode <=> calendar.view-mode;
+    callback calendar-chosen(CivilDateView);
+    public function focus-calendar() { calendar.take-focus(); }
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        calendar := KitCalendar {
+            theme: root.theme; label: "Calendar"; today: {year: 2026, month: 10, day: 2};
+            access: root.access; ownership: root.ownership; min: root.min; max: root.max;
+            focused <=> root.focused; selected <=> root.selected;
+            chosen(date) => { root.calendar-chosen(date); }
+        }
+    }
+}
+export component DatePeriodFixture inherits Window {
+    width: 700px; height: 800px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in-out property <CivilDateView> focused: {year: 2026, month: 10, day: 31};
+    in-out property <CivilDateView> accepted: {year: 2026, month: 10, day: 1};
+    public function open-picker() { picker.open = true; }
+    out property <bool> picker-open: picker.open;
+    callback picked(CivilDateView);
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        picker := KitDatePicker {
+            theme: root.theme; label: "Date"; today: {year: 2026, month: 10, day: 2};
+            focused <=> root.focused; accepted-date <=> root.accepted;
+            chosen(date) => { root.picked(date); }
+        }
+    }
+}

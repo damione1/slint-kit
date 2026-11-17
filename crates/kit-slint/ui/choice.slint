@@ -1,29 +1,29 @@
 import { KitKeyResult } from "keyboard.slint";
-import { KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
+import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue, SliderMark, SliderMarkPosition } from "field-service.slint";
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
 import { Ownership, NumberStepStatus } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow, ChoiceDirection, ShadowLayer } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
+import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
-import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
+import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitOptionBody } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
 import { KitSpinner } from "feedback.slint";
 import { Tone } from "display.slint";
 import { KitStrings } from "strings.slint";
-import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability, SelectionRetention } from "contracts.slint";
+import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, OptionItem, OptionItemKind, SelectionAvailability, SelectionRetention } from "contracts.slint";
 import { ListView } from "scroll.slint";
 import { KitWrap } from "layout.slint";
 
 import { CheckState, RangeThumb, Ownership } from "shared-contracts.slint";
 export { CheckState, RangeThumb } from "shared-contracts.slint";
-export enum ChoiceDirection { horizontal, vertical }
-export { ChoiceFlow } from "theme.slint";
+export { ChoiceDirection, ChoiceFlow } from "theme.slint";
 export enum SearchPresentation { idle, loading, ready, failed }
 export { ChoiceRow, SelectionRetention } from "contracts.slint";
 import { ChoiceRow } from "contracts.slint";
@@ -75,12 +75,12 @@ component RadioMark inherits Rectangle {
         border-width: root.theme.shape.border-width;
         // A disabled mark keeps its edge in the dimmed ink of its label: the
         // disabled row fill can equal border-subtle, which would erase the ring.
-        border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
+        border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.choice-fill : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
         if root.selected: Rectangle {
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
             width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
             border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-            background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+            background: root.disabled ? root.theme.disabled-text : root.theme.choice-fill;
         }
     }
 }
@@ -100,25 +100,91 @@ export component CheckMark inherits Rectangle {
     width: root.choice.box-size; height: root.choice.box-size;
     border-radius: root.choice.box-radius;
     border-width: root.theme.shape.border-width;
-    border-color: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
-    background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
+    border-color: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.choice-fill;
+    background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.choice-fill
         : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
     if root.state == CheckState.checked: KitIcon {
         theme: root.theme; glyph: root.theme.icons.check;
         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
         width: root.choice.box-size; height: root.choice.box-size;
-        ink: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+        ink: root.disabled ? root.theme.disabled-text : root.theme.on-choice-fill;
     }
     if root.state == CheckState.mixed: mixed-bar := Rectangle {
         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
         width: root.choice.mixed-width; height: root.choice.mark-stroke;
-        background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+        background: root.disabled ? root.theme.disabled-text : root.theme.on-choice-fill;
     }
+}
+
+component CheckBoxSlot inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <CheckState> state;
+    in property <bool> invalid;
+    in property <FieldAccess> access;
+    in property <bool> top-aligned;
+    in property <length> line-height;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    width: root.choice.box-size; horizontal-stretch: 0;
+    CheckMark {
+        y: root.top-aligned ? max(0px, (root.line-height - self.height) / 2) : (parent.height - self.height) / 2;
+        theme: root.theme; control-size: root.control-size; state: root.state; invalid: root.invalid; access: root.access;
+    }
+}
+
+component SwitchTrackSlot inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <bool> checked;
+    in property <bool> invalid;
+    in property <bool> disabled;
+    in property <FieldAccess> access;
+    in property <bool> top-aligned;
+    in property <length> line-height;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    width: root.choice.track-width; horizontal-stretch: 0;
+    Rectangle {
+        y: root.top-aligned ? max(0px, (root.line-height - self.height) / 2) : (parent.height - self.height) / 2;
+        width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
+        background: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.access == FieldAccess.read-only ? (root.checked ? root.theme.text-secondary : root.theme.border-subtle) : root.checked ? root.theme.choice-fill : root.theme.border-strong;
+        // The disabled track matches the disabled row fill; its edge keeps it visible.
+        border-width: root.access != FieldAccess.editable ? root.theme.shape.border-width : 0px;
+        border-color: root.disabled ? root.theme.disabled-text : root.theme.border-strong;
+        Rectangle {
+            x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
+            y: root.choice.thumb-inset;
+            width: root.choice.thumb-size; height: root.choice.thumb-size;
+            border-radius: min(root.theme.shape.radius-pill, self.width / 2);
+            background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-choice-fill : root.theme.surface;
+            animate x { enabled: !root.theme.reduced-motion; duration: root.choice.transition; easing: ease-in-out; }
+        }
+    }
+}
+
+// Which side of the label the indicator of a checkbox or switch sits on.
+// `start` puts the label first and the indicator at the trailing edge, the
+// layout of a settings row.
+export enum ChoiceLabelPosition { end, start }
+
+// The label and optional helper text of a checkbox or switch.
+component ChoiceCaption inherits VerticalLayout {
+    in property <KitTheme> theme;
+    in property <string> label;
+    in property <string> description;
+    in property <length> text-size;
+    in property <int> text-weight;
+    in property <bool> disabled;
+    spacing: KitMetrics.label-gap(root.theme) / 2;
+    alignment: center;
+    Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+    if root.description != "": Text { text: root.description; color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
 }
 
 // All boolean skins use the same Pressable activation and cancellation machine.
 // The state is controlled: mixed is a real third value and never coerced to false.
 export component KitCheckbox inherits KitPressable {
+    // Announced as the description while the state is mixed.
+    in property <string> mixed-label: KitStrings.checkbox-mixed-label;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -145,6 +211,9 @@ export component KitCheckbox inherits KitPressable {
     in property <Ownership> ownership: Ownership.local;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
+    // `description` (from KitPressable) is the helper text under the label and
+    // is announced as part of the accessible description.
+    in property <ChoiceLabelPosition> label-position: ChoiceLabelPosition.end;
     callback toggled(CheckState);
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
@@ -155,25 +224,20 @@ export component KitCheckbox inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
+    // Edition 1.19 includes the caption’s conditional description in its layout.
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.preferred-height + 2 * root.padding-block);
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checkable: true;
     accessible-checked: root.state == CheckState.checked;
-    accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? "Partially selected" : root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? (root.description != "" ? root.mixed-label + ". " + root.description : root.mixed-label) : root.description;
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = root.state == CheckState.checked ? CheckState.unchecked : CheckState.checked; if (root.ownership == Ownership.local) { root.state = next; } root.toggled(next); } }
     HorizontalLayout {
         spacing: root.choice.label-gap;
-        Rectangle {
-            width: root.choice.box-size; horizontal-stretch: 0;
-            indicator := CheckMark {
-                y: (parent.height - self.height) / 2;
-                theme: root.theme; control-size: root.control-size;
-                state: root.state; invalid: checks.show-error; access: root.access;
-            }
-        }
-        label := Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        if root.label-position == ChoiceLabelPosition.end: CheckBoxSlot { theme: root.theme; control-size: root.control-size; state: root.state; invalid: checks.show-error; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
+        label := ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
+        if root.label-position == ChoiceLabelPosition.start: CheckBoxSlot { theme: root.theme; control-size: root.control-size; state: root.state; invalid: checks.show-error; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
     }
 }
 
@@ -204,6 +268,9 @@ export component KitSwitch inherits KitPressable {
     in property <Ownership> ownership: Ownership.local;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
+    // `description` (from KitPressable) is the helper text under the label and
+    // is announced as part of the accessible description.
+    in property <ChoiceLabelPosition> label-position: ChoiceLabelPosition.end;
     callback toggled(bool);
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
@@ -214,36 +281,20 @@ export component KitSwitch inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
+    // Edition 1.19 includes the caption’s conditional description in its layout.
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.preferred-height + 2 * root.padding-block);
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checkable: true;
     accessible-checked: root.checked;
-    accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-description: checks.show-error ? checks.validation-message : root.description;
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = !root.checked; if (root.ownership == Ownership.local) { root.checked = next; } root.toggled(next); } }
     HorizontalLayout {
         spacing: root.choice.label-gap;
-        Rectangle {
-            width: root.choice.track-width; horizontal-stretch: 0;
-            Rectangle {
-            y: (parent.height - self.height) / 2;
-            width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
-            background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.access == FieldAccess.read-only ? (root.checked ? root.theme.text-secondary : root.theme.border-subtle) : root.checked ? root.theme.accent : root.theme.border-strong;
-            // The disabled track matches the disabled row fill; its edge keeps it visible.
-            border-width: root.access != FieldAccess.editable ? root.theme.shape.border-width : 0px;
-            border-color: root.disabled ? root.theme.disabled-text : root.theme.border-strong;
-            Rectangle {
-                x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
-                y: root.choice.thumb-inset;
-                width: root.choice.thumb-size; height: root.choice.thumb-size;
-                border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-                background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-accent : root.theme.surface;
-                animate x { duration: root.choice.transition; easing: ease-in-out; }
-            }
-            }
-        }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        if root.label-position == ChoiceLabelPosition.end: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
+        label := ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
+        if root.label-position == ChoiceLabelPosition.start: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
     }
 }
 
@@ -251,6 +302,7 @@ export component KitSwitch inherits KitPressable {
 // the translator is reused by radio, segmented, toggle and rating surfaces.
 enum ChoiceKeyPolicy { axis, radio, grid }
 component ChoiceKeyboard inherits FocusScope {
+    in property <int> modal-layer;
     min-width: 0px; preferred-width: 0px; max-width: 100000px; horizontal-stretch: 1;
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
@@ -267,7 +319,7 @@ component ChoiceKeyboard inherits FocusScope {
         else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
     }
     changed access => { root.held = false; }
-    enabled: root.access != FieldAccess.disabled;
+    enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     key-pressed(event) => {
         root.keyboard-focus = true;
         if (root.access != FieldAccess.disabled && event.text == Key.Return && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation)) {
@@ -291,6 +343,7 @@ component ChoiceKeyboard inherits FocusScope {
 }
 
 export component KitRadioGroup inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -346,7 +399,7 @@ export component KitRadioGroup inherits Rectangle {
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     vertical-stretch: 0;
-    keyboard := ChoiceKeyboard {
+    keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
         policy: ChoiceKeyPolicy.radio;
         navigate(step) => { root.handle-navigate(step); }
@@ -357,7 +410,7 @@ export component KitRadioGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: 0px;
-        for index in root.render-count: option := ChoiceOption {
+        for index in root.render-count: option := ChoiceOption { modal-layer: root.modal-layer;
             private property <ChoiceRow> display-choice: root.render-row(index);
             accessible-item-index: index; accessible-item-count: root.render-count;
             option-data: option.display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
@@ -380,7 +433,7 @@ export component KitRadioGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: 0px;
-        for index in root.render-count: flow-option := ChoiceOption {
+        for index in root.render-count: flow-option := ChoiceOption { modal-layer: root.modal-layer;
             in property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
             accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
             option-data: display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
@@ -430,21 +483,40 @@ export component KitRadioGroup inherits Rectangle {
 
 component SegmentedOption inherits ChoiceOption {
     in property <[ChoiceIcon]> icons;
+    // The paint of the selected segment: `accent` is the primary button;
+    // another tone paints its subtle tint under its own ink, as a selected
+    // chip of that tone does. Read-only keeps the pressed tone.
+    in property <Tone> selected-tone: Tone.accent;
+    private property <bool> editable-selected: root.option-data.selected && root.access != FieldAccess.read-only;
+    private property <bool> toned: root.editable-selected && root.selected-tone != Tone.accent;
+    private property <color> tone-fill: root.selected-tone == Tone.success ? root.theme.success-subtle
+        : root.selected-tone == Tone.warning ? root.theme.warning-subtle
+        : root.selected-tone == Tone.danger ? root.theme.danger-subtle
+        : root.selected-tone == Tone.information ? root.theme.information-subtle
+        : root.theme.pressed;
+    private property <color> tone-ink: root.selected-tone == Tone.success ? root.theme.success
+        : root.selected-tone == Tone.warning ? root.theme.warning
+        : root.selected-tone == Tone.danger ? root.theme.danger
+        : root.selected-tone == Tone.information ? root.theme.information
+        : root.theme.text-primary;
+    private property <color> ink: root.disabled ? root.recipe.disabled-foreground : root.toned ? root.tone-ink : root.recipe.foreground;
     private property <length> icon-reserve: root.icons.length > 0 ? KitMetrics.icon-size(root.theme, root.control-size) + KitMetrics.inline-gap(root.theme) : 0px;
     content-reserve: 2 * root.icon-reserve;
     control-width: ControlWidth.fill;
     accessible-name: root.option-data.label;
     disabled: root.option-data.disabled || root.access == FieldAccess.disabled;
-    intent: root.option-data.selected && root.access != FieldAccess.read-only ? ButtonIntent.primary : ButtonIntent.quiet;
-    background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.theme.canvas) : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+    intent: root.editable-selected && root.selected-tone == Tone.accent ? ButtonIntent.primary : ButtonIntent.quiet;
+    background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.theme.canvas) : root.toned ? root.tone-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     accessible-role: radio-button; accessible-checked: root.option-data.selected;
-    accessible-description: root.access == FieldAccess.read-only ? "Read only" : "";
-    focus-ring: root.option-data.selected && !root.disabled && root.access == FieldAccess.editable ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
+    accessible-read-only: root.access == FieldAccess.read-only;
+    // A primary segment carries the ring in its on-accent ink; a toned tint
+    // keeps the theme's ring colour.
+    focus-ring: root.editable-selected && !root.disabled && root.access == FieldAccess.editable && root.selected-tone == Tone.accent ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
     for icon in root.icons: Rectangle {
         if icon.token == root.option-data.token: KitIcon {
             x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
             theme: root.theme; control-size: root.control-size; glyph: icon.glyph;
-            ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            ink: root.ink;
         }
     }
     Text {
@@ -452,13 +524,14 @@ component SegmentedOption inherits ChoiceOption {
         width: max(0px, root.width - 2 * root.padding-inline - 2 * root.icon-reserve);
         height: max(0px, root.height - 2 * root.padding-block);
         text: root.option-data.label;
-        color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        color: root.ink;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center;
     }
 }
 
 export component KitSegmentedControl inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -492,6 +565,10 @@ export component KitSegmentedControl inherits Rectangle {
     }
     // Decorative icons follow stable tokens, including after row reordering.
     in property <[ChoiceIcon]> icons;
+    // The paint of the selected segment: `accent` (the default) is the
+    // primary button; another tone paints that tone's subtle tint under its
+    // own ink, so a group that names a state (a mode, a severity) wears it.
+    in property <Tone> selected-tone: Tone.accent;
     // Horizontal groups wrap after this many columns; vertical groups stay stacked.
     in property <int> columns: max(1, root.render-count);
     private property <int> column-count: root.direction == ChoiceDirection.vertical ? 1 : clamp(root.columns, 1, max(1, root.render-count));
@@ -520,9 +597,10 @@ export component KitSegmentedControl inherits Rectangle {
     border-width: root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
     preferred-height: max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
-    accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
-    keyboard := ChoiceKeyboard {
+    keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
         policy: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count ? ChoiceKeyPolicy.grid : ChoiceKeyPolicy.axis;
         navigate(step) => { root.handle-navigate(step); }
@@ -533,14 +611,14 @@ export component KitSegmentedControl inherits Rectangle {
             spacing: root.choice.group-padding;
             for row-index in ceil(root.render-count / root.column-count): HorizontalLayout {
                 spacing: root.choice.group-padding;
-                for column in root.column-count: option := SegmentedOption {
+                for column in root.column-count: option := SegmentedOption { modal-layer: root.modal-layer;
                     private property <int> row-start: row-index * root.column-count;
                     private property <int> source-index: self.row-start + (root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal ? root.column-count - 1 - column : column);
                     visible: self.source-index < root.render-count;
                     disabled: self.source-index >= root.render-count || self.option-data.disabled || root.access == FieldAccess.disabled;
                     accessible-item-index: self.source-index; accessible-item-count: root.render-count;
                     option-data: root.render-row(self.source-index); generation: root.generation; access: root.access;
-                    icons: root.icons;
+                    icons: root.icons; selected-tone: root.selected-tone;
                     theme: root.theme; control-size: root.control-size;
                     focus-indicated: keyboard.focus-visible && root.active-token == self.option-data.token;
                     activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
@@ -580,6 +658,7 @@ export component KitSegmentedControl inherits Rectangle {
 
 // Multiple selection has a distinct API; it never changes RadioGroup's value type.
 export component KitToggleGroup inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -634,7 +713,7 @@ export component KitToggleGroup inherits Rectangle {
     public function take-focus() { keyboard.focus(); }
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
-    keyboard := ChoiceKeyboard {
+    keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
         navigate(step) => { selection.navigate(step); root.navigate(step); }
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.toggle-option(root.active-token, root.generation); } }
@@ -642,7 +721,7 @@ export component KitToggleGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: root.choice.group-gap;
-            for index in root.render-count: option := ChoiceOption {
+            for index in root.render-count: option := ChoiceOption { modal-layer: root.modal-layer;
                 private property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
                 accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
                 option-data: option.display-choice; generation: root.generation; access: root.access;
@@ -666,7 +745,7 @@ export component KitToggleGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: root.choice.group-gap;
-            for index in root.render-count: v-option := ChoiceOption {
+            for index in root.render-count: v-option := ChoiceOption { modal-layer: root.modal-layer;
                 private property <ChoiceRow> display-choice: root.render-row(index);
                 accessible-item-index: index; accessible-item-count: root.render-count;
                 option-data: v-option.display-choice; generation: root.generation; access: root.access;
@@ -704,6 +783,8 @@ export component KitToggleGroup inherits Rectangle {
 // A removable value: its label, then a close glyph that marks the press as removal.
 export component KitChip inherits KitPressable {
     in property <ChipRow> chip;
+    // "{label}" stands for the chip label, so each language chooses its word order.
+    in property <string> remove-label-template: KitStrings.chip-remove-template;
     callback remove-requested(int);
     private property <int> press-token;
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
@@ -731,7 +812,7 @@ export component KitChip inherits KitPressable {
             }
         }
     }
-    accessible-name: "Remove " + root.chip.label;
+    accessible-name: root.remove-label-template.replace-all("{label}", root.chip.label);
     disabled: !root.chip.removable;
     activation-started => { root.press-token = root.chip.token; }
     changed chip => { root.cancel-press(); }
@@ -838,7 +919,6 @@ export component KitChipButton inherits KitPressable {
 component ChipWrap inherits Rectangle {
     in property <KitTheme> theme;
     min-width: 0px; preferred-width: 0px; horizontal-stretch: 1; vertical-stretch: 0;
-    min-height: flow.preferred-height; preferred-height: flow.preferred-height;
     flow := KitWrap {
         theme: root.theme; width: root.width; height: self.preferred-height;
         spacing: KitMetrics.inline-gap(root.theme); alignment: start;
@@ -847,6 +927,7 @@ component ChipWrap inherits Rectangle {
 }
 
 export component KitMultiSelect inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -878,6 +959,8 @@ export component KitMultiSelect inherits Rectangle {
     in property <SelectState> state: selection.state;
     in property <string> label: KitStrings.multi-select-label;
     in property <string> placeholder: KitStrings.multi-select-placeholder;
+    in property <string> unavailable-label: KitStrings.selection-unavailable-label;
+    in property <string> remove-label-template: KitStrings.chip-remove-template;
     private property <string> selected-labels: KitSelectionService.ready ? KitSelectionService.chip-labels(root.chips, KitStrings.selection-label-separator) : "";
     in property <string> value-label: root.chips.length == 0 ? ""
         : (root.selected-labels == "" ? KitStrings.multi-selection-count-format : KitStrings.multi-selection-value-format)
@@ -885,10 +968,12 @@ export component KitMultiSelect inherits Rectangle {
     in property <bool> close-on-select: false;
     in property <bool> searchable: false;
     in property <bool> focus-search-on-open: true;
-    in property <string> search-label: "Search options";
-    in property <string> empty-label: "No matching options";
+    in property <string> search-label: KitStrings.search-options-label;
+    in property <string> empty-label: KitStrings.no-matching-options-label;
     in property <bool> wrap: false;
     in property <int> typeahead-timeout-ms: 700;
+    in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
+    in property <DropdownPlacement> placement: DropdownPlacement.auto;
     out property <int> page-rows: selector.page-rows;
     callback open-requested();
     callback navigate(NavigationStep);
@@ -899,6 +984,12 @@ export component KitMultiSelect inherits Rectangle {
     callback query-edited(string);
     in-out property <string> query <=> selection.query;
     callback remove-requested(int);
+    // An addition was refused because `selection-limit` options are chosen.
+    callback limit-reached(OptionRow);
+    out property <bool> at-limit: selection.at-limit;
+    out property <bool> is-open: root.state.open;
+    public function open() { if (root.access == FieldAccess.editable) { selection.open(); } }
+    public function close() { if (root.state.open) { selection.dismiss(CloseReason.programmatic); root.dismiss(CloseReason.programmatic); } }
     vertical-stretch: 0;
     private property <SelectionRef> focused-chip;
     out property <bool> has-focus: selector.has-focus || root.focused-chip.present;
@@ -909,7 +1000,7 @@ export component KitMultiSelect inherits Rectangle {
         spacing: KitMetrics.label-gap(root.theme);
         if root.access == FieldAccess.read-only && root.chips.length > 0: ChipWrap {
             theme: root.theme;
-            for chip in root.chips: KitTextField {
+            for chip in root.chips: KitTextField { modal-layer: root.modal-layer;
                 implicit-form-submit: false;
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
@@ -922,8 +1013,8 @@ export component KitMultiSelect inherits Rectangle {
         }
         if root.access != FieldAccess.read-only && root.chips.length > 0: ChipWrap {
             theme: root.theme;
-            for chip in root.chips: KitChip {
-                theme: root.theme; chip: chip;
+            for chip in root.chips: KitChip { modal-layer: root.modal-layer;
+                theme: root.theme; chip: chip; remove-label-template: root.remove-label-template;
                 private property <ChipRow> focus-identity: chip;
                 changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
                 focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
@@ -933,12 +1024,14 @@ export component KitMultiSelect inherits Rectangle {
         }
         selector := KitSelect {
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; choice-rows: root.choice-rows; label: root.label; placeholder: root.placeholder; value-label: root.value-label;
+            unavailable-label: root.unavailable-label;
             access: root.access;
             searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
             search-label: root.search-label; empty-label: root.empty-label;
             query <=> root.query;
             wrap: root.wrap;
             typeahead-timeout-ms: root.typeahead-timeout-ms;
+            popup-width: root.popup-width; placement: root.placement;
             // The chips carry the selection, so this composite owns the constraint.
             validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             error-message: checks.show-error ? checks.validation-message : "";
@@ -964,11 +1057,13 @@ export component KitMultiSelect inherits Rectangle {
         options: root.options; ownership: root.ownership; limit: root.selection-limit; close-on-select: root.close-on-select;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         changed-selection(row, added) => { checks.note-edit(); root.selection-changed(row, added); }
+        limit-reached(row) => { root.limit-reached(row); }
         query-reset => { root.query-edited(""); }
     }
 }
 
 export component KitTagInput inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -997,6 +1092,8 @@ export component KitTagInput inherits Rectangle {
     in property <[ChipRow]> chips;
     in property <string> label;
     in property <string> error;
+    in property <string> placeholder: KitStrings.tag-input-placeholder;
+    in property <string> remove-label-template: KitStrings.chip-remove-template;
     in-out property <string> text;
     callback edited(string);
     callback create-requested(string);
@@ -1011,8 +1108,8 @@ export component KitTagInput inherits Rectangle {
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; focus-requested => { editor.take-focus(); } }
         if root.chips.length > 0: ChipWrap {
             theme: root.theme;
-            for chip in root.chips: KitChip {
-                theme: root.theme; chip: chip;
+            for chip in root.chips: KitChip { modal-layer: root.modal-layer;
+                theme: root.theme; chip: chip; remove-label-template: root.remove-label-template;
                 private property <ChipRow> focus-identity: chip;
                 changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
                 focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
@@ -1020,14 +1117,14 @@ export component KitTagInput inherits Rectangle {
                 remove-requested(token) => { if (root.access == FieldAccess.editable) { editor.take-focus(); checks.note-edit(); root.remove-requested(token); } }
             }
         }
-        editor := KitTextField {
+        editor := KitTextField { modal-layer: root.modal-layer;
             implicit-form-submit: false;
             theme: root.theme; control-size: root.control-size; access: root.access; accessible-name: root.label;
             show-validation-message: false;
             error: root.error != "" ? root.error : checks.show-error ? checks.validation-message : "";
             validation: root.error != "" || checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             text <=> root.text;
-            placeholder: "Type a tag, then press Enter";
+            placeholder: root.placeholder;
             edited(text) => { if (root.access == FieldAccess.editable) { checks.note-edit(); } root.edited(text); }
             commit-requested(text) => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.create-requested(text); } }
         }
@@ -1037,6 +1134,7 @@ export component KitTagInput inherits Rectangle {
 // The inline native editor owns the combobox field while the popup presents
 // the option list and status. Query draft and accepted selection stay separate.
 export component KitCombobox inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -1071,12 +1169,21 @@ export component KitCombobox inherits Rectangle {
     in property <string> selected-label: selection.selected-label;
     in property <string> unavailable-label: KitStrings.selection-unavailable-label;
     in property <string> loading-label: KitStrings.busy-label;
+    in property <string> empty-label: KitStrings.no-matching-options-label;
     in property <string> clear-label: KitStrings.clear-search-label;
     in property <bool> allow-custom-value: false;
     in property <bool> clearable: false;
+    // Presentation of rows (icon, trailing text, group headings, separators),
+    // looked up by option token. A token without an entry is a plain option.
+    in property <[OptionItem]> items;
+    pure function item-for(token: int) -> OptionItem {
+        return KitSelectionService.ready ? KitSelectionService.option-item(root.items, token) : { token: token, kind: OptionItemKind.option };
+    }
     in property <int> min-query-length: 0;
     in property <duration> query-debounce: 0ms;
     in property <length> popup-height: 6 * root.row-height + 2 * KitMetrics.popover-inset(root.theme);
+    in property <length> popup-width: root.width;
+    in property <DropdownPlacement> placement: DropdownPlacement.auto;
     in property <length> row-height: max(root.option-recipe.height, KitMetrics.row-height(root.theme, root.control-size)) + KitMetrics.font-size(root.theme, TypographyRole.caption) + 2 * KitMetrics.help-gap(root.theme);
     in property <int> near-end-rows: 3;
     out property <bool> end-near;
@@ -1146,6 +1253,9 @@ export component KitCombobox inherits Rectangle {
         }
     }
     public function take-focus() { editor.take-focus(); }
+    out property <bool> is-open: root.state.open;
+    public function open() { if (root.access == FieldAccess.editable && !root.state.open) { selection.open(); } }
+    public function close() { if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); } }
     public function clear() {
         // The shared native action owns deletion, undo and composition guards.
         editor.clear();
@@ -1281,7 +1391,7 @@ export component KitCombobox inherits Rectangle {
     }
     private property <bool> presented: popup.is-open;
     changed presented => { if (!root.presented) { root.popup-focused = false; if (root.state.open) { root.handle-dismiss(CloseReason.host-closed); } } }
-    editor := KitTextField {
+    editor := KitTextField { modal-layer: root.modal-layer;
         implicit-form-submit: false;
         width: root.width;
         theme: root.theme;
@@ -1316,7 +1426,7 @@ export component KitCombobox inherits Rectangle {
             if (root.query-debounce > 0ms) { root.query-edited(""); }
             root.cleared();
         }
-        trigger := KitSelectTrigger {
+        trigger := KitSelectTrigger { modal-layer: root.modal-layer;
             layout-order: editor.trailing-adornment-order;
             cross-axis-self-alignment: center;
             theme: root.theme;
@@ -1355,9 +1465,9 @@ export component KitCombobox inherits Rectangle {
         }
     }
     popup := PopupWindow {
-        width: min(root.width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
         private property <length> desired-height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + surface.chrome-height);
-        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: root.placement}, root.popup-viewport);
         x: self.placement.x; y: self.placement.y;
         height: self.placement.height;
         close-policy: close-on-click-outside;
@@ -1376,7 +1486,7 @@ export component KitCombobox inherits Rectangle {
             typeahead-timeout-ms: root.typeahead-timeout-ms;
             check-typeahead-active => { return selection.is-typeahead-active(); }
             empty: root.rows.length == 0;
-            empty-label: root.search-state == SearchPresentation.loading ? root.loading-label : root.search-state == SearchPresentation.failed ? root.status-text : "No matching options";
+            empty-label: root.search-state == SearchPresentation.loading ? root.loading-label : root.search-state == SearchPresentation.failed ? root.status-text : root.empty-label;
             viewport-height: options.visible-height; scroll-y <=> options.content-y;
             navigate(step) => { if (root.access == FieldAccess.editable) { root.handle-navigate(step); } }
             activate(token,generation) => { if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
@@ -1417,27 +1527,17 @@ export component KitCombobox inherits Rectangle {
                     vertical-stretch: 1;
                     horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                     theme: root.theme;
-                    for row[index] in root.rows: KitOption {
+                    for row[index] in root.rows: KitOption { modal-layer: root.modal-layer;
                         theme: root.theme; option-data: row; height: root.row-height;
+                        private property <OptionItem> entry: root.item-for(row.token);
+                        disabled: row.disabled || self.entry.kind != OptionItemKind.option;
+                        accessible-description: KitStrings.join-description(row.description, self.entry.trailing-text);
                         accessible-item-index: index; accessible-item-count: root.rows.length;
                         focus-on-pointer: false;
                         active: root.state.active.present && row.token == root.state.active.token;
                         selected: root.state.selected.present && row.token == root.state.selected.token;
                         activate(token,generation) => { if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
-                        HorizontalLayout {
-                            spacing: KitMetrics.inline-gap(root.theme);
-                            VerticalLayout {
-                                horizontal-stretch: 1;
-                                alignment: center;
-                                spacing: root.theme.spacing.unit * 0.5;
-                                Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
-                                if row.description != "": Text { text: row.description; horizontal-alignment: left; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; overflow: elide; }
-                            }
-                            // The selected identity, independent of the active row.
-                            Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                                if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
-                            }
-                        }
+                        KitOptionBody { theme: root.theme; control-size: root.control-size; data: row; presentation: root.item-for(row.token); checked: root.state.selected.present && root.state.selected.token == row.token; }
                     }
                 }
             }
@@ -1489,22 +1589,104 @@ export component KitCombobox inherits Rectangle {
     function handle-query-edited(text: string) { root.query = text; root.schedule-query-edited(text); }
 }
 
+// One mark of a slider: a tick on the track and an optional label. The value is
+// snapped to the slider's lattice; a value outside the range draws nothing.
+component SliderMarkItem inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ChoiceRecipe> choice;
+    in property <SliderMark> mark;
+    in property <SliderSpec> spec;
+    in property <bool> vertical;
+    in property <bool> rtl;
+    in property <bool> filled;
+    in property <bool> disabled;
+    in property <length> edge;
+    in property <length> band;
+    in property <float> fraction;
+    in property <length> text-size;
+    private property <SliderMarkPosition> view: KitFieldService.ready ? KitFieldService.slider-mark(root.mark, root.spec) : {valid: false};
+    private property <float> drawn: root.vertical || root.rtl ? 1 - clamp(root.view.position, 0, 1) : clamp(root.view.position, 0, 1);
+    // Centre of the mark along the travel axis.
+    private property <length> along: root.edge + ((root.vertical ? root.height : root.width) - 2 * root.edge) * root.drawn;
+    private property <length> body: (root.vertical ? root.width : root.height) - root.band;
+    private property <length> tick-thickness: max(root.theme.shape.border-width, root.theme.spacing.unit / 2);
+    private property <length> tick-length: root.filled ? root.theme.spacing.unit * 2 : root.choice.slider-track-height + root.theme.spacing.unit * 2;
+    private property <length> label-extent: max(0px, root.band - KitMetrics.label-gap(root.theme));
+    private property <color> tick-color: root.filled
+        ? (root.view.position <= root.fraction && !root.disabled ? root.theme.on-accent : root.theme.text-secondary)
+        : root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+    if root.view.valid: Rectangle {
+        x: root.vertical ? (root.filled ? root.body - self.width - root.theme.spacing.unit : (root.body - self.width) / 2) : root.along - self.width / 2;
+        y: root.vertical ? root.along - self.height / 2 : (root.filled ? root.body - self.height - root.theme.spacing.unit : (root.body - self.height) / 2);
+        width: root.vertical ? root.tick-length : root.tick-thickness;
+        height: root.vertical ? root.tick-thickness : root.tick-length;
+        background: root.tick-color;
+    }
+    if root.view.valid && root.mark.label != "": Text {
+        text: root.mark.label;
+        color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+        font-family: root.theme.typography.family; font-size: root.text-size;
+        wrap: no-wrap; overflow: clip;
+        horizontal-alignment: root.vertical ? left : center; vertical-alignment: center;
+        width: root.vertical ? root.label-extent : min(self.preferred-width, root.width);
+        height: root.vertical ? self.preferred-height : root.label-extent;
+        x: root.vertical ? root.width - root.label-extent : clamp(root.along - self.width / 2, 0px, max(0px, root.width - self.width));
+        y: root.vertical ? clamp(root.along - self.height / 2, 0px, max(0px, root.height - self.height)) : root.height - root.label-extent;
+    }
+}
+// Ticks and labels along a slider track. `band` is the cross-axis space the
+// labels need beside the track, zero when no mark has a label.
+component SliderMarks inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ChoiceRecipe> choice;
+    in property <[SliderMark]> marks;
+    in property <SliderSpec> spec;
+    in property <bool> vertical;
+    in property <bool> rtl;
+    in property <bool> filled;
+    in property <bool> disabled;
+    in property <length> edge;
+    in property <float> fraction;
+    private property <length> text-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+    private property <length> widest: widest-measure.preferred-width;
+    private property <length> tallest: tallest-measure.preferred-height;
+    out property <length> band: (root.vertical ? root.widest : root.tallest) > 0px ? (root.vertical ? root.widest : root.tallest) + KitMetrics.label-gap(root.theme) : 0px;
+    // The widest label sets the column beside a vertical track, the tallest the row under a horizontal one.
+    // Zero-sized holders keep the measuring layouts from taking part in the control's own layout.
+    Rectangle { width: 0px; height: 0px;
+        widest-measure := VerticalLayout { for mark in root.marks: Text { visible: false; text: mark.label; wrap: no-wrap; font-family: root.theme.typography.family; font-size: root.text-size; } }
+    }
+    Rectangle { width: 0px; height: 0px;
+        tallest-measure := HorizontalLayout { for mark in root.marks: Text { visible: false; text: mark.label; preferred-height: mark.label == "" ? 0px : root.text-size * 1.4; wrap: no-wrap; font-family: root.theme.typography.family; font-size: root.text-size; } }
+    }
+    for mark in root.marks: SliderMarkItem {
+        width: root.width; height: root.height;
+        theme: root.theme; choice: root.choice; mark: mark; spec: root.spec;
+        vertical: root.vertical; rtl: root.rtl; filled: root.filled; disabled: root.disabled;
+        edge: root.edge; band: root.band; fraction: root.fraction; text-size: root.text-size;
+    }
+}
+
 // Numeric positions are renderer projections only. The Rust bounded-value
 // controller owns canonical values, steps and commits, including decimal domains.
 component SliderKeyboard inherits FocusScope {
+    in property <int> modal-layer;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> gesture-active;
+    // A right-to-left horizontal slider grows towards the left, so Left raises
+    // the value and Right lowers it. Up and Down never change meaning.
+    in property <bool> reversed;
     callback navigate(NavigationStep);
     callback committed();
     callback cancelled();
-    enabled: root.access != FieldAccess.disabled;
+    enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     key-pressed(event) => {
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Escape && root.gesture-active) { root.cancelled(); return accept; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
-        if (event.text == Key.RightArrow || event.text == Key.UpArrow) { root.navigate(NavigationStep.next); return accept; }
-        if (event.text == Key.LeftArrow || event.text == Key.DownArrow) { root.navigate(NavigationStep.previous); return accept; }
+        if (event.text == Key.UpArrow || event.text == (root.reversed ? Key.LeftArrow : Key.RightArrow)) { root.navigate(NavigationStep.next); return accept; }
+        if (event.text == Key.DownArrow || event.text == (root.reversed ? Key.RightArrow : Key.LeftArrow)) { root.navigate(NavigationStep.previous); return accept; }
         if (event.text == Key.PageUp) { root.navigate(NavigationStep.page-next); return accept; }
         if (event.text == Key.PageDown) { root.navigate(NavigationStep.page-previous); return accept; }
         if (event.text == Key.Return) { root.committed(); return accept; }
@@ -1514,7 +1696,12 @@ component SliderKeyboard inherits FocusScope {
 // `line` draws a thin track with a round thumb; `filled` paints the whole
 // control as its track, the value as a fill and a bar as its handle.
 export enum SliderPresentation { line, filled }
+// The handle of a filled slider: `bar` is a short bar inside the fill, across
+// its edge; `disc` is a round thumb centred on the fill's edge, as wide as
+// the track less its inset, inside a surface ring with the control shadow.
+export enum SliderHandleShape { bar, disc }
 export component KitSlider inherits Rectangle {
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     // Sizes the thumb with the checkbox and radio boxes of the same size.
     in property <ControlSize> control-size: ControlSize.medium;
@@ -1522,6 +1709,9 @@ export component KitSlider inherits Rectangle {
     // A vertical slider puts the minimum at the bottom.
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <SliderPresentation> presentation: SliderPresentation.line;
+    // A right-to-left horizontal slider starts at the right edge and Left raises
+    // the value. A vertical slider ignores it.
+    in property <ChoiceFlow> flow: root.theme.direction;
     // Track, value fill and thumb or handle paints. A host may inject a
     // gradient track, such as a hue or color-temperature scale, and a
     // transparent fill so the whole scale stays visible. The filled defaults
@@ -1530,8 +1720,23 @@ export component KitSlider inherits Rectangle {
     in property <brush> track-brush: root.presentation == SliderPresentation.filled ? (root.disabled ? root.theme.disabled-fill : root.theme.pressed) : root.theme.border-strong;
     in property <brush> fill-brush: root.disabled ? (root.filled ? root.theme.pressed : root.theme.disabled-text) : root.theme.accent;
     in property <brush> handle-brush: root.disabled ? root.theme.disabled-text : root.presentation == SliderPresentation.filled ? root.theme.on-accent : root.theme.accent;
+    // The edge of a filled track, drawn over the fill. A host whose page
+    // already sets the control apart passes `transparent`.
+    in property <brush> edge-brush: root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+    // The corner radius of a filled track: the container radius, never more
+    // than half the track's shorter side. A line track is always a pill.
+    in property <length> track-radius: min(root.theme.shape.radius-container, min(root.body-width, root.body-height) / 2);
+    // The handle of a filled track; a line track always has a round thumb.
+    in property <SliderHandleShape> handle-shape: SliderHandleShape.bar;
     in property <float> position: KitFieldService.ready ? KitFieldService.slider-position(root.value, root.spec) : 0;
     in property <string> label;
+    // Ticks and optional labels on the track. Each value snaps to the slider's
+    // lattice; a value outside the range is not drawn. A label that names the
+    // current value is its accessible description.
+    in property <[SliderMark]> marks;
+    // Opt-in: the mouse wheel steps the focused slider like the arrow keys,
+    // up raises. An unfocused slider leaves the wheel to the surrounding scroll view.
+    in property <bool> wheel-stepping: false;
     in property <string> value-label: root.value;
     callback position-requested(float);
     callback navigate(NavigationStep);
@@ -1540,6 +1745,7 @@ export component KitSlider inherits Rectangle {
     callback cancelled();
     private property <bool> gesture-active;
     private property <bool> vertical: root.direction == ChoiceDirection.vertical;
+    private property <bool> rtl: !root.vertical && root.flow == ChoiceFlow.right-to-left;
     private property <bool> filled: root.presentation == SliderPresentation.filled;
     // Solid paints use a full rounded track behind a rectangular value viewport.
     // Gradient paints retain their original partial-box coordinates.
@@ -1551,23 +1757,29 @@ export component KitSlider inherits Rectangle {
     // in its own right, so it is at least twelve spacing units thick in
     // either direction. A line slider keeps the kit's control height, like
     // its other controls; a touch host widens it with its own minimum.
-    private property <length> cross-extent: max(root.theme.spacing.unit * (root.filled ? 12 : 10), KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
+    private property <length> band: mark-view.band;
+    // The track and thumb sit in the body; labels use the band beside it.
+    private property <length> body-width: root.vertical ? root.width - root.band : root.width;
+    private property <length> body-height: root.vertical ? root.height : root.height - root.band;
+    private property <length> cross-extent: max(root.theme.spacing.unit * (root.filled ? 12 : 10), KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset) + root.band;
     private property <length> travel-minimum: 120px;
     preferred-width: root.vertical ? root.cross-extent : root.travel-minimum;
     preferred-height: root.vertical ? root.travel-minimum : root.cross-extent;
     min-width: root.vertical ? root.cross-extent : root.travel-minimum;
-    min-height: root.vertical ? root.travel-minimum : root.filled ? root.cross-extent : 0px;
+    min-height: root.vertical ? root.travel-minimum : root.filled || root.band > 0px ? root.cross-extent : 0px;
+    max-width: 100000px; max-height: 100000px;
     horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: slider; accessible-label: root.label;
     accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
     private property <SliderAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.slider-accessibility(root.value, root.spec) : {valid: false};
     accessible-value: root.accessible-domain.value;
-    accessible-description: root.value-label != root.value ? root.value-label : "";
+    private property <string> mark-label: KitFieldService.ready ? KitFieldService.slider-mark-label(root.value, root.marks, root.spec) : "";
+    accessible-description: root.value-label != root.value ? root.value-label : root.mark-label;
     accessible-value-minimum: root.accessible-domain.minimum;
     accessible-value-maximum: root.accessible-domain.maximum;
     accessible-value-step: root.accessible-domain.step;
-    accessible-enabled: !root.disabled && root.accessible-domain.valid;
+    accessible-enabled: !root.disabled && root.accessible-domain.valid && !KitModalContext.inert(root.modal-layer);
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-action-set-value(value) => { root.handle-accessible-value(value); }
     accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(NavigationStep.next); } }
@@ -1579,24 +1791,39 @@ export component KitSlider inherits Rectangle {
     // slider travels its whole length.
     private property <length> edge: root.filled ? 0px : root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
     private property <float> fraction: clamp(root.position, 0, 1);
-    // A filled handle sits inside the fill, three spacing units from its edge.
+    // The fill starts at the left edge, the right edge when right-to-left.
+    private property <float> start-fraction: root.rtl ? 1 - root.fraction : 0;
+    // A filled bar handle sits inside the fill, three spacing units from its edge.
     private property <length> handle-gap: root.theme.spacing.unit * 3;
+    private property <bool> disc-handle: root.filled && root.handle-shape == SliderHandleShape.disc;
+    // A disc spans the track across the travel, less the thumb inset on each side.
+    private property <length> disc-size: max(0px, (root.vertical ? root.body-width : root.body-height) - 2 * root.choice.thumb-inset);
+    // Where the handle centres along the travel, from the fill's edge: a bar
+    // sits `handle-gap` inside the fill (`inward` is the fill's side), a disc
+    // rides the edge. Both stay their margin inside the track's `extent`.
+    pure function handle-centre(edge: length, inward: float, extent: length) -> length {
+        let margin = root.disc-handle ? root.disc-size / 2 + root.choice.thumb-inset : root.handle-gap;
+        let centre = root.disc-handle ? edge : edge + inward * root.handle-gap;
+        return clamp(centre, margin, max(margin, extent - margin));
+    }
     function update-position() {
         root.handle-position(root.vertical
             ? clamp(1 - (pointer.mouse-y - root.edge) / max(1px, root.height - 2 * root.edge), 0, 1)
-            : clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1));
+            : root.rtl
+                ? clamp(1 - (pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1)
+                : clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1));
     }
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.handle-cancel(); } }
     track := Rectangle {
-        x: root.filled ? 0px : root.vertical ? (root.width - self.width) / 2 : root.edge;
-        y: root.filled ? 0px : root.vertical ? root.edge : (root.height - self.height) / 2;
-        width: root.filled ? root.width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
-        height: root.filled ? root.height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
-        border-radius: root.filled ? min(root.theme.shape.radius-container, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
+        x: root.filled ? 0px : root.vertical ? (root.body-width - self.width) / 2 : root.edge;
+        y: root.filled ? 0px : root.vertical ? root.edge : (root.body-height - self.height) / 2;
+        width: root.filled ? root.body-width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
+        height: root.filled ? root.body-height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
+        border-radius: root.filled ? min(root.track-radius, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
         clip: root.filled;
         background: root.track-brush;
         if root.filled && root.solid-fill: Rectangle {
-            x: 0px;
+            x: track.width * root.start-fraction;
             y: root.vertical ? track.height * (1 - root.fraction) : 0px;
             width: root.vertical ? track.width : track.width * root.fraction;
             height: root.vertical ? track.height * root.fraction : track.height;
@@ -1609,7 +1836,7 @@ export component KitSlider inherits Rectangle {
             }
         }
         if !root.filled || !root.solid-fill: Rectangle {
-            x: 0px;
+            x: parent.width * root.start-fraction;
             y: root.vertical ? parent.height * (1 - root.fraction) : 0px;
             width: root.vertical ? parent.width : parent.width * root.fraction;
             height: root.vertical ? parent.height * root.fraction : parent.height;
@@ -1622,41 +1849,64 @@ export component KitSlider inherits Rectangle {
             width: parent.width; height: parent.height;
             border-radius: parent.border-radius;
             border-width: root.theme.shape.border-width;
-            border-color: root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+            border-color: root.edge-brush;
         }
         if root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
-    // A round thumb on a line; a bar across the fill's edge when filled.
+    mark-view := SliderMarks {
+        width: root.width; height: root.height;
+        theme: root.theme; choice: root.choice; marks: root.marks; spec: root.spec;
+        vertical: root.vertical; rtl: root.rtl; filled: root.filled; disabled: root.disabled;
+        edge: root.edge; fraction: root.fraction;
+    }
+    // A round thumb on a line; a bar across the fill's edge, or a disc riding
+    // it, when filled.
     handle := Rectangle {
-        private property <length> bar-length: max(0px, min(root.theme.spacing.unit * 10, (root.vertical ? root.width : root.height) - root.theme.spacing.unit * 4));
+        private property <length> bar-length: max(0px, min(root.theme.spacing.unit * 10, (root.vertical ? root.body-width : root.body-height) - root.theme.spacing.unit * 4));
         private property <length> bar-thickness: root.theme.spacing.unit * 1.5;
-        width: root.filled ? (root.vertical ? self.bar-length : self.bar-thickness) : root.choice.slider-thumb-size;
-        height: root.filled ? (root.vertical ? self.bar-thickness : self.bar-length) : root.choice.slider-thumb-size;
-        x: root.vertical ? (root.width - self.width) / 2
-            : root.filled ? clamp(root.width * root.fraction - root.handle-gap, root.handle-gap, max(root.handle-gap, root.width - root.handle-gap)) - self.width / 2
-            : root.choice.thumb-inset + (root.width - 2 * root.edge) * root.fraction;
-        y: !root.vertical ? (root.height - self.height) / 2
-            : root.filled ? clamp(root.height * (1 - root.fraction) + root.handle-gap, root.handle-gap, max(root.handle-gap, root.height - root.handle-gap)) - self.height / 2
+        private property <ShadowLayer> disc-shadow: KitThemes.shadow(root.theme, root.theme.elevation.control);
+        width: root.disc-handle ? root.disc-size : root.filled ? (root.vertical ? self.bar-length : self.bar-thickness) : root.choice.slider-thumb-size;
+        height: root.disc-handle ? root.disc-size : root.filled ? (root.vertical ? self.bar-thickness : self.bar-length) : root.choice.slider-thumb-size;
+        x: root.vertical ? (root.body-width - self.width) / 2
+            : root.filled ? root.handle-centre(root.rtl ? root.width * (1 - root.fraction) : root.width * root.fraction, root.rtl ? 1 : -1, root.width) - self.width / 2
+            : root.choice.thumb-inset + (root.width - 2 * root.edge) * (root.rtl ? 1 - root.fraction : root.fraction);
+        y: !root.vertical ? (root.body-height - self.height) / 2
+            : root.filled ? root.handle-centre(root.height * (1 - root.fraction), 1, root.height) - self.height / 2
             : root.choice.thumb-inset + (root.height - 2 * root.edge) * (1 - root.fraction);
         border-radius: min(root.theme.shape.radius-pill, min(self.width, self.height) / 2);
         background: root.handle-brush;
+        // The disc's surface ring and control shadow lift it off any fill.
+        border-width: root.disc-handle ? root.theme.shape.border-width-strong : 0px;
+        border-color: root.theme.surface;
+        drop-shadow-offset-y: root.disc-handle ? self.disc-shadow.offset-y : 0px;
+        drop-shadow-blur: root.disc-handle ? self.disc-shadow.blur : 0px;
+        drop-shadow-color: root.disc-handle ? self.disc-shadow.color : transparent;
         if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
-    keyboard := SliderKeyboard {
-        enabled: !root.disabled;
-        access: root.access; gesture-active: root.gesture-active;
+    keyboard := SliderKeyboard { modal-layer: root.modal-layer;
+        enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
+        access: root.access; gesture-active: root.gesture-active; reversed: root.rtl;
         navigate(step) => { root.handle-navigate(step); }
         committed => { root.handle-commit(); }
         cancelled => { root.gesture-active = false; root.handle-cancel(); }
     }
     pointer := TouchArea {
-        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid);
+        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid) && !KitModalContext.inert(root.modal-layer);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) { keyboard.focus(); root.gesture-active = true; root.snapshot = root.value; root.gesture-started(); root.update-position(); }
             if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.gesture-active) { root.gesture-active = false; root.handle-commit(); }
             if (event.kind == PointerEventKind.cancel && root.gesture-active) { root.gesture-active = false; root.handle-cancel(); }
         }
         moved => { if (self.pressed && root.gesture-active) { root.update-position(); } }
+        scroll-event(event) => {
+            if (!root.wheel-stepping || !keyboard.has-focus || root.gesture-active || event.modifiers.control || event.modifiers.meta || event.modifiers.alt) { return reject; }
+            // Up raises. A horizontal slider also follows sideways wheels towards its far end.
+            let raise = event.delta-y > 0px || (!root.vertical && (root.rtl ? event.delta-x < 0px : event.delta-x > 0px));
+            let lower = event.delta-y < 0px || (!root.vertical && (root.rtl ? event.delta-x > 0px : event.delta-x < 0px));
+            if (raise) { root.handle-navigate(NavigationStep.next); return accept; }
+            if (lower) { root.handle-navigate(NavigationStep.previous); return accept; }
+            return reject;
+        }
     }
     in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "1"};
     out property <bool> spec-valid: KitFieldService.ready && KitFieldService.slider-spec-valid(root.spec);
@@ -1710,14 +1960,31 @@ export component KitSlider inherits Rectangle {
 }
 
 export component KitRangeSlider inherits Rectangle {
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
+    // A vertical range puts the minimum at the bottom.
+    in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
+    // A right-to-left horizontal range starts at the right edge and Left raises
+    // the focused thumb. A vertical range ignores it.
+    in property <ChoiceFlow> flow: root.theme.direction;
+    // Track, range fill and thumb paints, as on KitSlider.
+    in property <brush> track-brush: root.theme.border-strong;
+    in property <brush> fill-brush: root.disabled ? root.theme.disabled-text : root.theme.accent;
+    in property <brush> handle-brush: root.disabled ? root.theme.disabled-text : root.theme.accent;
     in property <float> lower-position: KitFieldService.ready ? KitFieldService.slider-position(root.value.lower, root.spec) : 0;
     in property <float> upper-position: KitFieldService.ready ? KitFieldService.slider-position(root.value.upper, root.spec) : 1;
     in property <string> label;
+    // Ticks and optional labels on the track, as on KitSlider.
+    in property <[SliderMark]> marks;
+    // Opt-in: the mouse wheel steps the focused thumb like the arrow keys, up raises.
+    in property <bool> wheel-stepping: false;
     in property <string> lower-label: root.value.lower;
     in property <string> upper-label: root.value.upper;
+    // "{label}" stands for the field label, so each language chooses its word order.
+    in property <string> lower-thumb-label-template: KitStrings.range-lower-thumb-template;
+    in property <string> upper-thumb-label-template: KitStrings.range-upper-thumb-template;
     callback position-requested(RangeThumb, float);
     callback navigate(RangeThumb, NavigationStep);
     callback gesture-started(RangeThumb);
@@ -1726,35 +1993,76 @@ export component KitRangeSlider inherits Rectangle {
     private property <RangeThumb> active-thumb: RangeThumb.lower;
     private property <bool> gesture-active;
     private property <bool> disabled: root.access == FieldAccess.disabled || (root.service-ready && !root.spec-valid);
-    vertical-stretch: 0;
-    preferred-height: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
-    min-width: 120px;
+    private property <bool> vertical: root.direction == ChoiceDirection.vertical;
+    private property <bool> rtl: !root.vertical && root.flow == ChoiceFlow.right-to-left;
+    // The least distance between the thumbs as a fraction of the travel.
+    private property <float> gap-position: KitFieldService.ready ? KitFieldService.range-gap-position(root.spec) : 0;
+    private property <length> band: mark-view.band;
+    private property <length> body-width: root.vertical ? root.width - root.band : root.width;
+    private property <length> body-height: root.vertical ? root.height : root.height - root.band;
+    private property <length> cross-extent: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset) + root.band;
+    private property <length> travel-minimum: 120px;
+    preferred-width: root.vertical ? root.cross-extent : root.travel-minimum;
+    preferred-height: root.vertical ? root.travel-minimum : root.cross-extent;
+    min-width: root.vertical ? root.cross-extent : root.travel-minimum;
+    min-height: root.vertical ? root.travel-minimum : root.band > 0px ? root.cross-extent : 0px;
+    max-width: 100000px; max-height: 100000px;
+    horizontal-stretch: root.vertical ? 0 : 1;
+    vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: groupbox; accessible-label: root.label;
     public function take-focus() { lower.focus(); }
     forward-focus: lower;
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.handle-cancel(root.active-thumb); } }
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
-    function update-position() {
-        let position = clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge),0,1);
-        root.handle-position(root.active-thumb, root.active-thumb == RangeThumb.lower ? min(position,root.upper-position) : max(position,root.lower-position));
+    // The pointer's place on the travel as a domain position, 0 at the minimum.
+    function pointer-position(x: length, y: length) -> float {
+        if (root.vertical) { return clamp(1 - (y - root.edge) / max(1px, root.height - 2 * root.edge), 0, 1); }
+        if (root.rtl) { return clamp(1 - (x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1); }
+        return clamp((x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1);
     }
-    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; width: parent.width - 2 * root.edge; height: root.choice.slider-track-height; border-radius: self.height / 2; background: root.theme.border-strong;
-        Rectangle { x: parent.width * clamp(root.lower-position,0,1); width: parent.width * max(0, clamp(root.upper-position,0,1) - clamp(root.lower-position,0,1)); height: parent.height; border-radius: parent.border-radius; background: root.disabled ? root.theme.disabled-text : root.theme.accent; }
+    // A domain position as a fraction of the drawn travel from its left or top end.
+    pure function drawn(position: float) -> float {
+        return root.vertical || root.rtl ? 1 - clamp(position, 0, 1) : clamp(position, 0, 1);
+    }
+    function update-position() {
+        let position = root.pointer-position(pointer.mouse-x, pointer.mouse-y);
+        root.handle-position(root.active-thumb, root.active-thumb == RangeThumb.lower ? min(position, root.upper-position - root.gap-position) : max(position, root.lower-position + root.gap-position));
+    }
+    Rectangle {
+        x: root.vertical ? (root.body-width - self.width) / 2 : root.edge;
+        y: root.vertical ? root.edge : (root.body-height - self.height) / 2;
+        width: root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
+        height: root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
+        border-radius: min(self.width, self.height) / 2; background: root.track-brush;
+        Rectangle {
+            x: root.vertical ? 0px : parent.width * min(root.drawn(root.lower-position), root.drawn(root.upper-position));
+            y: root.vertical ? parent.height * min(root.drawn(root.lower-position), root.drawn(root.upper-position)) : 0px;
+            width: root.vertical ? parent.width : parent.width * abs(root.drawn(root.upper-position) - root.drawn(root.lower-position));
+            height: root.vertical ? parent.height * abs(root.drawn(root.upper-position) - root.drawn(root.lower-position)) : parent.height;
+            border-radius: parent.border-radius; background: root.fill-brush;
+        }
+    }
+    mark-view := SliderMarks {
+        width: root.width; height: root.height;
+        theme: root.theme; choice: root.choice; marks: root.marks; spec: root.spec;
+        vertical: root.vertical; rtl: root.rtl; filled: false; disabled: root.disabled;
+        edge: root.edge; fraction: 0;
     }
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
     private property <RangeAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.range-accessibility(root.value, root.spec) : {lower: {valid: false}, upper: {valid: false}};
-    lower := SliderKeyboard {
-        enabled: !root.disabled;
-        access: root.access; gesture-active: root.gesture-active;
-        accessible-role: slider; accessible-label: root.label + " — lower";
+    lower := SliderKeyboard { modal-layer: root.modal-layer;
+        enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
+        access: root.access; gesture-active: root.gesture-active; reversed: root.rtl;
+        accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
+        accessible-role: slider; accessible-label: root.lower-thumb-label-template.replace-all("{label}", root.label);
         accessible-value: root.accessible-domain.lower.value;
         accessible-description: root.lower-label != root.value.lower ? root.lower-label : "";
         accessible-value-minimum: root.accessible-domain.lower.minimum;
         accessible-value-maximum: root.accessible-domain.lower.maximum;
         accessible-value-step: root.accessible-domain.lower.step;
-        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.lower.valid;
+        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.lower.valid && !KitModalContext.inert(root.modal-layer);
         accessible-read-only: root.access == FieldAccess.read-only;
         accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.lower, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.next); } }
@@ -1764,16 +2072,17 @@ export component KitRangeSlider inherits Rectangle {
         committed => { root.handle-commit(RangeThumb.lower); }
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.lower); }
     }
-    upper := SliderKeyboard {
-        enabled: !root.disabled;
-        access: root.access; gesture-active: root.gesture-active;
-        accessible-role: slider; accessible-label: root.label + " — upper";
+    upper := SliderKeyboard { modal-layer: root.modal-layer;
+        enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
+        access: root.access; gesture-active: root.gesture-active; reversed: root.rtl;
+        accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
+        accessible-role: slider; accessible-label: root.upper-thumb-label-template.replace-all("{label}", root.label);
         accessible-value: root.accessible-domain.upper.value;
         accessible-description: root.upper-label != root.value.upper ? root.upper-label : "";
         accessible-value-minimum: root.accessible-domain.upper.minimum;
         accessible-value-maximum: root.accessible-domain.upper.maximum;
         accessible-value-step: root.accessible-domain.upper.step;
-        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.upper.valid;
+        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.upper.valid && !KitModalContext.inert(root.modal-layer);
         accessible-read-only: root.access == FieldAccess.read-only;
         accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.upper, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.next); } }
@@ -1783,17 +2092,23 @@ export component KitRangeSlider inherits Rectangle {
         committed => { root.handle-commit(RangeThumb.upper); }
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.upper); }
     }
-    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.lower-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+    Rectangle {
+        x: root.vertical ? (root.body-width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.lower-position);
+        y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.lower-position) : (root.body-height - self.height) / 2;
+        width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.handle-brush;
         if lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
-    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.upper-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+    Rectangle {
+        x: root.vertical ? (root.body-width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.upper-position);
+        y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.upper-position) : (root.body-height - self.height) / 2;
+        width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.handle-brush;
         if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     pointer := TouchArea {
-        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid);
+        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid) && !KitModalContext.inert(root.modal-layer);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
-                let position = clamp((self.mouse-x - root.edge) / max(1px,root.width - 2 * root.edge),0,1);
+                let position = root.pointer-position(self.mouse-x, self.mouse-y);
                 let lower-distance = abs(position - root.lower-position);
                 let upper-distance = abs(position - root.upper-position);
                 if (lower-distance < upper-distance) { root.active-thumb = RangeThumb.lower; }
@@ -1811,6 +2126,16 @@ export component KitRangeSlider inherits Rectangle {
             if (event.kind == PointerEventKind.cancel && root.gesture-active) { root.gesture-active = false; root.handle-cancel(root.active-thumb); }
         }
         moved => { if (self.pressed && root.gesture-active) { root.update-position(); } }
+        scroll-event(event) => {
+            if (!root.wheel-stepping || root.gesture-active || event.modifiers.control || event.modifiers.meta || event.modifiers.alt) { return reject; }
+            if (!lower.has-focus && !upper.has-focus) { return reject; }
+            let thumb = lower.has-focus ? RangeThumb.lower : RangeThumb.upper;
+            let raise = event.delta-y > 0px || (!root.vertical && (root.rtl ? event.delta-x < 0px : event.delta-x > 0px));
+            let lowering = event.delta-y < 0px || (!root.vertical && (root.rtl ? event.delta-x > 0px : event.delta-x < 0px));
+            if (raise) { root.handle-navigate(thumb, NavigationStep.next); return accept; }
+            if (lowering) { root.handle-navigate(thumb, NavigationStep.previous); return accept; }
+            return reject;
+        }
     }
     in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "1"};
     out property <bool> spec-valid: KitFieldService.ready && KitFieldService.slider-spec-valid(root.spec);
@@ -1864,6 +2189,7 @@ export component KitRangeSlider inherits Rectangle {
 }
 
 export component KitRating inherits Rectangle {
+    in property <int> modal-layer;
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -1872,6 +2198,7 @@ export component KitRating inherits Rectangle {
     in property <int> generation: selection.state.generation;
     in property <int> active-token: selection.state.active.token;
     in property <string> label;
+    in property <string> clear-label: KitStrings.rating-clear-label;
     callback navigate(NavigationStep);
     callback choose(int,int);
     callback clear-requested();
@@ -1889,7 +2216,7 @@ export component KitRating inherits Rectangle {
             preferred-height: preview.preferred-height;
             preview := HorizontalLayout {
                 padding: parent.recipe.group-padding; spacing: parent.recipe.group-padding;
-                for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption {
+                for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption { modal-layer: root.modal-layer;
                     theme: root.theme; control-size: root.control-size; access: root.access;
                     accessible-item-index: index; accessible-item-count: root.scale;
                     option-data: {token: index + 1, label: "\{index + 1}", selected: root.value.present && root.value.step == index + 1};
@@ -1897,7 +2224,7 @@ export component KitRating inherits Rectangle {
                 }
             }
         }
-        KitButton { theme: root.theme; control-size: root.control-size; text: "Clear rating"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { if (root.ownership == Ownership.local) { root.value = {present: false, step: 0, scale: root.scale}; } root.chosen({present: false, step: 0, scale: root.scale}); root.clear-requested(); } }
+        KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: root.clear-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { if (root.ownership == Ownership.local) { root.value = {present: false, step: 0, scale: root.scale}; } root.chosen({present: false, step: 0, scale: root.scale}); root.clear-requested(); } }
     }
     in property <int> scale: 5;
     in property <Ownership> ownership: Ownership.local;

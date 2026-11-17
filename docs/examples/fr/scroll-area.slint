@@ -1,4 +1,4 @@
-import { InterFont } from "@kit/fonts/inter.slint";
+import { InterFont } from "@kit-fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitButton, KitScrollArea, KitTextArea, KitTextField, KitTheme, KitThemes, LayoutSpace } from "@kit";
@@ -16,13 +16,26 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Zone de défilement"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitScrollArea { pan-policy: children-first; overlay-scrollbars: false; height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; text: "Notes de terrain"; } KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Adresse courriel"; text: "elliot@example.com"; } KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Site web"; text: "https://example.com"; } KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Téléphone"; text: "+1 514 555 0132"; } KitTextArea { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Notes"; text: "Gardez les observations et les décisions au même endroit."; } KitButton { theme: root.theme; text: "Enregistrer le projet"; activated => { root.status = "Action demandée"; } } }
+        KitScrollArea { focusable: true; label: "Formulaire du projet"; pan-policy: children-first; overlay-scrollbars: false; height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; text: "Notes de terrain"; } KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Adresse courriel"; text: "elliot@example.com"; } KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Site web"; text: "https://example.com"; } KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Téléphone"; text: "+1 514 555 0132"; } KitTextArea { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Notes"; text: "Gardez les observations et les décisions au même endroit."; } KitButton { theme: root.theme; text: "Enregistrer le projet"; activated => { root.status = "Action demandée"; } } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }
 
 import { ScrollFrame } from "@kit";
-export component CompositionExample inherits ScrollFrame {
-    width: 360px; height: 220px; content-width: 720px; content-height: 480px;
-    Rectangle { width: 720px; height: 480px; background: root.theme.surface; }
+export component CompositionExample inherits Window {
+    default-font-family: InterFont.family;
+    width: 360px; height: 220px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    public function restore-position() { viewport.scroll-to({x: 0px, y: 100px}, ScrollBehavior.instant); }
+    public function reveal-target() { target.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+    viewport := ScrollFrame {
+        theme: root.theme; content-width: 720px; content-height: 480px;
+        Rectangle {
+            width: 720px; height: 480px; background: root.theme.surface;
+            target := KitButton { x: 500px; y: 360px; width: 180px; theme: root.theme; text: "Cible"; }
+        }
+    }
 }
+
+// Les pas clavier sont immédiats ; les fonctions début/fin/révélation restent animées sauf réduction des animations.
+// Pour ScrollFrame, conservez content-translation-y lié à content-y ; ListView fournit zéro pour ses lignes virtuelles natives.

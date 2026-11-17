@@ -14,16 +14,17 @@ fn codec_input(rules: &HtmlConstraints, text: &str) -> String {
             rules.kind,
             HtmlInputKind::Time | HtmlInputKind::DateTimeLocal
         ) && rules.twelve_hour)
+        || (rules.kind == HtmlInputKind::Date && rules.date_entry.is_some())
     {
         text.to_owned()
     } else {
         rules.sanitize(text)
     }
 }
-fn decimal_draft(value: DecimalValue, locale: NumberLocale) -> String {
+fn decimal_draft(value: DecimalValue, syntax: NumberSyntax) -> String {
     value
         .to_string()
-        .replace('.', &locale.decimal_separator().to_string())
+        .replace('.', &syntax.decimal_separator().to_string())
 }
 
 /// Slint has no sum types: the outcome splits into its status and the text
@@ -135,6 +136,10 @@ impl<T: 'static, E: 'static> FieldSpec<T, E> {
     pub fn format(&self, value: &T) -> String {
         (self.format)(value)
     }
+    /// Parse an already accepted canonical text, without field constraints.
+    pub(crate) fn parse_text(&self, text: &str) -> DraftValue<T> {
+        (self.parse)(text)
+    }
     /// Guard Rust submission paths with the same constraints as the component.
     /// The parsed domain value is returned directly to business code.
     pub fn accept(&self, commit: ui::FieldCommit) -> Result<Option<T>, FieldSpecError<E>> {
@@ -227,9 +232,10 @@ impl FieldSpec<WebUrl> {
     }
 }
 impl FieldSpec<i64> {
-    pub fn integer() -> Self {
+    /// Grouped input follows `syntax`; the drafted text is ungrouped.
+    pub fn integer(syntax: NumberSyntax, bounds: Option<NumericBounds<i64>>) -> Self {
         Self::codec(
-            |text| parse_integer(text, NumberLocale::EnCa, None),
+            move |text| parse_integer(text, syntax, bounds),
             ToString::to_string,
         )
     }
@@ -238,7 +244,7 @@ impl FieldSpec<DecimalValue> {
     pub fn decimal(rules: DecimalRules) -> Self {
         Self::codec(
             move |text| rules.parse(text),
-            move |value| decimal_draft(*value, rules.locale),
+            move |value| decimal_draft(*value, rules.syntax),
         )
     }
 }
@@ -253,15 +259,39 @@ impl FieldSpec<Money> {
                     })
                 })
             },
-            move |value| decimal_draft(value.amount, rules.locale),
+            move |value| decimal_draft(value.amount, rules.syntax),
         )
+    }
+}
+impl FieldSpec<Money> {
+    /// Money whose scale comes from the currency: input beyond the currency's
+    /// minor units is rejected with `ScaleExceeded`. The at-rest display adds
+    /// the symbol and the digit grouping of `syntax`; the native draft stays a
+    /// plain decimal. A stored value finer than the scale shows as its draft.
+    pub fn money_in(
+        metadata: CurrencyMetadata,
+        syntax: NumberSyntax,
+        sign: SignPolicy,
+        bounds: Option<NumericBounds<DecimalValue>>,
+    ) -> Self {
+        let rules = DecimalRules {
+            syntax,
+            scale: metadata.scale,
+            sign,
+            bounds,
+        };
+        Self::money(metadata.code.clone(), rules).with_display(move |value| {
+            value
+                .format(&metadata, syntax, RoundingPolicy::Reject)
+                .unwrap_or_else(|_| decimal_draft(value.amount, syntax))
+        })
     }
 }
 impl FieldSpec<Percent> {
     pub fn percent(rules: DecimalRules) -> Self {
         Self::codec(
             move |text| map_draft(rules.parse(text), |amount| Ok(Percent(amount))),
-            move |value| decimal_draft(value.0, rules.locale),
+            move |value| decimal_draft(value.0, rules.syntax),
         )
     }
 }
@@ -276,7 +306,7 @@ impl<U: Clone + 'static> FieldSpec<Quantity<U>> {
                     })
                 })
             },
-            move |value| decimal_draft(value.value, rules.locale),
+            move |value| decimal_draft(value.value, rules.syntax),
         )
     }
 }
@@ -285,11 +315,36 @@ impl FieldSpec<CivilDate> {
         Self::codec(CivilDate::parse_iso, |value| value.iso_string())
     }
 }
-impl FieldSpec<LocalTime> {
-    pub fn time(precision: TimePrecision, clock: ClockFormat) -> Self {
+impl FieldSpec<CivilDate> {
+    /// Edit the date with one explicit pattern. `None` names keep the English
+    /// month and weekday names. Fields using this codec set the same pattern as
+    /// their `entry-format`, so HTML constraints still compare ISO values.
+    pub fn date_pattern(pattern: DatePattern, names: Option<DateNames>) -> Self {
+        let entry = DateEntry::new(pattern, names);
+        let printer = entry.clone();
         Self::codec(
-            move |text| LocalTime::parse_with_format(text, precision, clock),
-            move |value| value.format(precision, clock),
+            move |text| entry.parse(text),
+            move |value| printer.format(*value),
+        )
+    }
+}
+impl FieldSpec<LocalTime> {
+    /// Twelve-hour text uses the default AM and PM markers.
+    pub fn time(precision: TimePrecision, clock: ClockFormat) -> Self {
+        Self::time_with_markers(precision, clock, DayPeriodMarkers::default())
+    }
+    /// Twelve-hour text prints and accepts the given day-period markers.
+    pub fn time_with_markers(
+        precision: TimePrecision,
+        clock: ClockFormat,
+        markers: DayPeriodMarkers,
+    ) -> Self {
+        Self::codec(
+            {
+                let markers = markers.clone();
+                move |text| LocalTime::parse_with_markers(text, precision, clock, &markers)
+            },
+            move |value| value.format_with_markers(precision, clock, &markers),
         )
     }
 }
@@ -297,7 +352,7 @@ impl FieldSpec<Year> {
     pub fn year() -> Self {
         Self::codec(
             |text| {
-                map_draft(parse_integer(text, NumberLocale::EnCa, None), |year| {
+                map_draft(parse_integer(text, NumberSyntax::en_ca(), None), |year| {
                     Year::new(i32::try_from(year).map_err(|_| ParseIssue::InvalidDate)?)
                 })
             },
@@ -335,7 +390,7 @@ impl FieldSpec<DurationValue> {
                             .map(|duration| DurationDraft { duration, quantity })
                     })
                 },
-                move |value| decimal_draft(value.quantity, rules.locale),
+                move |value| decimal_draft(value.quantity, rules.syntax),
             ),
         }
     }
@@ -367,7 +422,7 @@ impl DurationFieldSpec {
             .rules
             .bounds
             .map_or(Ok(quantity), |bounds| bounds.validate(quantity))?;
-        Ok(decimal_draft(quantity, self.rules.locale))
+        Ok(decimal_draft(quantity, self.rules.syntax))
     }
     pub fn accept(
         &self,

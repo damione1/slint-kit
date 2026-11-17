@@ -300,14 +300,14 @@ fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating()
         window.set_theme(theme);
         for width in [320., 800.] {
             window.set_viewport_width(width);
-            settle(1);
+            settle(1000);
             let top = card.absolute_position().y
                 - scroll.absolute_position().y
                 - window.get_scroll_offset();
             let bottom = top + card.size().height;
             assert!(bottom - top > window.get_scroll_viewport_height());
             window.invoke_reveal_range(top, bottom);
-            settle(1);
+            settle(1000);
             let offset = window.get_scroll_offset();
             assert!(
                 (offset + top).abs() < 1.,
@@ -315,7 +315,7 @@ fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating()
             );
             for _ in 0..8 {
                 window.invoke_reveal_range(top, bottom);
-                settle(1);
+                settle(1000);
                 assert!(
                     (window.get_scroll_offset() - offset).abs() < 0.1,
                     "repeated focus geometry must not alternate scroll edges"
@@ -327,24 +327,24 @@ fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating()
             let end = target + review.size().height;
             assert!(end - target <= window.get_scroll_viewport_height());
             window.invoke_reveal_range(target, end);
-            settle(1);
+            settle(1000);
             let offset = window.get_scroll_offset();
             assert!(target + offset >= -0.1);
             assert!(end + offset <= window.get_scroll_viewport_height() + 0.1);
             window.invoke_reveal_range(target, end);
-            settle(1);
+            settle(1000);
             assert!((window.get_scroll_offset() - offset).abs() < 0.1);
             // Returning to a large card must preserve an existing scroll
             // position when its leading edge is already on screen.
             window.invoke_reveal_range(0., 1.);
-            settle(1);
+            settle(1000);
             let inset_top = top + 16.;
             assert!(bottom - inset_top > window.get_scroll_viewport_height());
             let offset = window.get_scroll_offset();
             assert!(inset_top + offset >= 0.);
             assert!(inset_top + offset < window.get_scroll_viewport_height());
             window.invoke_reveal_range(inset_top, bottom);
-            settle(1);
+            settle(1000);
             assert!(
                 (window.get_scroll_offset() - offset).abs() < 0.1,
                 "an already visible leading edge must preserve the saved scroll position"
@@ -520,6 +520,66 @@ fn a_toast_host_measures_exactly_its_toasts() {
     );
     let host_bottom = host.absolute_position().y + host.size().height;
     assert!((below.absolute_position().y - host_bottom).abs() < 0.5);
+}
+
+#[test]
+fn a_toast_draws_a_severity_mark_beside_its_dismiss_icon() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let toast = ElementQuery::from_root(&window)
+        .match_inherits("KitToast")
+        .find_first()
+        .unwrap();
+    let icons = toast
+        .query_descendants()
+        .match_inherits("KitIcon")
+        .find_all();
+    assert_eq!(icons.len(), 2, "severity mark and dismiss glyph");
+}
+
+#[test]
+fn escape_dismisses_the_focused_toast_and_the_host_takes_focus_for_a_hotkey() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let dismissed = Rc::new(RefCell::new(Vec::new()));
+    let observed = Rc::clone(&dismissed);
+    window.on_toast_dismiss(move |token| observed.borrow_mut().push(token));
+    key(&window, Key::Escape);
+    settle(1);
+    assert!(dismissed.borrow().is_empty(), "no toast has focus yet");
+    window.invoke_focus_toasts();
+    settle(1);
+    key(&window, Key::Escape);
+    settle(1);
+    assert_eq!(&*dismissed.borrow(), &[1]);
+}
+
+#[test]
+fn escape_leaves_a_toast_without_dismissal_open() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    window.set_entries(slint::ModelRc::new(slint::VecModel::from(vec![
+        ToastEntry {
+            token: 7,
+            title: "Syncing".into(),
+            message: "".into(),
+            action_label: "Details".into(),
+            severity: AlertSeverity::Information,
+            dismissible: false,
+            ..Default::default()
+        },
+    ])));
+    let dismissed = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&dismissed);
+    window.on_toast_dismiss(move |_| observed.set(observed.get() + 1));
+    window.invoke_focus_toasts();
+    settle(1);
+    key(&window, Key::Escape);
+    settle(1);
+    assert_eq!(dismissed.get(), 0);
 }
 
 #[test]
@@ -829,4 +889,216 @@ fn toast_queue_changes_keep_the_focused_delegate_and_release_both_pause_sources(
             window.hide().unwrap();
         }
     }
+}
+
+fn placement_fixture(placement: TooltipPlacement, target_y: f32) -> TooltipPlacementFixture {
+    let window = TooltipPlacementFixture::new().unwrap();
+    window.set_placement(placement);
+    window.set_target_y(target_y);
+    window.show().unwrap();
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(window.get_tooltip_visible());
+    window
+}
+
+#[test]
+fn tooltip_placement_puts_the_tip_on_the_requested_side_of_its_target() {
+    i_slint_backend_testing::init_no_event_loop();
+    let side = |placement| {
+        let window = placement_fixture(placement, 200.);
+        let tip = element(&window, "Delete the project");
+        let (x, y) = (
+            window.get_target_x_position(),
+            window.get_target_y_position(),
+        );
+        let (w, h) = (window.get_target_width(), window.get_target_height());
+        let (p, s) = (tip.absolute_position(), tip.size());
+        (x, y, w, h, p, s)
+    };
+    let (_, y, _, h, p, _) = side(TooltipPlacement::Below);
+    assert!(
+        p.y >= y + h,
+        "below: tip {p:?} under target bottom {}",
+        y + h
+    );
+    let (_, y, _, _, p, s) = side(TooltipPlacement::Above);
+    assert!(
+        p.y + s.height <= y,
+        "above: tip {p:?} {s:?} over target top {y}"
+    );
+    let (x, y, w, h, p, s) = side(TooltipPlacement::Right);
+    assert!(
+        p.x >= x + w,
+        "right: tip {p:?} after target right {}",
+        x + w
+    );
+    assert!(
+        (p.y + s.height / 2. - (y + h / 2.)).abs() < 12.,
+        "right: tip is centered on the target height"
+    );
+    let (x, _, _, _, p, s) = side(TooltipPlacement::Left);
+    assert!(
+        p.x + s.width <= x,
+        "left: tip {p:?} {s:?} before target left {x}"
+    );
+    // Auto sits below, then flips above when the bottom edge has no room.
+    let (_, y, _, h, p, _) = side(TooltipPlacement::Auto);
+    assert!(p.y >= y + h);
+    let window = placement_fixture(TooltipPlacement::Auto, 460.);
+    let tip = element(&window, "Delete the project");
+    assert!(tip.absolute_position().y + tip.size().height <= window.get_target_y_position());
+    in_bounds(&tip, 640., 480.);
+}
+
+#[test]
+fn a_tooltip_without_an_enabled_layer_never_claims_the_keyboard_tip() {
+    let with_layer = fixture();
+    let window = TooltipBareFixture::new().unwrap();
+    window.show().unwrap();
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(
+        !window.get_tooltip_visible(),
+        "without a layer the native hover tip stays available"
+    );
+    with_layer.invoke_focus_trigger();
+    settle(1);
+    assert!(with_layer.get_tooltip_visible());
+    with_layer.set_layer_enabled(false);
+    settle(1);
+    with_layer.invoke_blur_trigger();
+    settle(1);
+    with_layer.invoke_focus_trigger();
+    settle(1);
+    assert!(!with_layer.get_tooltip_visible());
+}
+
+#[test]
+fn a_pressable_exposes_the_tooltip_text_as_its_accessible_description() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = placement_fixture(TooltipPlacement::Auto, 200.);
+    let button = element(&window, "Delete");
+    assert_eq!(
+        button.accessible_description().as_deref(),
+        Some("Delete the project")
+    );
+}
+
+fn options_fixture() -> FeedbackOptionsFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = FeedbackOptionsFixture::new().unwrap();
+    window.show().unwrap();
+    window
+}
+
+#[test]
+fn indeterminate_progress_reports_no_value_and_runs_a_segment_along_the_track() {
+    let window = options_fixture();
+    let progress = ElementQuery::from_root(&window)
+        .match_inherits("KitProgress")
+        .find_first()
+        .unwrap();
+    assert!(
+        progress
+            .accessible_value()
+            .is_none_or(|value| value.parse::<f64>().is_err())
+    );
+    let rectangles = progress
+        .query_descendants()
+        .match_type_name("Rectangle")
+        .find_all();
+    let (track, fill) = (&rectangles[0], &rectangles[1]);
+    settle(1);
+    assert!((fill.size().width - track.size().width * 0.4).abs() <= 1.);
+    let before = fill.absolute_position().x;
+    settle(300);
+    assert!((fill.absolute_position().x - before).abs() > 1.);
+    // Reduced motion parks the segment at the track origin.
+    let mut theme = window.get_theme();
+    theme.reduced_motion = true;
+    window.set_theme(theme);
+    settle(1);
+    assert!((fill.absolute_position().x - track.absolute_position().x).abs() <= 1.);
+    // The visible reading sits beside the label.
+    element(&window, "Syncing");
+    window.set_mode(ProgressMode::Determinate);
+    settle(1);
+    assert_eq!(
+        ElementQuery::from_root(&window)
+            .match_inherits("KitProgress")
+            .find_first()
+            .unwrap()
+            .accessible_value()
+            .as_deref(),
+        Some("50")
+    );
+}
+
+#[test]
+fn radial_progress_follows_its_diameter_and_spinner_follows_its_control_size() {
+    let window = options_fixture();
+    let radial = ElementQuery::from_root(&window)
+        .match_inherits("KitRadialProgress")
+        .find_first()
+        .unwrap();
+    assert_eq!(radial.size().width, 120.);
+    assert_eq!(radial.size().height, 120.);
+    let spinner = || {
+        ElementQuery::from_root(&window)
+            .match_inherits("KitSpinner")
+            .find_first()
+            .unwrap()
+    };
+    let mut sizes = Vec::new();
+    for size in [
+        ControlSize::Compact,
+        ControlSize::Medium,
+        ControlSize::Comfortable,
+    ] {
+        window.set_spinner_size(size);
+        settle(1);
+        sizes.push(spinner().size().width);
+    }
+    assert_eq!(sizes[1], 24.);
+    assert!(sizes[0] < sizes[1] && sizes[1] < sizes[2]);
+}
+
+#[test]
+fn an_alert_places_its_actions_under_the_copy_and_grows_only_when_it_has_any() {
+    let window = options_fixture();
+    settle(1);
+    assert!(window.get_actions_alert_height() > window.get_plain_alert_height());
+    let retried = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&retried);
+    window.on_retry(move || observed.set(observed.get() + 1));
+    let retry = element(&window, "Retry");
+    let alert = ElementQuery::from_root(&window)
+        .match_inherits("KitAlert")
+        .find_all()
+        .pop()
+        .unwrap();
+    let (alert_position, alert_size) = (alert.absolute_position(), alert.size());
+    in_bounds_of(&retry, alert_position, alert_size);
+    assert!(retry.absolute_position().y > alert_position.y + alert_size.height / 2.);
+    retry.mock_single_click(PointerEventButton::Left);
+    settle(1);
+    assert_eq!(retried.get(), 1);
+    element(&window, "Details");
+}
+
+#[test]
+fn an_alert_without_a_title_draws_only_its_message_and_labels_itself_with_it() {
+    let window = options_fixture();
+    window.set_alert_title("".into());
+    settle(1);
+    assert!(window.get_plain_alert_height() > 0.);
+    element(&window, "The server did not answer.");
+}
+
+fn in_bounds_of(element: &ElementHandle, origin: LogicalPosition, size: slint::LogicalSize) {
+    let (position, extent) = (element.absolute_position(), element.size());
+    assert!(position.x >= origin.x - 1. && position.y >= origin.y - 1.);
+    assert!(position.x + extent.width <= origin.x + size.width + 1.);
+    assert!(position.y + extent.height <= origin.y + size.height + 1.);
 }

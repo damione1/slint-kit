@@ -13,18 +13,56 @@ test('documentation versions come from the workspace, not another package table'
   assert.throws(() => projectMetadata(source.replace('=1.18.1', '^1.18.1')), /pinned Slint version/);
 });
 
+function assertSourceDependency(dependency, context) {
+  const manifest = fs.readFileSync(new URL('../../Cargo.toml', import.meta.url), 'utf8');
+  const repository = manifest.match(/^repository\s*=\s*"([^"]+)"/m)?.[1];
+  assert.ok(repository, 'the workspace declares its repository');
+  assert.equal(dependency.match(/git\s*=\s*"([^"]+)"/)?.[1], repository, `${context}: repository`);
+  assert.equal(dependency.match(/branch\s*=\s*"([^"]+)"/)?.[1], 'develop', `${context}: branch`);
+  assert.doesNotMatch(dependency, /\b(?:version|rev|tag|path)\s*=/);
+}
+
 test('published guide dependency snippets use the central version', () => {
   for (const locale of ['en', 'fr']) {
     for (const guide of ['project-setup', 'native', 'workspace']) {
       const source = fs.readFileSync(new URL(`../src/${locale}/guides/${guide}.md`, import.meta.url), 'utf8');
       const dependencies = source.split('\n').filter(line => /^slint-kit(?:-build)?\s*=/.test(line) && !line.includes('path ='));
       assert.ok(dependencies.length, `${locale}/${guide}: dependency snippet`);
-      for (const dependency of dependencies) assert.match(dependency, /\{\{ project\.version \}\}/);
+      for (const dependency of dependencies) {
+        if (/\bgit\s*=/.test(dependency)) assertSourceDependency(dependency, `${locale}/${guide}`);
+        else assert.match(dependency, /\{\{ project\.version \}\}/);
+      }
     }
   }
   assert.match(loadProject().version, /^\d+\.\d+\.\d+$/);
 });
 
+
+test('project setup renders matching CLI and Cargo sources for each documentation mode', async () => {
+  const { default: nunjucks } = await import('nunjucks');
+  const env = new nunjucks.Environment(null, { autoescape: false, throwOnUndefined: true });
+  const workspace = loadProject();
+  for (const locale of ['en', 'fr']) {
+    const source = fs.readFileSync(new URL(`../src/${locale}/guides/project-setup.md`, import.meta.url), 'utf8');
+    const body = source.slice(source.indexOf('\n---\n', 4) + 5);
+    for (const registryExamples of [false, true]) {
+      const rendered = env.renderString(body, { project: { ...workspace, registryExamples } });
+      const blocks = Array.from(rendered.matchAll(/```toml\n([\s\S]*?)```/g), match => match[1]);
+      const manifests = blocks.filter(block => block.startsWith('[package]'));
+      assert.equal(manifests.length, 1, `${locale}: one complete application manifest`);
+      const [manifest] = manifests;
+      assert.ok(manifest.includes(`slint = { version = "=${workspace.slint}", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }`));
+      const dependencies = manifest.split('\n').filter(line => /^slint-kit(?:-build)?\s*=/.test(line));
+      assert.deepEqual(dependencies.map(line => line.split(' = ')[0]), ['slint-kit', 'slint-kit-build']);
+      for (const dependency of dependencies) {
+        if (registryExamples) assert.equal(dependency.split(' = ')[1], `"=${workspace.version}"`);
+        else assertSourceDependency(dependency, locale);
+      }
+      const cliRef = registryExamples ? `--tag v${workspace.version}` : '--branch develop';
+      assert.ok(rendered.includes(`cargo install --git https://github.com/damione1/slint-kit ${cliRef} slint-kit-cli --locked`));
+    }
+  }
+});
 
 test('password examples keep accepted secrets out of visible status and log sinks', () => {
   for (const locale of ['', 'fr/']) {
@@ -55,7 +93,8 @@ test('quickstart pages distinguish development APIs from immutable registry exam
           const rendered = env.renderString(template, { component: { slug }, locale, project: { registryExamples, version }, quickstart: { ...starters[slug], en: 'English usage.', fr: 'Usage français.' } });
           const development = !registryExamples || version === '0.7.2';
           if (development) {
-            assert.doesNotMatch(rendered, /cargo run --locked|\/quickstart\/projects\//);
+            assert.doesNotMatch(rendered, /cargo run --locked/);
+            assert.ok(rendered.includes(`/quickstart/projects/${slug}.zip`));
             assert.match(rendered, /(?:cannot compile|ne compilent pas)/);
             assert.match(rendered, /crates\/kit-build/);
             assert.ok(rendered.includes(`https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/${slug}`));
@@ -71,9 +110,12 @@ test('quickstart pages distinguish development APIs from immutable registry exam
   }
   const flagged = env.renderString(template, { component: { slug: 'arbitrary-new-api' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { development: true, en: 'Usage.', fr: 'Usage.' } });
   assert.match(flagged, /cannot compile/);
-  assert.doesNotMatch(flagged, /cargo run --locked|\/quickstart\/projects\//);
+  assert.doesNotMatch(flagged, /cargo run --locked/);
+  assert.ok(flagged.includes('/quickstart/projects/arbitrary-new-api.zip'));
   const existing = env.renderString(template, { component: { slug: 'button' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { en: 'Usage.', fr: 'Usage.' } });
-  assert.match(existing, /cargo run --locked/);
+  assert.doesNotMatch(existing, /cargo run --locked/);
+  assert.match(existing, /crates\/kit-build/);
+  assert.ok(existing.includes('/quickstart/projects/button.zip'));
 });
 
 test('verification-code examples retain typed accepted codes without exposing them in status or logs', () => {
@@ -109,23 +151,31 @@ test('registration form declares its typed schema and business code within fifte
   assert.doesNotMatch(main, /FormFieldPorts|on_field_edited|register_view|\.accept\(|pub fn parse/);
 });
 
-test('unreleased component starters do not link to an absent registry example', async () => {
+test('released starters offer registry projects while unpublished examples retain source guidance', async () => {
   const { default: nunjucks } = await import('nunjucks');
   const env = new nunjucks.Environment();
   env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
   const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
   const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
-  assert.equal(starters['avatar-group'].development, true);
-  assert.equal(starters['avatar-group'].registryExample, false);
   for (const locale of ['en', 'fr']) {
-    for (const registryExamples of [false, true]) {
-      for (const version of ['0.7.2', '0.7.3']) {
-        const output = env.renderString(template, { component: { slug: 'avatar-group' }, locale, project: { registryExamples, version }, quickstart: { ...starters['avatar-group'], kitVersion: '0.7.2' } });
-        assert(!output.includes('https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/avatar-group'));
-        assert(!output.includes('cargo run --locked'));
-        assert(output.includes('/quickstart/projects/avatar-group.zip'));
-        assert(output.includes(locale === 'fr' ? 'Aucun exemple de ce nouveau composant' : 'This new component has no example'));
-      }
+    const project = { registryExamples: true, version: loadProject().version };
+    for (const slug of ['avatar-group', 'tab-panel']) {
+      assert.equal(starters[slug].registryExample, true);
+      const released = env.renderString(template, { component: { slug }, locale, project, quickstart: starters[slug] });
+      assert(released.includes('cargo run --locked'));
+      assert(released.includes(`/quickstart/projects/${slug}.zip`));
+      assert(!released.includes('tree/v0.7.2/'));
     }
+    for (const [slug, quickstart] of Object.entries(starters).filter(([, starter]) => starter.newComponent)) {
+      const development = env.renderString(template, { component: { slug }, locale, project: { ...project, registryExamples: false }, quickstart });
+      assert(development.includes(`/quickstart/projects/${slug}.zip`), slug);
+      assert(development.includes('crates/kit-build'), slug);
+      assert(!development.includes('tree/v0.7.2/'), slug);
+    }
+    const pending = env.renderString(template, { component: { slug: 'unpublished-component' }, locale, project, quickstart: { ...starters['avatar-group'], registryExample: false } });
+    assert(!pending.includes('cargo run --locked'));
+    assert(pending.includes('/quickstart/projects/unpublished-component.zip'));
+    assert(pending.includes(locale === 'fr' ? 'Aucun exemple de ce nouveau composant' : 'This new component has no example'));
+    assert(!pending.includes('tree/v0.7.2/'));
   }
 });

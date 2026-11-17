@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
-use crate::ui;
+use crate::{FieldSpec, ui};
 use kit_core::{
     CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints,
-    DateDisplayPattern, DateNames, DatePattern, DateRange, DateRangeController, DateRangeRules,
-    DraftValue, Instant, NumericBounds, ParseIssue, RangeSelection, TimeZoneId, WeekStart,
+    DateDisplayPattern, DateEntry, DateNames, DatePattern, DateRange, DateRangeController,
+    DateRangeRules, DraftValue, EarlierEndPolicy, Instant, NumericBounds, ParseIssue,
+    RangeRejection, RangeSelection, TimeZoneId, WeekStart, YearMonth,
 };
 use slint::{Model, ModelRc, VecModel};
 
@@ -66,6 +67,15 @@ impl From<ui::WeekStart> for WeekStart {
         }
     }
 }
+impl From<ui::EarlierEndPolicy> for EarlierEndPolicy {
+    fn from(value: ui::EarlierEndPolicy) -> Self {
+        match value {
+            ui::EarlierEndPolicy::Restart => Self::Restart,
+            ui::EarlierEndPolicy::Swap => Self::Swap,
+            ui::EarlierEndPolicy::Reject => Self::Reject,
+        }
+    }
+}
 impl TryFrom<ui::DateRangeView> for DateRange {
     type Error = ParseIssue;
     fn try_from(range: ui::DateRangeView) -> Result<Self, Self::Error> {
@@ -92,6 +102,23 @@ impl TryFrom<ui::DateRangeDraft> for RangeSelection {
                 draft.start.try_into()?,
                 draft.end.try_into()?,
             )?)),
+        }
+    }
+}
+impl From<ParseIssue> for ui::DateRangeRejection {
+    /// A value the host supplied could not be parsed: the configuration is invalid.
+    fn from(_: ParseIssue) -> Self {
+        Self::InvalidConfiguration
+    }
+}
+impl From<RangeRejection> for ui::DateRangeRejection {
+    fn from(rejection: RangeRejection) -> Self {
+        match rejection {
+            RangeRejection::UnavailableDate => Self::UnavailableDate,
+            RangeRejection::EndBeforeStart => Self::EndBeforeStart,
+            RangeRejection::BlockedInterior => Self::BlockedInterior,
+            RangeRejection::TooShort => Self::TooShort,
+            RangeRejection::TooLong => Self::TooLong,
         }
     }
 }
@@ -186,6 +213,8 @@ pub fn calendar_projection(
                     in_range: false,
                     today: today == Some(cell.date),
                     outside_month: !cell.in_displayed_month,
+                    marker: ui::CalendarMarker::None,
+                    caption: slint::SharedString::default(),
                 }
             })
         })
@@ -223,6 +252,89 @@ fn with_week_rows(
             projection
         }
     }
+}
+/// Format an accepted ISO date for display at rest. Any text that is not a
+/// complete ISO date, or any invalid pattern or name set, yields `None` so the
+/// caller keeps the ISO text.
+fn display_date(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    let DraftValue::Parsed(date) = CivilDate::parse_iso(text) else {
+        return None;
+    };
+    display_civil_date(date, display)
+}
+/// Format an accepted `YYYY-MM` month with a date pattern (for example `%B %Y`),
+/// through its first day. Any other text, pattern or name set yields `None`.
+fn display_month(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    let DraftValue::Parsed(month) = FieldSpec::month().parse_text(text) else {
+        return None;
+    };
+    display_civil_date(month.first_day(), display)
+}
+/// Format an accepted `YYYY-Www` week with a date pattern (for example `%G, week %V`),
+/// through its Monday. Any other text, pattern or name set yields `None`.
+fn display_week(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    let DraftValue::Parsed(week) = FieldSpec::iso_week().parse_text(text) else {
+        return None;
+    };
+    display_civil_date(week.monday(), display)
+}
+fn display_civil_date(date: CivilDate, display: &ui::DateDisplay) -> Option<String> {
+    fn names<const N: usize>(model: &ModelRc<slint::SharedString>) -> Option<[String; N]> {
+        model
+            .iter()
+            .map(|name| name.to_string())
+            .collect::<Vec<_>>()
+            .try_into()
+            .ok()
+    }
+    let pattern = DateDisplayPattern::new(display.pattern.as_str()).ok()?;
+    let names = DateNames::new(
+        names(&display.months)?,
+        names(&display.short_months)?,
+        names(&display.weekdays)?,
+        names(&display.short_weekdays)?,
+    )
+    .ok()?;
+    Some(pattern.format_with_names(date, &names))
+}
+/// The typed entry a date field edits with: an empty pattern, a pattern without
+/// a complete date or an invalid name set yields `None`, and the field keeps ISO
+/// text. Four empty name lists keep the English names.
+pub(crate) fn date_entry(display: &ui::DateDisplay) -> Option<DateEntry> {
+    fn names<const N: usize>(model: &ModelRc<slint::SharedString>) -> Option<[String; N]> {
+        model
+            .iter()
+            .map(|name| name.to_string())
+            .collect::<Vec<_>>()
+            .try_into()
+            .ok()
+    }
+    if display.pattern.is_empty() {
+        return None;
+    }
+    let pattern = DatePattern::new(display.pattern.as_str()).ok()?;
+    let unnamed = [
+        &display.months,
+        &display.short_months,
+        &display.weekdays,
+        &display.short_weekdays,
+    ]
+    .iter()
+    .all(|model| model.row_count() == 0);
+    let names = if unnamed {
+        None
+    } else {
+        Some(
+            DateNames::new(
+                names(&display.months)?,
+                names(&display.short_months)?,
+                names(&display.weekdays)?,
+                names(&display.short_weekdays)?,
+            )
+            .ok()?,
+        )
+    };
+    Some(DateEntry::new(pattern, names))
 }
 struct CalendarLabels {
     names: DateNames,
@@ -329,6 +441,13 @@ fn localized_projection(
                             }
                         }
                     }
+                    if let Some(mark) = view.marks.iter().find(|mark| {
+                        CivilDate::try_from(mark.date.clone()).is_ok_and(|marked| marked == date)
+                    }) {
+                        day.marker = mark.marker;
+                        day.caption = mark.caption.clone();
+                        append(&mark.description);
+                    }
                     day.accessible_label = label.into();
                 }
                 day
@@ -380,7 +499,7 @@ where
         .set_today(date.into());
     Ok(date)
 }
-fn unix_seconds_at(now: web_time::SystemTime) -> Result<i64, ParseIssue> {
+pub(crate) fn unix_seconds_at(now: web_time::SystemTime) -> Result<i64, ParseIssue> {
     match now.duration_since(web_time::UNIX_EPOCH) {
         Ok(duration) => i64::try_from(duration.as_secs()).map_err(|_| ParseIssue::InvalidTime),
         Err(error) => {
@@ -455,20 +574,20 @@ where
         return;
     }
     service.on_initial_focus(initial_focus);
-    service.on_range_choose(|view, draft, date, minimum, maximum| {
+    service.on_range_choose(|view, draft, date, minimum, maximum, earlier_end| {
         let update = || {
-            let rules = range_rules(&view, &minimum, &maximum)?;
-            DateRangeController::reduce(draft.clone().try_into()?, rules, date.try_into()?)
+            let rules =
+                range_rules(&view, &minimum, &maximum)?.with_earlier_end(earlier_end.into());
+            let selection = RangeSelection::try_from(draft.clone())?;
+            DateRangeController::reduce(selection, rules, date.try_into()?)
+                .map_err(ui::DateRangeRejection::from)
         };
         match update() {
             Ok(next) => ui::DateRangeUpdate {
                 draft: next.into(),
-                rejected: false,
+                rejection: ui::DateRangeRejection::None,
             },
-            Err(_) => ui::DateRangeUpdate {
-                draft,
-                rejected: true,
-            },
+            Err(rejection) => ui::DateRangeUpdate { draft, rejection },
         }
     });
     service.on_range_valid(|view, range, minimum, maximum| {
@@ -496,6 +615,30 @@ where
             |date| date.iso_string().into(),
         )
     });
+    service.on_date_entry_valid(|display| date_entry(&display).is_some());
+    service.on_parse_date_entry(|text, display| {
+        match date_entry(&display).map(|entry| entry.parse(text.as_str())) {
+            Some(DraftValue::Parsed(date)) => date.into(),
+            Some(DraftValue::Empty | DraftValue::Incomplete | DraftValue::Invalid(_)) | None => {
+                ui::CivilDateView::default()
+            }
+        }
+    });
+    service.on_format_date_entry(|date, display| {
+        match (date_entry(&display), CivilDate::try_from(date)) {
+            (Some(entry), Ok(date)) => entry.format(date).into(),
+            (None, _) | (_, Err(_)) => slint::SharedString::default(),
+        }
+    });
+    service.on_display_date(|text, display| {
+        display_date(text.as_str(), &display).map_or(text, slint::SharedString::from)
+    });
+    service.on_display_month(|text, display| {
+        display_month(text.as_str(), &display).map_or(text, slint::SharedString::from)
+    });
+    service.on_display_week(|text, display| {
+        display_week(text.as_str(), &display).map_or(text, slint::SharedString::from)
+    });
     service
         .on_project(|view, text| localized_projection(view, text, RangeSelection::ChoosingStart));
     service.on_navigate(|view, direction| {
@@ -509,6 +652,21 @@ where
             direction.into(),
         )
         .map_or(view.focused, |state| state.focused.into())
+    });
+    // Month and year pickers jump to any month; the day clamps to that month and
+    // the result clamps into the bounds, so an unreachable month comes back
+    // as a different month and the caller can disable it.
+    service.on_show_month(|view, year, month| {
+        let target = u32::try_from(month)
+            .map_err(|_| ParseIssue::InvalidDate)
+            .and_then(|month| YearMonth::new(year, month));
+        match (parse(&view), target) {
+            (Ok(mut calendar), Ok(target)) => {
+                calendar.show_month(target);
+                calendar.focused().into()
+            }
+            (Err(_), _) | (_, Err(_)) => view.focused,
+        }
     });
     service.on_allowed(|view, date| {
         let Ok(calendar) = parse(&view) else {

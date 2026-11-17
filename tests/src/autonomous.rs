@@ -251,10 +251,13 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
         ui::ClockFormat::TwentyFourHour,
     );
     assert_eq!(resolution.state, ui::ZonedTimePresentation::Ambiguous);
+    assert_eq!(resolution.utc_offset_seconds, -4 * 3600);
+    assert_eq!(resolution.later_utc_offset_seconds, -5 * 3600);
     let commit = ui::ZonedDateTimeCommit {
         local: resolution.local.clone(),
         zone: draft.zone.clone(),
         acceptance: ui::ZonedAcceptance::Unique,
+        utc_offset_seconds: 0,
     };
     assert!(slint_kit::ResolvedDateTime::try_from(commit.clone()).is_err());
     let earlier = slint_kit::ResolvedDateTime::try_from(ui::ZonedDateTimeCommit {
@@ -268,6 +271,8 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
     })
     .unwrap();
     assert_ne!(earlier.instant, later.instant);
+    assert_eq!(earlier.utc_offset().seconds(), -4 * 3600);
+    assert_eq!(later.utc_offset().seconds(), -5 * 3600);
     let gap = service.invoke_resolve(
         ui::ZonedDateTimeDraft {
             date: "2026-03-08".into(),
@@ -278,6 +283,7 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
         ui::ClockFormat::TwentyFourHour,
     );
     assert_eq!(gap.state, ui::ZonedTimePresentation::Nonexistent);
+    assert_eq!(gap.utc_offset_seconds, 0);
     assert_eq!(
         service.invoke_adjust(
             "23:59".into(),
@@ -357,13 +363,55 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
         date(20),
         "2".into(),
         "14".into(),
+        ui::EarlierEndPolicy::Restart,
     );
-    assert!(rejected.rejected);
+    assert_eq!(rejected.rejection, ui::DateRangeRejection::TooShort);
     assert_eq!(rejected.draft, draft);
-    assert!(
-        !service
-            .invoke_range_choose(view.clone(), draft, date(21), "2".into(), "14".into())
-            .rejected
+    assert_eq!(
+        service
+            .invoke_range_choose(
+                view.clone(),
+                draft.clone(),
+                date(21),
+                "2".into(),
+                "14".into(),
+                ui::EarlierEndPolicy::Restart
+            )
+            .rejection,
+        ui::DateRangeRejection::None
+    );
+    let restarted = service.invoke_range_choose(
+        view.clone(),
+        draft.clone(),
+        date(12),
+        "2".into(),
+        "14".into(),
+        ui::EarlierEndPolicy::Restart,
+    );
+    assert_eq!(restarted.rejection, ui::DateRangeRejection::None);
+    assert_eq!(restarted.draft.phase, ui::DateRangePhase::ChoosingEnd);
+    assert_eq!(restarted.draft.start, date(12));
+    let refused = service.invoke_range_choose(
+        view.clone(),
+        draft.clone(),
+        date(12),
+        "2".into(),
+        "14".into(),
+        ui::EarlierEndPolicy::Reject,
+    );
+    assert_eq!(refused.rejection, ui::DateRangeRejection::EndBeforeStart);
+    assert_eq!(refused.draft, draft);
+    let invalid = service.invoke_range_choose(
+        view.clone(),
+        draft.clone(),
+        date(21),
+        "two".into(),
+        "14".into(),
+        ui::EarlierEndPolicy::Restart,
+    );
+    assert_eq!(
+        invalid.rejection,
+        ui::DateRangeRejection::InvalidConfiguration
     );
     for (minimum, maximum) in [("-1", "14"), ("15", "14"), ("two", "14")] {
         assert!(!service.invoke_range_valid(
@@ -484,14 +532,14 @@ fn field_submission_rejects_an_absent_projection_with_hidden_text() {
 #[test]
 fn localized_field_codecs_keep_decimal_comma_and_twelve_hour_grammar_through_commit_and_cancel() {
     use slint_kit::{
-        ClockFormat, DecimalRules, DecimalScale, DecimalValue, LocalTime, NumberLocale, SignPolicy,
+        ClockFormat, DecimalRules, DecimalScale, DecimalValue, LocalTime, NumberSyntax, SignPolicy,
         TimePrecision,
     };
     i_slint_backend_testing::init_no_event_loop();
     let window = crate::LocalizedFieldFixture::new().unwrap();
     slint_kit::install(&window);
     let decimal = FieldSpec::decimal(DecimalRules {
-        locale: NumberLocale::FrCa,
+        syntax: NumberSyntax::fr_ca(),
         scale: DecimalScale::new(2).unwrap(),
         sign: SignPolicy::Signed,
         bounds: None,

@@ -107,6 +107,8 @@ pub struct HtmlConstraints {
     pub number_format: NumberInputFormat,
     /// Native twelve-hour presentation; values and constraints remain canonical.
     pub twelve_hour: bool,
+    /// The markers a twelve-hour draft uses; ignored unless `twelve_hour` is set.
+    pub day_periods: crate::DayPeriodMarkers,
     pub required: bool,
     pub multiple: bool,
     /// HTML lengths count UTF-16 code units, independently of a grapheme counter.
@@ -122,6 +124,9 @@ pub struct HtmlConstraints {
     pub custom_error: String,
     pub disabled: bool,
     pub read_only: bool,
+    /// Date drafts follow this pattern; `min`, `max` and the submission value
+    /// stay ISO. Only `HtmlInputKind::Date` reads it.
+    pub date_entry: Option<crate::DateEntry>,
 }
 impl Default for HtmlConstraints {
     fn default() -> Self {
@@ -129,6 +134,7 @@ impl Default for HtmlConstraints {
             kind: HtmlInputKind::Text,
             number_format: NumberInputFormat::Canonical,
             twelve_hour: false,
+            day_periods: crate::DayPeriodMarkers::default(),
             required: false,
             multiple: false,
             min_length: None,
@@ -141,6 +147,7 @@ impl Default for HtmlConstraints {
             custom_error: String::new(),
             disabled: false,
             read_only: false,
+            date_entry: None,
         }
     }
 }
@@ -191,11 +198,18 @@ impl HtmlConstraints {
             let candidate = if self.kind == HtmlInputKind::Number {
                 canonical_number_draft(draft, self.number_format)
             } else if self.twelve_hour && self.kind == HtmlInputKind::Time {
-                canonical_clock_draft(draft)
+                canonical_clock_draft(draft, &self.day_periods)
             } else if self.twelve_hour && self.kind == HtmlInputKind::DateTimeLocal {
-                draft
-                    .split_once(['T', ' '])
-                    .and_then(|(d, t)| canonical_clock_draft(t).map(|t| format!("{d}T{t}")))
+                draft.split_once(['T', ' ']).and_then(|(d, t)| {
+                    canonical_clock_draft(t, &self.day_periods).map(|t| format!("{d}T{t}"))
+                })
+            } else if let (HtmlInputKind::Date, Some(entry)) = (self.kind, &self.date_entry) {
+                match entry.parse(draft) {
+                    crate::DraftValue::Parsed(date) => Some(date.iso_string()),
+                    crate::DraftValue::Empty
+                    | crate::DraftValue::Incomplete
+                    | crate::DraftValue::Invalid(_) => None,
+                }
             } else {
                 Some(draft.into())
             };
@@ -406,23 +420,27 @@ pub fn html_email_address(value: &str) -> bool {
         })
 }
 /// Localized editing is a projection; min/max/step always use HTML syntax.
-fn canonical_clock_draft(draft: &str) -> Option<String> {
+fn canonical_clock_draft(draft: &str, markers: &crate::DayPeriodMarkers) -> Option<String> {
     for precision in [crate::TimePrecision::Minute, crate::TimePrecision::Second] {
-        if let crate::DraftValue::Parsed(time) =
-            crate::LocalTime::parse_with_format(draft, precision, crate::ClockFormat::TwelveHour)
-        {
+        if let crate::DraftValue::Parsed(time) = crate::LocalTime::parse_with_markers(
+            draft,
+            precision,
+            crate::ClockFormat::TwelveHour,
+            markers,
+        ) {
             return Some(time.format(precision, crate::ClockFormat::TwentyFourHour));
         }
     }
     None
 }
 fn canonical_number_draft(draft: &str, format: NumberInputFormat) -> Option<String> {
-    let locale = match format {
-        NumberInputFormat::Canonical => crate::NumberLocale::EnCa,
-        NumberInputFormat::DecimalComma => crate::NumberLocale::FrCa,
-    };
-    crate::numeric::canonical_number_syntax::<()>(draft, locale, true, crate::SignPolicy::Signed)
-        .ok()
+    crate::numeric::canonical_number_syntax::<()>(
+        draft,
+        format.syntax(),
+        true,
+        crate::SignPolicy::Signed,
+    )
+    .ok()
 }
 /// Filter insertions without owning native selection, caret, composition or undo.
 /// Incomplete exponent/sign drafts remain editable and validate as badInput.
@@ -866,6 +884,27 @@ mod tests {
         assert!(validate(&c, ".5").valid());
     }
     #[test]
+    fn date_entry_sanitizes_the_pattern_draft_to_iso_and_keeps_iso_bounds() {
+        let mut c = rules(HtmlInputKind::Date);
+        c.date_entry = Some(crate::DateEntry::new(
+            crate::DatePattern::new("%d/%m/%Y").unwrap(),
+            None,
+        ));
+        c.minimum = Some("2026-10-10".into());
+        c.maximum = Some("2026-10-20".into());
+        assert_eq!(c.sanitize("15/10/2026"), "2026-10-15");
+        assert!(validate(&c, "15/10/2026").valid());
+        assert!(validate(&c, "09/10/2026").range_underflow);
+        assert!(validate(&c, "21/10/2026").range_overflow);
+        for draft in ["2026-10-15", "31/02/2026", "15/10", "x"] {
+            assert!(validate(&c, draft).bad_input, "{draft}");
+            assert_eq!(c.sanitize(draft), "", "{draft}");
+        }
+        assert!(validate(&c, "").valid());
+        c.required = true;
+        assert!(validate(&c, "").value_missing);
+    }
+    #[test]
     fn temporal_constraints_keep_calendar_and_periodic_time_semantics() {
         let mut c = rules(HtmlInputKind::Date);
         assert!(validate(&c, "2024-02-29").valid());
@@ -1105,6 +1144,32 @@ mod localized_time_tests {
         rules.minimum = Some("2026-10-28T13:00".into());
         rules.maximum = None;
         assert_eq!(rules.sanitize("2026-10-28T01:30 PM"), "2026-10-28T13:30");
+    }
+    #[test]
+    fn twelve_hour_bounds_follow_custom_day_period_markers() {
+        let rules = HtmlConstraints {
+            kind: HtmlInputKind::Time,
+            twelve_hour: true,
+            day_periods: crate::DayPeriodMarkers::new("午前", "午後").unwrap(),
+            minimum: Some("13:00".into()),
+            ..Default::default()
+        };
+        assert_eq!(rules.sanitize("01:30 午後"), "13:30");
+        assert!(
+            rules
+                .validate("01:30 午後", HtmlInputState::default())
+                .valid()
+        );
+        assert!(
+            rules
+                .validate("01:30 午前", HtmlInputState::default())
+                .range_underflow
+        );
+        assert!(
+            rules
+                .validate("01:30 PM", HtmlInputState::default())
+                .bad_input
+        );
     }
 }
 

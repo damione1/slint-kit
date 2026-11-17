@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitFocusTarget, KitTheme, KitThemes, FocusRequest } from "@kit";
+
+export component FocusTargetFixture inherits Window {
+    width: 320px; height: 120px;
+    in property <FocusRequest> request;
+    in property <int> generation: 1;
+    in property <bool> eligible: true;
+    in-out property <int> applied;
+    out property <bool> action-focused: action.has-focus;
+    callback observed(int, int, bool);
+    public function focus-other() { other.take-focus(); }
+    private property <KitTheme> theme: KitThemes.light;
+    VerticalLayout {
+        target := KitFocusTarget {
+            token: 7; generation: root.generation; eligible: root.eligible; request: root.request;
+            focus-requested => { action.take-focus(); }
+            focus-applied(token, generation, request) => { root.applied = request; }
+            focus-observed(token, generation, focused) => { root.observed(token, generation, focused); }
+            action := KitButton {
+                theme: root.theme; text: "Delegated action";
+                focus-observed(focused) => { target.observe-focus(focused); }
+            }
+        }
+        other := KitButton { theme: root.theme; text: "Other action"; }
+    }
+}

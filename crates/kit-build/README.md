@@ -4,9 +4,11 @@ The build-time companion to [Slint Kit](https://slint-kit.dev/guides/why-slint-k
 
 Use it with the same-release `slint-kit` runtime. It supplies the shared window service exports used by `slint_kit::install(&window)`, so ordinary applications import components and connect business callbacks without per-component global wiring. See [project setup](https://slint-kit.dev/guides/project-setup/) ([français](https://slint-kit.dev/fr/guides/project-setup/)).
 
+Use matching Slint Kit 0.9.0 packages with Rust 1.95 and Slint 1.19. See the [migration notes](https://slint-kit.dev/changelog/) before upgrading from an earlier release.
+
 ```toml
 [build-dependencies]
-slint-kit-build = "0.7"
+slint-kit-build = { version = "=0.9.0" }
 ```
 
 In `build.rs`:
@@ -17,21 +19,23 @@ fn main() {
 }
 ```
 
-Use [`slint-kit`](https://crates.io/crates/slint-kit) in application dependencies. Rust 1.92 or later and Slint 1.18.1 are required. For custom compiler configuration, start with `slint_kit_build::config()` and pass the result to `slint_kit_build::compile_with_config(path, config)`. Preserve its library paths; calling the low-level Slint compiler directly does not add the window service exports.
+Use [`slint-kit`](https://crates.io/crates/slint-kit) in application dependencies. Rust 1.95 or later and Slint 1.19.0 are required. For custom compiler configuration, start with `slint_kit_build::config()` and pass the result to `slint_kit_build::compile_with_config(path, config)`. Preserve its library paths; calling the low-level Slint compiler directly does not add the window service exports.
 
 Windows requires 0.7.1 or later; 0.7.0 incorrectly escapes canonical source paths. The helpers accept relative, absolute and canonical paths, including spaces and Unicode, while preserving application include paths and library aliases. Paths containing quotes or line breaks cannot be represented in a Slint import and return a diagnostic.
 
 ## Editor imports
 
-The Slint language server does not read `build.rs`. For a crates.io consumer, run `cargo vendor --locked target/slint-editor/vendor` from the application workspace root, then configure VS Code's `slint.libraryPaths` with `{"kit": "target/slint-editor/vendor/slint-kit-slint/ui"}`, or pass `-L kit=target/slint-editor/vendor/slint-kit-slint/ui` to `slint-lsp` in Zed. These paths assume one kit version and Cargo's default vendor directory naming. Vendoring copies all remote dependencies; rerun it after updating the lockfile or cleaning `target/`.
+The Slint language server does not read `build.rs`. For a crates.io consumer, run `cargo vendor --locked target/slint-editor/vendor` from the application workspace root, then configure VS Code's `slint.libraryPaths` with `{"kit": "target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json"}`, or pass `-L kit=target/slint-editor/vendor/slint-kit-slint/ui/slint-project.json` to `slint-lsp` in Zed. These paths assume one kit version and Cargo's default vendor directory naming. Vendoring copies all remote dependencies; rerun it after updating the lockfile or cleaning `target/`.
 
 For complete editor settings, local path dependencies and troubleshooting, see [Editor setup](https://slint-kit.dev/guides/editor/) ([français](https://slint-kit.dev/fr/guides/editor/)).
 
 ## Shared modules and compatibility
 
-Slint Kit supports Slint **1.18 patch releases from 1.18.1** and enables its experimental module-build feature inside the build package. Components, structs, enums and globals use the single `@kit` entry point; supplemental font/icon imports retain their paths. Keep the runtime dependency named `slint-kit` so generated references to `slint_kit::ui` resolve. `compile` supplies the window globals needed by `slint_kit::install`; no per-component export list is needed in application UI.
+The build helper defaults applications to Slint language edition 1.18; the `@kit` library uses its own edition 1.19 project. Applications can opt into 1.19 with `config().with_edition((1, 19))`. Components use `@kit`; optional Lucide globals use `@kit-icons/all.slint` or category files, and Inter uses `@kit-fonts/inter.slint`. These three aliases are reserved.
 
-The experimental feature is isolated here rather than exposed as application configuration. If an upstream release removes it, the compatibility fallback is a build-generated Slint entry point that re-exports the application and kit contracts, with typed Rust glue included through `SLINT_INCLUDE_GENERATED`. That fallback preserves the public import/props/callback and per-window `install` contract; it is a migration strategy, not an alternative backend enabled in the current 1.18.1 package.
+Slint Kit supports Slint **1.19 patch releases from 1.19.0** and enables its experimental module-build feature inside the build package. Components, structs, enums and globals use the single `@kit` entry point; supplemental font/icon imports use the dedicated resource aliases above. Keep the runtime dependency named `slint-kit` so generated references to `slint_kit::ui` resolve. `compile` supplies the window globals needed by `slint_kit::install`; no per-component export list is needed in application UI.
+
+The experimental feature is isolated here rather than exposed as application configuration. If an upstream release removes it, the compatibility fallback is a build-generated Slint entry point that re-exports the application and kit contracts, with typed Rust glue included through `SLINT_INCLUDE_GENERATED`. That fallback preserves the public import/props/callback and per-window `install` contract; it is a migration strategy, not an alternative backend enabled in the current 1.19.0 package.
 
 ```rust
 let config = slint_kit_build::config().with_style("fluent".into());
@@ -41,13 +45,15 @@ slint_kit_build::compile_with_config("ui/app.slint", config)
 
 ## Modules partagés et compatibilité
 
-Slint Kit prend en charge les **versions correctives de Slint 1.18 à partir de la 1.18.1** et active sa compilation expérimentale de modules dans le paquet build. Composants, structs, enums et globals passent par l’unique point d’entrée `@kit` ; les imports supplémentaires de polices/icônes conservent leurs chemins. Gardez la dépendance runtime nommée `slint-kit` pour résoudre `slint_kit::ui`. `compile` fournit les globals nécessaires à `slint_kit::install` sans liste d’exports par composant dans l’application.
+Le helper conserve l’édition 1.18 pour les applications par défaut ; `@kit` utilise son propre projet en édition 1.19. `config().with_edition((1, 19))` fait aussi passer l’application en 1.19. Les composants utilisent `@kit`, Lucide `@kit-icons/all.slint` ou les fichiers de catégorie, et Inter `@kit-fonts/inter.slint`. Ces trois alias sont réservés.
+
+Slint Kit prend en charge les **versions correctives de Slint 1.19 à partir de la 1.19.0** et active sa compilation expérimentale de modules dans le paquet build. Composants, structs, enums et globals passent par l’unique point d’entrée `@kit` ; les imports de polices/icônes utilisent les alias dédiés ci-dessus. Gardez la dépendance runtime nommée `slint-kit` pour résoudre `slint_kit::ui`. `compile` fournit les globals nécessaires à `slint_kit::install` sans liste d’exports par composant dans l’application.
 
 Pour personnaliser le compilateur, partez de `config()` puis appelez `compile_with_config(path, config)` : les chemins de bibliothèques et exports de services restent configurés. L’appel direct au compilateur Slint de bas niveau n’ajoute pas ces exports.
 
 Sous Windows, utilisez la 0.7.1 ou une version ultérieure ; la 0.7.0 échappait incorrectement les chemins canonicalisés. Les helpers acceptent les chemins relatifs, absolus et canonicalisés, avec espaces et Unicode, en conservant les chemins d’inclusion et alias de bibliothèques. Les chemins contenant des guillemets ou sauts de ligne ne sont pas représentables dans un import Slint et renvoient un diagnostic.
 
-La fonctionnalité expérimentale reste isolée dans ce paquet. Si une version amont la retire, le repli de compatibilité est un point d’entrée Slint généré qui réexporte l’application et les contrats du kit, avec une liaison Rust typée incluse par `SLINT_INCLUDE_GENERATED`. Ce repli préserve le contrat public import/propriétés/callback et `install` par fenêtre ; il s’agit d’une stratégie de migration, pas d’un autre backend activé dans le paquet 1.18.1 actuel.
+La fonctionnalité expérimentale reste isolée dans ce paquet. Si une version amont la retire, le repli de compatibilité est un point d’entrée Slint généré qui réexporte l’application et les contrats du kit, avec une liaison Rust typée incluse par `SLINT_INCLUDE_GENERATED`. Ce repli préserve le contrat public import/propriétés/callback et `install` par fenêtre ; il s’agit d’une stratégie de migration, pas d’un autre backend activé dans le paquet 1.19.0 actuel.
 
 Original implementation under [GNU GPL v3.0 or later](LICENSE). Dependencies retain their own licenses.
 

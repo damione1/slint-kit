@@ -22,15 +22,29 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Register the kit while preserving application-specific libraries.
 /// Debug metadata follows Slint defaults, including `SLINT_EMIT_DEBUG_INFO`.
-/// `kit` is reserved; conflicting registrations fail at the boundary.
+/// `kit`, `kit-icons` and `kit-fonts` are reserved; conflicting registrations fail
+/// at the boundary. The application defaults to edition 1.18, independently of
+/// the library project’s edition 1.19.
 pub fn config_with_libraries(
     mut libraries: HashMap<String, PathBuf>,
 ) -> slint_build::CompilerConfiguration {
     assert!(
-        libraries.insert("kit".into(), ui_directory()).is_none(),
+        libraries
+            .insert("kit".into(), ui_directory().join("slint-project.json"))
+            .is_none(),
         "kit is a reserved library alias"
     );
-    slint_build::CompilerConfiguration::new().with_library_paths(libraries)
+    for (alias, directory) in [("kit-icons", "icons/lucide"), ("kit-fonts", "fonts")] {
+        assert!(
+            libraries
+                .insert(alias.into(), ui_directory().join(directory))
+                .is_none(),
+            "{alias} is a reserved library alias"
+        );
+    }
+    slint_build::CompilerConfiguration::new()
+        .with_edition((1, 18))
+        .with_library_paths(libraries)
 }
 
 pub fn config() -> slint_build::CompilerConfiguration {
@@ -52,7 +66,7 @@ pub fn compile_with_config(
     println!("cargo:rerun-if-env-changed=SLINT_LIVE_PREVIEW");
     if std::env::var_os("SLINT_LIVE_PREVIEW").is_some() {
         return Err(slint_build::CompileError::CompileError(vec![
-            "SLINT_LIVE_PREVIEW is not supported with Slint Kit's shared library globals in Slint 1.18.1 (slint-ui/slint#14812). Unset SLINT_LIVE_PREVIEW, including in build.rs, and rebuild. The slint/mcp feature and SLINT_EMIT_DEBUG_INFO remain supported; editor/slint-viewer static previews do not require this variable.".into(),
+            "SLINT_LIVE_PREVIEW is not supported with Slint Kit's shared library globals in Slint 1.19.0 (slint-ui/slint#14812). Unset SLINT_LIVE_PREVIEW, including in build.rs, and rebuild. The slint/mcp feature and SLINT_EMIT_DEBUG_INFO remain supported; editor/slint-viewer static previews do not require this variable.".into(),
         ]));
     }
     let diagnostic =
@@ -64,10 +78,25 @@ pub fn compile_with_config(
         std::env::var_os("OUT_DIR").ok_or(slint_build::CompileError::NotRunViaCargo)?,
     );
     let wrapper = output.join("kit-app.slint");
-    std::fs::write(&wrapper, format!(
-        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }}\n"
-    )).map_err(slint_build::CompileError::SaveError)?;
+    write_if_changed(&wrapper, &wrapper_source(&source))
+        .map_err(slint_build::CompileError::SaveError)?;
     slint_build::compile_with_config(wrapper, configuration)
+}
+
+fn wrapper_source(source: &str) -> String {
+    format!(
+        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }}\n"
+    )
+}
+
+// Slint registers the wrapper as a build-script input. Rewriting identical
+// bytes gives it a newer timestamp than the script run, so Cargo would
+// recompile the application crate on every build.
+fn write_if_changed(path: &Path, contents: &str) -> std::io::Result<()> {
+    if std::fs::read_to_string(path).is_ok_and(|existing| existing == contents) {
+        return Ok(());
+    }
+    std::fs::write(path, contents)
 }
 
 // Slint import strings are literal paths, not Rust strings: Debug escaping
@@ -230,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn application_libraries_compile_with_the_default_theme() {
+    fn edition_118_application_libraries_compile_with_the_default_theme() {
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -244,17 +273,57 @@ mod tests {
         let input = directory.join("app.slint");
         std::fs::write(
             &input,
-            r#"import { KitButton } from "@kit/kit.slint";
+            r#"import { KitButton } from "@kit";
+            import { LucideIcons } from "@kit-icons/all.slint";
+            import { InterFont } from "@kit-fonts/inter.slint";
             import { Adornment } from "@app/adornment.slint";
             export component App inherits Window {
-                HorizontalLayout { Adornment {} KitButton { text: "Consumer"; } }
+                default-font-family: InterFont.family;
+                HorizontalLayout { Adornment {} KitButton { text: "Consumer"; leading-icon: LucideIcons.plus(); } }
             }"#,
         )
         .unwrap();
-        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]));
-        let result =
-            slint_build::compile_with_output_path(&input, directory.join("app.rs"), config);
+        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]))
+            .with_edition((1, 18));
+        slint_build::compile_with_output_path(&input, directory.join("app.rs"), config).expect(
+            "edition 1.18 application, edition 1.19 kit and resource aliases compile together",
+        );
+        std::fs::write(
+            &input,
+            r#"import { KitButton } from "@kit/button.slint";
+            export component App inherits Window { KitButton {} }"#,
+        )
+        .unwrap();
+        let error = slint_build::compile_with_output_path(
+            &input,
+            directory.join("private.rs"),
+            super::config(),
+        )
+        .expect_err("the kit alias must load its project file rather than a directory");
+        assert!(format!("{error:?}").contains("private to a library with a project file"));
         std::fs::remove_dir_all(directory).unwrap();
-        result.expect("kit and application aliases compile together");
+    }
+
+    #[test]
+    fn unchanged_wrapper_keeps_its_modification_time() {
+        let directory =
+            std::env::temp_dir().join(format!("kit-wrapper-stamp-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let wrapper = directory.join("kit-app.slint");
+        let contents = wrapper_source("\"ui/app.slint\"");
+        write_if_changed(&wrapper, &contents).unwrap();
+        let first = std::fs::metadata(&wrapper).unwrap().modified().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        write_if_changed(&wrapper, &contents).unwrap();
+        assert_eq!(
+            std::fs::metadata(&wrapper).unwrap().modified().unwrap(),
+            first
+        );
+        write_if_changed(&wrapper, "export * from \"other.slint\";\n").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&wrapper).unwrap(),
+            "export * from \"other.slint\";\n"
+        );
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }

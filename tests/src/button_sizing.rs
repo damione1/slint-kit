@@ -56,6 +56,9 @@ fn native_tab_reveals_the_entire_button_focus_outline_at_either_scroll_edge() {
                 text: Key::Tab.into(),
             });
             assert!(window.get_target_focused());
+            // Slint 1.19 scrolls native Tab focus smoothly; assert settled geometry.
+            i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_secs(1));
+            slint::platform::update_timers_and_animations();
             assert!(
                 window.get_outline_top() >= window.get_viewport_top() - 0.1,
                 "top outline clipped at scale {scale}, from_below={from_below}"

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenuBar, KitTabs, KitAccordion, KitCarousel, KitBreadcrumbs, KitPagination, KitMenu, KitButton, KitDrawer, KitTextField, KitTheme, KitThemes, OptionRow, SelectState, SelectionAvailability } from "@kit";
+import { MenuItem, KitMenuBar, KitTabs, KitAccordion, KitCarousel, KitBreadcrumbs, KitPagination, KitMenu, KitButton, KitDrawer, KitTextField, KitTheme, KitThemes, OptionRow, SelectState, SelectionAvailability } from "@kit";
 
 export component MenuFocusFixture inherits Window {
     width: 400px; height: 300px;
@@ -80,5 +80,26 @@ export component NavigationInteractiveFixture inherits Window {
             navigate(step) => { root.action(); }
         }
         outside := KitButton { text: "Outside"; }
+    }
+}
+
+export component MenuItemsFixture inherits Window {
+    width: 400px; height: 400px;
+    in property <[OptionRow]> rows;
+    in property <[MenuItem]> items;
+    in property <int> active-index: 0;
+    in property <int> active-token: 1;
+    in property <length> max-natural-height: 320px;
+    out property <length> menu-height: menu.preferred-height;
+    callback activated(int, int);
+    VerticalLayout {
+        alignment: start;
+        menu := KitMenu {
+            rows: root.rows; items: root.items; max-natural-height: root.max-natural-height;
+            state: { generation: 1, open: true, active-index: root.active-index,
+                active: { present: true, token: root.active-token }, selected: { present: false, token: 0 },
+                selection-availability: SelectionAvailability.absent };
+            activate(token, generation) => { root.activated(token, generation); }
+        }
     }
 }

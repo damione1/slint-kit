@@ -11,6 +11,7 @@
 
 mod choices;
 mod color;
+mod fence;
 mod field;
 mod file;
 mod focus;
@@ -21,13 +22,16 @@ mod notification;
 mod numeric;
 mod overlay;
 mod phone;
+mod router;
 mod select;
+mod sidebar;
 mod temporal;
 mod text;
 mod text_filter;
 
 pub use choices::*;
 pub use color::*;
+pub use fence::*;
 pub use field::*;
 pub use file::*;
 pub use focus::*;
@@ -38,7 +42,9 @@ pub use notification::*;
 pub use numeric::*;
 pub use overlay::*;
 pub use phone::*;
+pub use router::*;
 pub use select::*;
+pub use sidebar::*;
 pub use temporal::*;
 pub use text::*;
 pub use text_filter::*;
@@ -77,6 +83,7 @@ contract_enums! {
         WeekStart => "week-start", WeekEnd => "week-end", PreviousMonth => "previous-month", NextMonth => "next-month",
         PreviousYear => "previous-year", NextYear => "next-year",
     }
+    EarlierEndPolicy => "EarlierEndPolicy" { Restart => "restart", Swap => "swap", Reject => "reject" }
     TimePrecision => "TimePrecision" { Minute => "minute", Second => "second" }
     ClockFormat => "ClockFormat" { TwentyFourHour => "twenty-four-hour", TwelveHour => "twelve-hour" }
     AlphaPolicy => "ColorAlphaMode" { Opaque => "opaque", Editable => "editable" }
@@ -99,12 +106,21 @@ contract_enums! {
         Next => "next", Previous => "previous", First => "first", Last => "last",
         PageNext => "page-next", PagePrevious => "page-previous",
     }
+    RowGesture => "RowGesture" { Select => "select", Toggle => "toggle", Extend => "extend", Open => "open" }
+    // How many rows a collection view keeps selected. The host owns it; the
+    // view only reports typed gestures. `None` leaves selection unused: the
+    // rows are not announced as selectable and a gesture only moves the
+    // active row.
+    SelectionMode => "SelectionMode" { None => "none", Single => "single", Multiple => "multiple" }
     SelectionAvailability => "SelectionAvailability" {
         Absent => "absent", Available => "available", Unavailable => "unavailable",
     }
     SelectionRetention => "SelectionRetention" { BoundToOptions => "bound-to-options", Retain => "retain" }
+    // What a navigation did to the route stack; screens move forward on a
+    // push, backward on a pop and fade in place on a replace.
+    RouteChange => "RouteChange" { Push => "push", Pop => "pop", Replace => "replace" }
     DismissReason => "CloseReason" {
         Escape => "escape", OutsidePress => "outside-press", SystemBack => "system-back",
-        TriggerToggle => "trigger-toggle", Programmatic => "programmatic", HostClosed => "host-closed",
+        TriggerToggle => "trigger-toggle", CloseButton => "close-button", Programmatic => "programmatic", HostClosed => "host-closed",
     }
 }

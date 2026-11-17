@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// Window-level record of the topmost modal layer. A `KitDialogSurface` or
+// `KitDrawer` with a positive `modal-layer` publishes it while it is open and
+// topmost; a kit control reads it and becomes inert unless its own
+// `modal-layer` names that layer. Layer 0 is the window itself.
+export global KitModalContext {
+    in-out property <int> layer;
+    // True while a modal layer is open and topmost.
+    out property <bool> open: KitModalContext.layer > 0;
+    // Whether a control that belongs to `control-layer` is inert now.
+    pure public function inert(control-layer: int) -> bool {
+        return KitModalContext.layer > 0 && KitModalContext.layer != control-layer;
+    }
+    // The surface of `surface-layer` became topmost.
+    public function enter(surface-layer: int) { KitModalContext.layer = surface-layer; }
+    // The surface of `surface-layer` stopped being topmost. A surface that
+    // already lost to another layer leaves that layer in place.
+    public function leave(surface-layer: int) {
+        if (KitModalContext.layer == surface-layer) { KitModalContext.layer = 0; }
+    }
+}

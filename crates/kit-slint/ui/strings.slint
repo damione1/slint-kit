@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Window-local defaults. Per-component message properties remain overridable.
+// The markers a twelve-hour time editor prints and accepts for before and after noon.
+// They must be non-empty, differ when case is ignored, and neither may start the other;
+// an unusable pair falls back to AM and PM.
+export struct KitDayPeriods { am: string, pm: string }
 export struct KitFieldMessages {
     required-message: string,
     email-message: string,
@@ -90,7 +94,47 @@ export global KitStrings {
     in-out property <string> color-wheel-label: "Color";
     in-out property <string> color-wheel-unknown-label: "Unknown color";
     in-out property <string> color-empty-label: "No color";
+    in-out property <string> color-red-label: "Red";
+    in-out property <string> color-green-label: "Green";
+    in-out property <string> color-blue-label: "Blue";
+    in-out property <string> color-alpha-label: "Alpha";
+    in-out property <string> color-cancel-label: "Cancel";
+    in-out property <string> color-apply-label: "Apply color";
+    // "{label}" stands for the field label, so each language chooses its word order.
+    in-out property <string> color-open-template: "Open color picker for {label}";
+    in-out property <string> color-title-template: "{label} · sRGB";
+    in-out property <string> color-draft-template: "{label} draft";
+    in-out property <string> color-preview-label: "Draft color preview";
+    in-out property <string> color-choice-template: "Choose RGB {red}, {green}, {blue}";
+    in-out property <string> color-channel-placeholder: "0–255";
+    in-out property <string> color-pattern-message: "Use #RRGGBB.";
+    in-out property <string> color-pattern-alpha-message: "Use #RRGGBB or #RRGGBBAA.";
+    in-out property <string> color-description: "sRGB hexadecimal";
+    in-out property <string> color-description-alpha: "sRGB hexadecimal, including alpha";
     in-out property <string> color-wheel-value-format: "Hue {hue}°, saturation {saturation}%";
+    in-out property <string> time-hours-label: "Hours";
+    in-out property <string> time-minutes-label: "Minutes";
+    in-out property <string> time-seconds-label: "Seconds";
+    // "{label}" stands for the segment label, so each language chooses its word order.
+    in-out property <string> time-increase-template: "Increase {label}";
+    in-out property <string> time-decrease-template: "Decrease {label}";
+    in-out property <string> time-description-twenty-four-hour: "24-hour local time";
+    in-out property <KitDayPeriods> day-periods: { am: "AM", pm: "PM" };
+    in-out property <string> time-description-twelve-hour: "12-hour local time, including AM or PM";
+    in-out property <string> date-description: "Civil date; no time zone";
+    in-out property <string> time-zone-label: "Time zone";
+    in-out property <string> time-zone-description: "IANA time zone identifier";
+    in-out property <string> invalid-time-zone-message: "Please enter a known IANA time zone.";
+    in-out property <string> ambiguous-time-message: "This local time occurs twice. Choose an occurrence.";
+    in-out property <string> nonexistent-time-message: "This local time does not exist in this time zone.";
+    in-out property <string> resolved-time-message: "Local time resolved.";
+    in-out property <string> resolve-time-prompt: "Resolve the local time in this time zone.";
+    in-out property <string> earlier-accepted-message: "Earlier occurrence accepted.";
+    in-out property <string> later-accepted-message: "Later occurrence accepted.";
+    in-out property <string> earlier-label: "Use the earlier occurrence";
+    in-out property <string> later-label: "Use the later occurrence";
+    in-out property <string> calendar-unavailable-label: "Unavailable";
+    in-out property <string> calendar-navigation-help: "Arrow keys move by day or week. Home and End move within the week. Page Up and Page Down change month; hold Shift to change year.";
     in-out property <string> calendar-configuration-error: "Calendar configuration is invalid. Check dates, bounds and availability.";
     in-out property <string> text-menu-label: "Text editing";
     public pure function join-description(a: string, b: string) -> string { return a == "" ? b : b == "" ? a : a + " " + b; }
@@ -100,6 +144,17 @@ export global KitStrings {
     in-out property <string> avatar-more-singular: "1 more avatar";
     in-out property <string> avatar-more-template: "{count} more avatars";
     in-out property <string> clear-search-label: "Clear search";
+    in-out property <string> clear-selection-label: "Clear selection";
+    in-out property <string> search-options-label: "Search options";
+    in-out property <string> no-matching-options-label: "No matching options";
+    // "{label}" stands for the chip label, so each language chooses its word order.
+    in-out property <string> chip-remove-template: "Remove {label}";
+    in-out property <string> tag-input-placeholder: "Type a tag, then press Enter";
+    in-out property <string> checkbox-mixed-label: "Partially selected";
+    in-out property <string> rating-clear-label: "Clear rating";
+    // "{label}" stands for the field label, so each language chooses its word order.
+    in-out property <string> range-lower-thumb-template: "{label} — lower";
+    in-out property <string> range-upper-thumb-template: "{label} — upper";
     in-out property <string> counter-of-max-template: "{used} / {max}";
     in-out property <string> counter-remaining-template: "{remaining} remaining";
     out property <KitFieldMessages> fields: {

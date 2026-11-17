@@ -48,7 +48,7 @@ fn main() {
 
 Run `cargo run` from the project directory. The source includes the main entry point, form-validation initialization, a model keyed by project identity, filtering and save callbacks. The application uses the built-in Tailwind presentation with Inter.
 
-Choose `KitThemes.light` or `.dark` to switch modes. The source imports `{ InterFont }` from `@kit/fonts/inter.slint` and selects it with `default-font-family: InterFont.family`. [Theme setup and local styling](/guides/themes/).
+Choose `KitThemes.light` or `.dark` to switch modes. The source imports `{ InterFont }` from `@kit-fonts/inter.slint` and selects it with `default-font-family: InterFont.family`. [Theme setup and local styling](/guides/themes/).
 
 ## Keep application ownership clear
 
@@ -57,3 +57,7 @@ Choose `KitThemes.light` or `.dark` to switch modes. The source imports `{ Inter
 The composite passes its theme to its children and dialog explicitly. A component’s local radius, padding or icon does not change neighboring regions. The dialog disables background controls while open, preserves the opener and returns focus after dismissal or completion.
 
 When adapting the example, keep the native editors, keyboard handling, field constraints and named actions. Test the real target backend with long labels and enlarged text; the browser demo does not qualify platform IME or screen readers.
+
+The example imports `ListView` directly from `@kit`. This composition primitive inherits `ScrollFrame` and its theme, viewport and scrolling properties; it accepts repeated children and exposes a vertical list role. It does not add selection, row identity or keyboard navigation: retain those in the typed application model and row components, or use a higher-level kit list.
+
+For custom virtual lists, call `list.ensure-row-visible(index, KitThemes.scroll-behavior(theme))`; Slint mounts the requested row without materializing the entire model. Invalid indices do nothing. `ScrollFrame.scroll-to({ x: 0px, y: 100px }, ScrollBehavior.instant)` restores the positive content position corresponding to `content-y: -100px`. For a nested materialized target, call its `ensure-visible(...)`; preserve your stable key independently of its current row index.

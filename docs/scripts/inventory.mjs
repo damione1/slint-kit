@@ -24,6 +24,7 @@ export const families = {
   display: { fr: 'Présentation', en: 'Display' },
   feedback: { fr: 'Retour et progression', en: 'Feedback and progress' },
   navigation: { fr: 'Navigation', en: 'Navigation' },
+  router: { fr: 'Navigation entre écrans', en: 'Screen navigation' },
   dialog: { fr: 'Dialogues', en: 'Dialogs' },
   data: { fr: 'Données virtualisées', en: 'Virtualized data' },
   focus: { fr: 'Gestion du focus', en: 'Focus management' },

@@ -28,7 +28,7 @@ fn key(app: &impl ComponentHandle, value: impl Into<slint::SharedString>) {
 fn native(app: &impl ComponentHandle, label: &str) -> ElementHandle {
     let label = label.to_owned();
     ElementQuery::from_root(app)
-        .match_type_name("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(move |e| e.accessible_label().as_deref() == Some(label.as_str()))
         .find_first()
         .unwrap()
@@ -46,7 +46,7 @@ fn menu(app: &impl ComponentHandle, label: &str) {
 }
 fn replace(app: &impl ComponentHandle, label: &str, text: &str) -> ElementHandle {
     let editor = native(app, label);
-    editor.mock_single_click(PointerEventButton::Left);
+    crate::native_editor(&editor).mock_single_click(PointerEventButton::Left);
     // Select all is disabled for an empty editor; clicking it would leave the
     // menu open and route the following keys to that menu instead of the input.
     if !editor
@@ -66,7 +66,7 @@ fn replace(app: &impl ComponentHandle, label: &str, text: &str) -> ElementHandle
         Some(text),
         "native replacement must actually reach the editor"
     );
-    editor
+    crate::native_editor(&editor)
 }
 fn color(red: i32, green: i32, blue: i32, alpha: i32) -> ui::SrgbColorView {
     ui::SrgbColorView {
@@ -284,7 +284,8 @@ fn typed_hex_and_every_channel_commit_on_tab_without_duplicate_enter_or_unchange
     assert_eq!(app.get_field_requests(), 1);
     blur(&app);
     assert_eq!(app.get_field_chosen(), chosen);
-    native(&app, "Standalone color").mock_single_click(PointerEventButton::Left);
+    crate::native_editor(&native(&app, "Standalone color"))
+        .mock_single_click(PointerEventButton::Left);
     blur(&app);
     assert_eq!(app.get_field_chosen(), chosen);
 }

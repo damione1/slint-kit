@@ -15,7 +15,6 @@ calendar.slint | 448px | max-width: Math.max(448px,7 * root.cell-height) | layou
 choice.slint | 280px | preferred-width: 280px | layout bound: natural width of radio, segmented, toggle and rating groups
 choice.slint | 220px | preferred-width: 220px * root.theme.text-scale | layout bound: read-only chip list width
 choice.slint | 220px | max-width: 220px * root.theme.text-scale | layout bound: read-only chip list width
-choice.slint | 120px | min-width: 120px | layout bound: slider minimum track width
 choice.slint | 120px | travel-minimum: 120px | layout bound: slider minimum travel, horizontal or vertical
 color.slint | 48px | min-width: 48px * root.theme.text-scale | layout bound: channel label column
 color.slint | 26px | min-width: 26px * root.theme.text-scale | layout bound: channel value column
@@ -31,9 +30,8 @@ data.slint | 700px | preferred-width:700px | layout bound: content list and text
 data.slint | 160px | min-height:160px | layout bound: content list minimum height
 data.slint | 420px | preferred-height:420px | layout bound: content list natural height
 data.slint | 360px | preferred-height:360px | layout bound: text view natural height
-data.slint | 64px | width:64px | layout bound: line number column
 datetime.slint | 72px | min-width: 72px * root.theme.text-scale | layout bound: time segment label column
-navigation.slint | 320px | preferred-height: min(320px, root.rows.length * root.row-height) | layout bound: menu natural maximum height
+navigation.slint | 320px | in property <length> max-natural-height: 320px | layout bound: menu natural maximum height
 navigation.slint | 100px | min-width: 100px | layout bound: menu minimum width
 navigation.slint | 160px | preferred-height: max(160px,content.preferred-height) | layout bound: carousel minimum natural height
 navigation.slint | 100px | min-height: 100px | layout bound: notification center minimum height
@@ -41,14 +39,20 @@ navigation.slint | 100px | root.rows.length == 0 ? 100px | layout bound: empty n
 navigation.slint | 600px | min(600px,bounded-content.preferred-height) | layout bound: bounded inbox maximum height
 navigation.slint | 400px | bounded-content.preferred-height) : 400px | layout bound: virtual inbox viewport height
 navigation.slint | 380px | in property <length> panel-width: 380px | layout bound: default drawer width, a caller choice
+navigation.slint | 320px | in property <length> popup-height: 320px | layout bound: default maximum height of a popover panel, a caller choice
+navigation.slint | 320px | in property <length> panel-height: 320px | layout bound: default top and bottom drawer height, a caller choice
 scroll.slint | 50px | min-height: 50px | layout bound: std-widgets ScrollView minimum, kept for compatibility
 scroll.slint | 50px | min-width: 50px | layout bound: std-widgets ScrollView minimum, kept for compatibility
 select.slint | 320px | in property <length> popup-height: 320px | layout bound: select popup maximum height, a caller choice
 select.slint | 160px | min-width: 160px | layout bound: select minimum width
 
 # Row heights of option lists, tuned for touch targets at scaled text.
-data.slint | 132px | row-height:max(132px,116px * root.theme.text-scale) | intrinsic geometry: content list row, a 72px thumbnail and three lines
-data.slint | 116px | row-height:max(132px,116px * root.theme.text-scale) | intrinsic geometry: content list row at scaled text
+data.slint | 96px | max(96px, 84px | intrinsic geometry: content list compact row: a 48px thumbnail and three lines
+data.slint | 84px | max(96px, 84px | intrinsic geometry: content list compact row at scaled text
+data.slint | 132px | max(132px, 116px | intrinsic geometry: content list medium row, a 72px thumbnail and three lines
+data.slint | 116px | max(132px, 116px | intrinsic geometry: content list medium row at scaled text
+data.slint | 168px | max(168px, 148px | intrinsic geometry: content list comfortable row: a 96px thumbnail and three lines
+data.slint | 148px | max(168px, 148px | intrinsic geometry: content list comfortable row at scaled text
 data.slint | 32px | line-height:max(32px,24px * root.theme.text-scale + 8px) | intrinsic geometry: text view line
 data.slint | 24px | line-height:max(32px,24px * root.theme.text-scale + 8px) | intrinsic geometry: text view line at scaled text
 data.slint | 8px | line-height:max(32px,24px * root.theme.text-scale + 8px) | intrinsic geometry: text view line padding
@@ -63,24 +67,17 @@ select.slint | 20px | width: parent.width - 20px | intrinsic geometry: popup sea
 select.slint | 12px | height: parent.height - 12px | intrinsic geometry: popup search inset
 
 # Intrinsic geometry of one control, independent of the theme.
-data.slint | 72px | width:72px | intrinsic geometry: content list thumbnail
-data.slint | 72px | height:72px | intrinsic geometry: content list thumbnail
-data.slint | 24px | width:24px | intrinsic geometry: content list placeholder icon
-data.slint | 24px | height:24px | intrinsic geometry: content list placeholder icon
-feedback.slint | 24px | preferred-width: 24px | intrinsic geometry: spinner
-feedback.slint | 24px | preferred-height: 24px | intrinsic geometry: spinner
-feedback.slint | 16px | min-width: 16px | intrinsic geometry: spinner minimum
-feedback.slint | 16px | min-height: 16px | intrinsic geometry: spinner minimum
-feedback.slint | 4px | width: 4px | intrinsic geometry: spinner and radial progress dot
-feedback.slint | 4px | height: 4px | intrinsic geometry: spinner and radial progress dot
-feedback.slint | 3px | (root.width / 2 - 3px) | intrinsic geometry: spinner dot orbit
-feedback.slint | 3px | (root.height / 2 - 3px) | intrinsic geometry: spinner dot orbit
-feedback.slint | 88px | preferred-width: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress
-feedback.slint | 64px | preferred-width: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress at scaled text
+data.slint | 48px | ? 48px : | intrinsic geometry: content list thumbnail by row density
+data.slint | 72px | : 72px; | intrinsic geometry: content list thumbnail by row density
+data.slint | 96px | ? 96px : | intrinsic geometry: content list thumbnail by row density
+feedback.slint | 88px | in property <length> diameter: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress
+feedback.slint | 64px | in property <length> diameter: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress at scaled text
 
 # Behaviour constants, not motion tokens.
 display.slint | 650ms | interval: 650ms | behaviour: skeleton pulse period, longer than the slow fade it toggles
 feedback.slint | 100ms | interval: 100ms | behaviour: spinner frame period
+feedback.slint | 1.6s | animation-tick() / 1.6s | behaviour: indeterminate bar sweep period
+feedback.slint | 1.2s | animation-tick() / 1.2s | behaviour: indeterminate ring turn period
 
 # Application data offered as defaults.
 color.slint | #ef4444 | palette: [#ef4444, | application data: default picker palette
@@ -96,12 +93,9 @@ color.slint | #ffffff | #ffffff] | application data: default picker palette
 choice.slint | 1px | max(1px,root.width | guard: a measuring width never reaches zero
 choice.slint | 1px | max(1px, root.width - 2 * root.edge) | guard: no division by a zero-width track
 choice.slint | 1px | max(1px, root.height - 2 * root.edge) | guard: no division by a zero-height vertical track
-choice.slint | 1px | max(1px,root.width - 2 * root.edge) | guard: no division by a zero-width track
 input.slint | 2px | formatted-measure.preferred-width) + 2px + root.text-inset) | text slack: room for the caret after the last glyph
 input.slint | 2px | formatted-measure.preferred-width + 2px) | text slack: room for the caret after the last glyph
 input.slint | 2px | self.preferred-width + 2px) | text slack: room for the caret after the last glyph
-input.slint | 2px | position.x + root.text-inset + 2px | text slack: room for the caret after the last glyph
-input.slint | 2px | position.x - root.text-inset - 2px | text slack: room for the caret after the last glyph
 select.slint | 2px | search.preferred-width + 2px) | text slack: room for the caret after the last glyph
 select.slint | 2px | position.x + 2px | text slack: room for the caret after the last glyph
 select.slint | 2px | position.x - 2px | text slack: room for the caret after the last glyph
@@ -110,3 +104,5 @@ input.slint | 2px | viewport.width - root.text-inset - 2px | native text slack: 
 input.slint | 2px | root.padding-inline) - 2px + root.text-cell-width / 2 | native text slack: solve allocated cell pitch after reserving the existing final-caret reveal margin
 input.slint | 2px | root.decoration == FieldDecoration.cells ? 2px : 0px | native text slack: the minimum code width includes the existing final-caret reveal margin
 input.slint | 2px | root.preferred-cell-width - root.text-cell-width) / 2) + 2px | native text slack: intrinsic cell width includes the existing final-caret reveal margin
+datetime.slint | 400ms | interval: root.repeating ? 80ms : 400ms | behaviour: delay before a held time segment button starts repeating
+datetime.slint | 80ms | interval: root.repeating ? 80ms : 400ms | behaviour: repeat period of a held time segment button

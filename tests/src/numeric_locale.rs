@@ -6,9 +6,11 @@ use slint::{
     platform::{Key, WindowEvent},
 };
 use slint_kit::{
-    AbsencePolicy, CommitPolicy, CurrencyCode, DecimalRules, DecimalScale, DecimalValue,
-    FieldBinding, FieldSpec, FieldSpecKey, HtmlConstraints, HtmlInputKind, NumberInputFormat,
-    NumberLocale, NumericBounds, Ownership, RoundingPolicy, SignPolicy, format_decimal, ui,
+    AbsencePolicy, CommitPolicy, CurrencyCode, CurrencyMetadata, DecimalRules, DecimalScale,
+    DecimalValue, DraftValue, FieldBinding, FieldSpec, FieldSpecKey, GroupSizes, Grouping,
+    HtmlConstraints, HtmlInputKind, Money, NumberInputFormat, NumberSyntax, NumericBounds,
+    Ownership, ParseIssue, RoundingPolicy, SignPolicy, SymbolPlacement, format_decimal,
+    parse_integer, ui,
 };
 use std::{
     cell::{OnceCell, RefCell},
@@ -18,21 +20,22 @@ thread_local! { static BACKEND: OnceCell<()> = const { OnceCell::new() }; }
 fn decimal(text: &str) -> DecimalValue {
     text.parse().unwrap()
 }
-fn rules(locale: NumberLocale) -> DecimalRules {
+fn rules(locale: NumberSyntax) -> DecimalRules {
     DecimalRules {
-        locale,
+        syntax: locale,
         scale: DecimalScale::new(2).unwrap(),
         sign: SignPolicy::Signed,
         bounds: Some(NumericBounds::new(decimal("-2000"), decimal("2000")).unwrap()),
     }
 }
-fn format(locale: NumberLocale) -> ui::NumberInputFormat {
-    match locale {
-        NumberLocale::EnCa | NumberLocale::EnUs => ui::NumberInputFormat::Canonical,
-        NumberLocale::FrCa | NumberLocale::FrFr => ui::NumberInputFormat::DecimalComma,
+fn format(locale: NumberSyntax) -> ui::NumberInputFormat {
+    if locale.decimal_separator() == '.' {
+        ui::NumberInputFormat::Canonical
+    } else {
+        ui::NumberInputFormat::DecimalComma
     }
 }
-fn commit(text: &str, locale: NumberLocale) -> ui::FieldCommit {
+fn commit(text: &str, locale: NumberSyntax) -> ui::FieldCommit {
     ui::FieldCommit {
         value: ui::FieldValue {
             present: !text.is_empty(),
@@ -54,10 +57,10 @@ fn commit(text: &str, locale: NumberLocale) -> ui::FieldCommit {
 #[test]
 fn supported_locale_grammars_cross_exact_constraints_and_typed_codecs_without_losing_values() {
     for locale in [
-        NumberLocale::EnCa,
-        NumberLocale::EnUs,
-        NumberLocale::FrCa,
-        NumberLocale::FrFr,
+        NumberSyntax::en_ca(),
+        NumberSyntax::en_us(),
+        NumberSyntax::fr_ca(),
+        NumberSyntax::fr_fr(),
     ] {
         let spec = FieldSpec::decimal(rules(locale));
         let grouped = format_decimal(
@@ -103,21 +106,22 @@ fn supported_locale_grammars_cross_exact_constraints_and_typed_codecs_without_lo
                 decimal("1234.50")
             );
         }
-        let bad = match locale {
-            NumberLocale::EnCa | NumberLocale::EnUs => [
+        let bad = if locale.decimal_separator() == '.' {
+            [
                 "1,23.50",
                 "12,34,567.89",
                 "1,,234.50",
                 "1,234.5,0",
                 "1.234,50",
-            ],
-            NumberLocale::FrCa | NumberLocale::FrFr => [
+            ]
+        } else {
+            [
                 "1 23,50",
                 "12 34 567,89",
                 "1  234,50",
                 "1 234,5,0",
                 "1,234.50",
-            ],
+            ]
         };
         for text in bad {
             assert!(
@@ -167,9 +171,10 @@ fn supported_locale_grammars_cross_exact_constraints_and_typed_codecs_without_lo
         );
         binding.set_html_constraints(HtmlConstraints {
             kind: HtmlInputKind::Number,
-            number_format: match locale {
-                NumberLocale::EnCa | NumberLocale::EnUs => NumberInputFormat::Canonical,
-                NumberLocale::FrCa | NumberLocale::FrFr => NumberInputFormat::DecimalComma,
+            number_format: if locale.decimal_separator() == '.' {
+                NumberInputFormat::Canonical
+            } else {
+                NumberInputFormat::DecimalComma
             },
             step: Some("0.01".into()),
             ..Default::default()
@@ -179,18 +184,170 @@ fn supported_locale_grammars_cross_exact_constraints_and_typed_codecs_without_lo
         assert_eq!(binding.accepted(), Some(decimal("1234.50")));
     }
     assert_eq!(
-        FieldSpec::integer()
-            .accept(commit("1,234", NumberLocale::EnUs))
+        FieldSpec::integer(NumberSyntax::en_ca(), None)
+            .accept(commit("1,234", NumberSyntax::en_us()))
             .unwrap(),
         Some(1234)
     );
     assert!(
-        FieldSpec::integer()
-            .accept(commit("1,234.5", NumberLocale::EnUs))
+        FieldSpec::integer(NumberSyntax::en_ca(), None)
+            .accept(commit("1,234.5", NumberSyntax::en_us()))
             .is_err()
     );
 }
-fn unshown_fixture(locale: NumberLocale) -> NumericLocaleFixture {
+#[test]
+fn open_syntaxes_share_one_grammar_between_parser_formatter_money_and_integer_codec() {
+    let amount = decimal("1234567.50");
+    let cad = CurrencyMetadata::cad();
+    let money = Money {
+        amount,
+        currency: cad.code.clone(),
+    };
+    let negative = Money {
+        amount: decimal("-1234.5"),
+        currency: cad.code.clone(),
+    };
+    // (syntax, grouped text, money text, negative money text)
+    let cases = [
+        (
+            NumberSyntax::de_de(),
+            "1.234.567,50",
+            "1.234.567,50\u{a0}$",
+            "-1.234,50\u{a0}$",
+        ),
+        (
+            NumberSyntax::de_ch(),
+            "1\u{2019}234\u{2019}567.50",
+            "$\u{a0}1\u{2019}234\u{2019}567.50",
+            "-$\u{a0}1\u{2019}234.50",
+        ),
+        (
+            NumberSyntax::pt_br(),
+            "1.234.567,50",
+            "$\u{a0}1.234.567,50",
+            "-$\u{a0}1.234,50",
+        ),
+        (
+            NumberSyntax::en_in(),
+            "12,34,567.50",
+            "$12,34,567.50",
+            "-$1,234.50",
+        ),
+        (
+            NumberSyntax::en_us(),
+            "1,234,567.50",
+            "$1,234,567.50",
+            "-$1,234.50",
+        ),
+        (
+            NumberSyntax::fr_fr(),
+            "1\u{202f}234\u{202f}567,50",
+            "1\u{202f}234\u{202f}567,50\u{a0}$",
+            "-1\u{202f}234,50\u{a0}$",
+        ),
+    ];
+    for (syntax, grouped, money_text, negative_text) in cases {
+        let scale = DecimalScale::new(2).unwrap();
+        assert_eq!(
+            format_decimal(amount, syntax, scale, RoundingPolicy::Reject).unwrap(),
+            grouped
+        );
+        let rules = DecimalRules {
+            syntax,
+            scale,
+            sign: SignPolicy::Signed,
+            bounds: None,
+        };
+        assert_eq!(rules.parse(grouped), DraftValue::Parsed(amount));
+        assert_eq!(
+            money.format(&cad, syntax, RoundingPolicy::Reject).unwrap(),
+            money_text
+        );
+        assert_eq!(
+            negative
+                .format(&cad, syntax, RoundingPolicy::Reject)
+                .unwrap(),
+            negative_text
+        );
+        let ungrouped = grouped.replace(syntax.grouping().unwrap().separator(), "");
+        assert_eq!(rules.parse(&ungrouped), DraftValue::Parsed(amount));
+        assert_eq!(
+            parse_integer(&grouped[..grouped.len() - 3], syntax, None),
+            DraftValue::Parsed(1_234_567)
+        );
+    }
+    // Malformed grouping is rejected rather than guessed.
+    let de = DecimalRules {
+        syntax: NumberSyntax::de_de(),
+        scale: DecimalScale::new(2).unwrap(),
+        sign: SignPolicy::Signed,
+        bounds: None,
+    };
+    for bad in ["1.23.4,50", "12345.678,50", ".123,50", "1.2345,50"] {
+        assert_eq!(
+            de.parse(bad),
+            DraftValue::Invalid(ParseIssue::InvalidGrouping),
+            "{bad}"
+        );
+    }
+    let india = DecimalRules {
+        syntax: NumberSyntax::en_in(),
+        ..de
+    };
+    for bad in ["123,456.50", "1,234,567.50", "1,2,345.50"] {
+        assert_eq!(
+            india.parse(bad),
+            DraftValue::Invalid(ParseIssue::InvalidGrouping),
+            "{bad}"
+        );
+    }
+    // The ASCII apostrophe is an explicit alternate of de-CH.
+    assert_eq!(
+        parse_integer("1'234", NumberSyntax::de_ch(), None),
+        DraftValue::Parsed(1234)
+    );
+    // The integer codec takes its syntax and bounds from the caller.
+    let bounds = NumericBounds::new(0, 5000).unwrap();
+    let spec = FieldSpec::integer(NumberSyntax::de_de(), Some(bounds));
+    let text_commit = |text: &str| ui::FieldCommit {
+        value: ui::FieldValue {
+            present: true,
+            text: text.into(),
+        },
+        constraints: ui::KitInputConstraints {
+            kind: ui::HtmlInputKind::Text,
+            min_length: -1,
+            max_length: -1,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    assert_eq!(spec.accept(text_commit("1.234")).unwrap(), Some(1234));
+    assert!(spec.accept(text_commit("5.001")).is_err());
+    assert!(spec.accept(text_commit("-1")).is_err());
+    assert!(spec.accept(text_commit("1,234")).is_err());
+    // A custom syntax is validated once, at construction.
+    assert!(
+        NumberSyntax::new(
+            ',',
+            Some(Grouping::new(',', GroupSizes::Thousands)),
+            SymbolPlacement::Prefix
+        )
+        .is_err()
+    );
+    assert!(NumberSyntax::new('5', None, SymbolPlacement::Prefix).is_err());
+    let apostrophe = NumberSyntax::new(
+        '.',
+        Some(Grouping::new('\'', GroupSizes::Thousands)),
+        SymbolPlacement::Prefix,
+    )
+    .unwrap();
+    assert_eq!(
+        parse_integer("1'234", apostrophe, None),
+        DraftValue::Parsed(1234)
+    );
+}
+fn unshown_fixture(locale: NumberSyntax) -> NumericLocaleFixture {
     BACKEND.with(|b| {
         b.get_or_init(|| {
             slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
@@ -211,7 +368,7 @@ fn unshown_fixture(locale: NumberLocale) -> NumericLocaleFixture {
     app.set_number_format(format(locale));
     app
 }
-fn fixture(locale: NumberLocale) -> NumericLocaleFixture {
+fn fixture(locale: NumberSyntax) -> NumericLocaleFixture {
     let app = unshown_fixture(locale);
     app.show().unwrap();
     frame(&app);
@@ -243,10 +400,10 @@ fn undo(app: &NumericLocaleFixture) {
 #[test]
 fn native_grouped_paste_keeps_selection_undo_and_controlled_acknowledgment() {
     for locale in [
-        NumberLocale::EnCa,
-        NumberLocale::EnUs,
-        NumberLocale::FrCa,
-        NumberLocale::FrFr,
+        NumberSyntax::en_ca(),
+        NumberSyntax::en_us(),
+        NumberSyntax::fr_ca(),
+        NumberSyntax::fr_fr(),
     ] {
         let app = fixture(locale);
         let spec = FieldSpec::decimal(rules(locale));
@@ -303,9 +460,10 @@ fn native_grouped_paste_keeps_selection_undo_and_controlled_acknowledgment() {
         key(&app, Key::Return);
         assert_eq!(values.borrow().len(), 2);
         app.set_access(ui::FieldAccess::Editable);
-        let malformed = match locale {
-            NumberLocale::EnCa | NumberLocale::EnUs => "1,23.50",
-            NumberLocale::FrCa | NumberLocale::FrFr => "1 23,50",
+        let malformed = if locale.decimal_separator() == '.' {
+            "1,23.50"
+        } else {
+            "1 23,50"
         };
         app.set_clipboard(malformed.into());
         app.invoke_seed_clipboard();
@@ -320,12 +478,12 @@ fn native_grouped_paste_keeps_selection_undo_and_controlled_acknowledgment() {
 }
 #[test]
 fn grouped_drafts_step_on_the_exact_lattice_and_render_in_both_themes_and_scales() {
-    let app = fixture(NumberLocale::EnUs);
+    let app = fixture(NumberSyntax::en_us());
     let values = Rc::new(RefCell::new(Vec::new()));
     let observed = values.clone();
     app.on_committed(move |value| {
         observed.borrow_mut().push(
-            FieldSpec::decimal(rules(NumberLocale::EnUs))
+            FieldSpec::decimal(rules(NumberSyntax::en_us()))
                 .accept(value)
                 .unwrap()
                 .unwrap(),
@@ -339,7 +497,7 @@ fn grouped_drafts_step_on_the_exact_lattice_and_render_in_both_themes_and_scales
     assert_eq!(*values.borrow(), [decimal("1234.51")]);
     for dark in [false, true] {
         for scale in [1., 2.] {
-            let app = unshown_fixture(NumberLocale::EnUs);
+            let app = unshown_fixture(NumberSyntax::en_us());
             let mut theme = if dark {
                 app.global::<ui::KitThemes>().get_dark()
             } else {

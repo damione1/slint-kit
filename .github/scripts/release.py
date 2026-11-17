@@ -32,6 +32,7 @@ SEMVER = r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*
 # Jobs of .github/workflows/check.yml that must succeed on the tagged commit.
 # test_release.py verifies that the workflow still defines each of these names.
 REQUIRED_CHECKS = ('linux', 'windows')
+MAX_RELEASE_NOTES = 125_000
 USER_AGENT = 'slint-kit-release/0.1 (https://github.com/damione1/slint-kit)'
 
 
@@ -56,6 +57,7 @@ def validate(tag):
         raise ValueError('Checkout does not match the triggering commit')
     if run('git', 'status', '--porcelain'):
         raise ValueError('Release source must be committed and clean')
+    release_notes(version)
     print(f'Validated {tag}: {len(PACKAGES)} libraries at commit {commit}', flush=True)
     return version, commit
 
@@ -141,6 +143,19 @@ def release_notes(version):
     notes = text[headings[index].end():end].strip()
     if not notes:
         raise ValueError(f'CHANGELOG.md section for {version} is empty')
+    start, end = '<!-- release-summary:start -->', '<!-- release-summary:end -->'
+    if start in notes or end in notes:
+        if notes.count(start) != 1 or notes.count(end) != 1:
+            raise ValueError(f'CHANGELOG.md section for {version} needs one complete release summary')
+        summary, separator, _ = notes.partition(start)[2].partition(end)
+        if not separator or not summary.strip():
+            raise ValueError(f'CHANGELOG.md section for {version} has an invalid release summary')
+        notes = summary.strip() + (
+            '\n\n[Full changelog / Changelog complet]'
+            f'(https://github.com/damione1/slint-kit/blob/v{version}/CHANGELOG.md)'
+        )
+    if len(notes) > MAX_RELEASE_NOTES:
+        raise ValueError(f'Release notes for {version} exceed {MAX_RELEASE_NOTES} characters; add an explicit release summary')
     return notes
 
 

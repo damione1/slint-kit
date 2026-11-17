@@ -1,26 +1,27 @@
 import { KitKeyResult } from "@kit";
-import { InterFont } from "@kit/fonts/inter.slint";
+import { InterFont } from "@kit-fonts/inter.slint";
 import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlWidth } from "@kit/theme.slint";
-import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
-import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
-import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
-import { FieldAccess } from "@kit/contracts.slint";
-import { KitIcon, KitGlyphs } from "@kit/icons.slint";
+import { KitTheme, KitThemes, ThemeMode, KitMetrics, TypographyRole, ControlWidth } from "@kit";
+export { ThemeMode }
+import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit";
+import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit";
+import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit";
+import { FieldAccess } from "@kit";
+import { KitIcon, KitGlyphs } from "@kit";
 import { DisplayGallery, DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 export { DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 import { NavigationDrawer, NavigationGallery, NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
 export { NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
 import { DataGallery, DataExamples, DataCollection } from "base-data.slint";
 export { DataExamples, DataCollection, ArticlePreviewState, ArticlePreview } from "base-data.slint";
-export { TableColumn, TableRow, ContentItem, TextLine, DataSortDirection, DataAlignment } from "@kit/data.slint";
+export { TableColumn, TableRow, ContentItem, TextLine, DataSortDirection, DataAlignment } from "@kit";
 import { ExampleSection, PreviewExamples, PreviewTarget } from "example-section.slint";
-import { KitTooltip, KitTooltipLayer, KitToastHost } from "@kit/feedback.slint";
+import { KitTooltip, KitTooltipLayer, KitToastHost } from "@kit";
 import { FormGallery, FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
 export { FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
-import { KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget } from "@kit/dialog.slint";
+import { KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget } from "@kit";
 
 component RegisteredButton inherits KitFocusTarget {
     in property <KitTheme> theme;
@@ -41,13 +42,12 @@ component RegisteredButton inherits KitFocusTarget {
         theme: root.theme; text: root.text; intent: root.intent; control-size: root.control-size;
         busy: root.busy; disabled: !root.eligible;
         activated => { root.activated(); }
-        focus-observed(focused) => { root.focus-observed(root.token, focused); }
+        focus-observed(focused) => { root.observe-focus(focused); }
     }
 }
 
 export { PreviewExamples, PreviewTarget } from "example-section.slint";
 export enum TextSample { standard, long-french, right-to-left }
-export enum ThemeMode { light, dark }
 export enum ShowcaseSkin { mineral, expressive }
 export enum AccentStyle { indigo, teal }
 // The shipped theme family the catalogue starts from.
@@ -121,8 +121,14 @@ export component Showcase inherits Window {
     in-out property <ShowcasePage> page: ShowcasePage.gallery;
     in-out property <bool> show-lab: false;
     in-out property <ThemeMode> theme-mode: ThemeMode.light;
-    init => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
-    changed theme-mode => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
+    // The operating system's scheme, read once before this window writes
+    // Palette.color-scheme (a write replaces the system value).
+    private property <ColorScheme> os-scheme;
+    private property <bool> dark-active: KitThemes.is-dark(theme-mode, os-scheme);
+    private property <string> theme-mode-label: theme-mode == ThemeMode.dark ? "Dark" : theme-mode == ThemeMode.system ? "System" : "Light";
+    pure function next-theme-mode(mode: ThemeMode) -> ThemeMode { return mode == ThemeMode.light ? ThemeMode.dark : mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light; }
+    init => { root.os-scheme = Palette.color-scheme; Palette.color-scheme = root.dark-active ? ColorScheme.dark : ColorScheme.light; }
+    changed dark-active => { Palette.color-scheme = root.dark-active ? ColorScheme.dark : ColorScheme.light; }
     in-out property <AccentStyle> accent-style: AccentStyle.indigo;
     in-out property <ControlSize> density: ControlSize.medium;
     in-out property <TextSample> text-sample: TextSample.standard;
@@ -144,12 +150,12 @@ export component Showcase inherits Window {
     private property <bool> product-modal;
     private property <bool> modal-open: root.product-modal || root.dialog-state.open || NavigationExamples.drawer-state.open;
     in-out property <bool> reduced-motion: false;
-    private property <KitTheme> base-theme: theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light;
-    private property <color> teal-accent: theme-mode == ThemeMode.dark ? #65d8c4 : #087c70;
-    private property <color> teal-hover: theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1;
+    private property <KitTheme> base-theme: KitThemes.resolve(theme-mode, os-scheme);
+    private property <color> teal-accent: dark-active ? #65d8c4 : #087c70;
+    private property <color> teal-hover: dark-active ? #183c3a : #e6f5f1;
     private property <bool> teal: accent-style == AccentStyle.teal;
     out property <KitTheme> theme: {
-        canvas: base-theme.canvas, surface: base-theme.surface, surface-raised: base-theme.surface-raised,
+        canvas: base-theme.canvas, surface: base-theme.surface, surface-raised: base-theme.surface-raised, surface-inset: base-theme.surface-inset,
         text-primary: base-theme.text-primary, text-secondary: base-theme.text-secondary, placeholder: base-theme.placeholder,
         accent: teal ? teal-accent : base-theme.accent, on-accent: base-theme.on-accent,
         accent-hover: teal ? teal-accent.darker(12%) : base-theme.accent-hover,
@@ -161,12 +167,14 @@ export component Showcase inherits Window {
         warning: base-theme.warning, on-warning: base-theme.on-warning, warning-hover: base-theme.warning-hover, warning-pressed: base-theme.warning-pressed, warning-subtle: base-theme.warning-subtle,
         information: teal ? teal-accent : base-theme.information, on-information: base-theme.on-information, information-hover: teal ? teal-accent.darker(12%) : base-theme.information-hover, information-pressed: teal ? teal-accent.darker(24%) : base-theme.information-pressed, information-subtle: teal ? teal-hover : base-theme.information-subtle,
         border-subtle: base-theme.border-subtle, border-strong: base-theme.border-strong,
-        hover: teal ? teal-hover : base-theme.hover, pressed: teal ? (theme-mode == ThemeMode.dark ? #20514b : #cbe9e2) : base-theme.pressed,
+        control-fill: base-theme.control-fill, control-border: base-theme.control-border,
+        choice-fill: teal ? teal-accent : base-theme.choice-fill, on-choice-fill: base-theme.on-choice-fill,
+        hover: teal ? teal-hover : base-theme.hover, pressed: teal ? (dark-active ? #20514b : #cbe9e2) : base-theme.pressed,
         disabled-fill: base-theme.disabled-fill, disabled-text: base-theme.disabled-text, scrim: base-theme.scrim,
         shape: base-theme.shape, elevation: base-theme.elevation,
         focus: {
             style: base-theme.focus.style, width: base-theme.focus.width, offset: base-theme.focus.offset,
-            color: teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus.color,
+            color: teal ? (dark-active ? #8aead8 : #05665c) : base-theme.focus.color,
             invalid-color: base-theme.focus.invalid-color,
         },
         icons: base-theme.icons, geometry: base-theme.geometry, typography: base-theme.typography, spacing: base-theme.spacing, motion: base-theme.motion,
@@ -247,12 +255,12 @@ export component Showcase inherits Window {
                 // second toolbar row; it keeps an explicit accessible label.
                 width: 144px;
                 height: 40px;
-                source: root.theme-mode == ThemeMode.dark ? @image-url("../assets/slint-kit-horizontal-dark.svg") : @image-url("../assets/slint-kit-horizontal.svg");
+                source: root.dark-active ? @image-url("../assets/slint-kit-horizontal-dark.svg") : @image-url("../assets/slint-kit-horizontal.svg");
                 image-fit: contain;
                 accessible-label: "Slint Kit";
             }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
-            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.theme-mode-label; activated => { root.theme-mode = root.next-theme-mode(root.theme-mode); } }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
@@ -295,7 +303,7 @@ export component Showcase inherits Window {
             page-heading := Text { text: root.page-title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
             if root.page == ShowcasePage.gallery: VerticalLayout { spacing: 24px; alignment: start; vertical-stretch: 0;
                 Text { text: "Native components for Rust and Slint. Try each interaction, then change its presentation."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-                ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit/button.slint · Activate an action with the pointer, Space or Enter.";
+                ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit · Activate an action with the pointer, Space or Enter.";
                     FlexboxLayout { spacing: 8px; alignment: start;
                         for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Disabled"; disabled: true; }
@@ -303,7 +311,7 @@ export component Showcase inherits Window {
                     }
                     Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); accessible-live-region: polite; }
                 }
-                ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit/select.slint · Search 10,000 people. Selection follows identity when rows move.";
+                ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit · Search 10,000 people. Selection follows identity when rows move.";
                             mineral-select := KitSelect {
                                 init => { root.mineral-page-rows = self.page-rows; }
                                 changed page-rows => { root.mineral-page-rows = self.page-rows; }
@@ -328,8 +336,8 @@ export component Showcase inherits Window {
                     }
                     Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
-                ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit/dialog.slint · Create a demo project with validation and a nested select.";
-                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
+                ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit · Create a demo project with validation and a nested select.";
+                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
                 }
                 ExampleSection { theme: root.theme; title: "Customize the same component"; description: "KitPressable · KitSelectTrigger · Compose a recipe and content around the same public behavior. Both selects share one selection.";
@@ -366,7 +374,7 @@ export component Showcase inherits Window {
                                 }
                             }
 
-                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
+                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
                     KitTooltip {
@@ -444,7 +452,6 @@ export component Showcase inherits Window {
                             token: 11; generation: root.focus-generations[11]; request: root.focus-request;
                             eligible: !root.dialog-state.busy;
                             focus-requested => { input.focus(); }
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             height: max(48px, input.preferred-height + 20px);
                             Rectangle {
                                 background: root.theme.canvas;
@@ -469,7 +476,6 @@ export component Showcase inherits Window {
                             eligible: !root.dialog-state.busy;
                             height: max(48px,nested-trigger.preferred-height);
                             focus-requested => { nested-trigger.take-focus(); }
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             nested-trigger := KitSelectTrigger {
                                 page-rows: root.select-page-rows;
                                 theme: root.theme; control-size: root.density; state: root.select-state;
@@ -492,7 +498,7 @@ export component Showcase inherits Window {
                             theme: root.theme; text: root.note-visible ? "Remove optional note" : "Add an optional note"; intent: ButtonIntent.quiet;
                             eligible: !root.dialog-state.busy;
                             token: 15; generation: root.focus-generations[15]; request: root.focus-request;
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
+                            focus-observed(token, generation, focused) => { root.focus-changed(token, focused); }
                             activated => { root.dialog-toggle-note(); }
                         }
                         if root.note-visible: KitFocusTarget {
@@ -500,7 +506,6 @@ export component Showcase inherits Window {
                             eligible: !root.dialog-state.busy;
                             height: max(48px,note.preferred-height + 20px);
                             focus-requested => { note.focus(); }
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             Rectangle { background: root.theme.canvas; border-radius: 8px; border-width: 1px; border-color: note.has-focus ? root.theme.focus.color : root.theme.border-subtle; }
                             note := TextInput { x: 12px; y: 10px; width: parent.width - 24px; height: parent.height - 20px; text <=> root.project-note; color: root.theme.text-primary; font-size:14px * root.theme.text-scale; single-line: true; accessible-label: "Optional project note"; changed has-focus => { root.focus-changed(16, self.has-focus); } }
                         }
@@ -521,9 +526,9 @@ export component Showcase inherits Window {
                         if root.dialog-skin == ShowcaseSkin.expressive: Text { text: "Custom dialog presentation"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
                         FlexboxLayout {
                             spacing: 12px; alignment: start;
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Cancel"; intent: ButtonIntent.secondary; eligible: !root.dialog-state.busy; token: 13; generation: root.focus-generations[13]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-dismiss(CloseReason.programmatic); } }
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: root.dialog-state.busy ? "Creating…" : "Create project"; busy: root.dialog-state.busy; eligible: !root.dialog-state.busy; token: 14; generation: root.focus-generations[14]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-submit(root.project-name); } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.theme-mode = root.next-theme-mode(root.theme-mode); } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Cancel"; intent: ButtonIntent.secondary; eligible: !root.dialog-state.busy; token: 13; generation: root.focus-generations[13]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-dismiss(CloseReason.programmatic); } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: root.dialog-state.busy ? "Creating…" : "Create project"; busy: root.dialog-state.busy; eligible: !root.dialog-state.busy; token: 14; generation: root.focus-generations[14]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-submit(root.project-name); } }
                         }
                     }
                 }
@@ -557,7 +562,7 @@ export component Showcase inherits Window {
                 spacing: 4px;
                 HorizontalLayout {
                     Text { text: "PEOPLE"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; }
-                    KitButton { theme: root.theme; text: "Switch theme"; intent: ButtonIntent.quiet; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+                    KitButton { theme: root.theme; text: "Switch theme"; intent: ButtonIntent.quiet; activated => { root.theme-mode = root.next-theme-mode(root.theme-mode); } }
                 }
             custom-list := ListView {
                 for row in root.rows: KitOption {

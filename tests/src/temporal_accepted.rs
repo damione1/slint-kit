@@ -195,6 +195,57 @@ fn host_ack_preserves_focused_native_selection_draft_undo_and_cancel_baseline() 
     assert_eq!(typed.borrow().last(), Some(&None));
 }
 #[test]
+fn simple_temporal_fields_write_typed_values_back_on_local_commit_and_clear() {
+    let app = fixture();
+    app.invoke_type_date("2027-02-03".into());
+    app.invoke_type_month("2028-07".into());
+    app.invoke_type_year("1999".into());
+    app.invoke_type_week("2026-W10".into());
+    app.invoke_type_time("07:05".into());
+    frame(&app);
+    assert_eq!(
+        app.get_date_value(),
+        CivilDateView {
+            year: 2027,
+            month: 2,
+            day: 3
+        }
+    );
+    assert_eq!((app.get_month_year(), app.get_month()), (2028, 7));
+    assert_eq!(app.get_year(), 1999);
+    assert_eq!((app.get_week_year(), app.get_week()), (2026, 10));
+    assert_eq!(app.get_time_value(), time(7, 5));
+    // The typed value is a faithful projection: the text did not change.
+    assert_eq!(app.get_date_text(), "2027-02-03");
+    assert_eq!(app.get_week_text(), "2026-W10");
+    // Typed absence clears the typed value.
+    app.invoke_type_date("".into());
+    app.invoke_type_month("".into());
+    app.invoke_type_year("".into());
+    app.invoke_type_week("".into());
+    app.invoke_type_time("".into());
+    frame(&app);
+    assert_eq!(app.get_date_value(), CivilDateView::default());
+    assert_eq!((app.get_month_year(), app.get_month()), (0, 0));
+    assert_eq!(app.get_year(), 0);
+    assert_eq!((app.get_week_year(), app.get_week()), (0, 0));
+    assert_eq!(app.get_time_value(), LocalTimeValue::default());
+    // A later host update still drives the display through the two-way link.
+    app.set_year(2030);
+    app.set_time_value(time(0, 0));
+    frame(&app);
+    assert_eq!(app.get_year_text(), "2030");
+    assert_eq!(app.get_time_text(), "00:00");
+}
+#[test]
+fn simple_temporal_fields_keep_the_typed_value_under_controlled_ownership() {
+    let app = fixture();
+    app.set_ownership(Ownership::Controlled);
+    app.invoke_type_time("07:05".into());
+    frame(&app);
+    assert_eq!(app.get_time_value(), time(0, 0));
+}
+#[test]
 fn picker_local_and_controlled_typed_commit_clear_acknowledgment_deduplicate() {
     let app = fixture();
     app.invoke_picker_draft("00:00".into());

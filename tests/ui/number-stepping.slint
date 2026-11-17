@@ -26,6 +26,11 @@ export component NumberSteppingFixture inherits Window {
     out property <int> selection-anchor: amount.selection-anchor;
     in-out property <string> stepper-value;
     in-out property <int> stepper-edited-count;
+    in-out property <int> stepper-commit-count;
+    in-out property <int> stepper-step-count;
+    in-out property <string> stepper-step: "1";
+    out property <bool> plain-focus: plain.has-focus;
+    out property <bool> stepper-focus: stepper.has-focus;
     public function focus-amount() { amount.take-focus(); }
     public function focus-stepper() { stepper.take-focus(); }
     public function focus-plain() { plain.take-focus(); }
@@ -43,8 +48,10 @@ export component NumberSteppingFixture inherits Window {
             committed(value) => { root.commit-count += 1; }
         }
         stepper := KitNumberStepper {
-            theme: root.theme; label: "Guests"; text <=> root.stepper-value; min: "1"; max: "8"; page-steps: 3;
+            theme: root.theme; label: "Guests"; text <=> root.stepper-value; min: "1"; max: "8"; page-steps: 3; step: root.stepper-step;
             edited(text) => { root.stepper-edited-count += 1; }
+            committed(value) => { root.stepper-commit-count += 1; }
+            step-requested(direction) => { root.stepper-step-count += 1; }
         }
         plain := KitTextField { theme: root.theme; label: "Note"; }
     }

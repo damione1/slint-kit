@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitSlider, KitSegmentedControl, KitChipButton, KitBadge, KitSwitch, KitGlyphs, ChoiceRow, ChoiceIcon, ChoiceDirection, ChoiceFlow, SliderPresentation, FieldAccess, NavigationStep, ControlSize, Tone } from "@kit";
+import { KitTheme, KitThemes, KitSlider, KitSegmentedControl, KitChipButton, KitBadge, KitSwitch, KitGlyphs, ChoiceRow, ChoiceIcon, ChoiceDirection, ChoiceFlow, SliderPresentation, SliderHandleShape, FieldAccess, NavigationStep, ControlSize, Tone } from "@kit";
 
 // Vertical and filled sliders, a vertical segmented control, a chip button
 // and an information badge, placed at fixed coordinates.
@@ -30,6 +30,11 @@ export component ChoicePresentationFixture inherits Window {
     in property <ChoiceFlow> speed-flow: ChoiceFlow.left-to-right;
     in property <int> speed-columns: max(1, root.speeds.length);
     in property <[ChoiceIcon]> speed-icons;
+    in property <Tone> speed-tone: Tone.accent;
+    // The styled filled slider's host choices, one at a time.
+    in property <bool> styled-transparent-edge;
+    in property <bool> styled-pill;
+    in property <bool> styled-disc;
     in property <bool> custom-slider-paints;
     in property <bool> switch-checked: true;
     callback switch-toggled(bool);
@@ -92,7 +97,7 @@ export component ChoicePresentationFixture inherits Window {
     speeds := KitSegmentedControl {
         x: 400px; y: 20px; width: root.speed-width; height: self.preferred-height;
         theme: root.theme; access: root.access;
-        direction: root.speed-direction; flow: root.speed-flow; columns: root.speed-columns; icons: root.speed-icons;
+        direction: root.speed-direction; flow: root.speed-flow; columns: root.speed-columns; icons: root.speed-icons; selected-tone: root.speed-tone;
         label: "Speed"; rows: root.speeds; active-token: root.speed-active; generation: 3;
         navigate(step) => { root.speed-navigate(step); }
         activate(token, generation) => { root.speed-activate(token, generation); }
@@ -113,6 +118,18 @@ export component ChoicePresentationFixture inherits Window {
             theme: root.theme; presentation: SliderPresentation.filled;
             label: "Squeezed width"; value-label: "70 percent"; position: root.level;
         }
+    }
+    // A filled slider with host paints, for pixel checks of its edge, its
+    // radius and its handle shape. The fill starts at the left edge. It sits
+    // below the squeezed slider, which overflows its 8px layout.
+    styled := KitSlider {
+        x: 20px; y: 520px; width: 320px; height: 48px;
+        theme: root.theme; presentation: SliderPresentation.filled; access: FieldAccess.read-only;
+        label: "Styled level"; value-label: "70 percent"; position: root.level;
+        track-brush: #d9d9d9; fill-brush: #2a6f2a; handle-brush: #f0a030;
+        edge-brush: root.styled-transparent-edge ? transparent : root.theme.border-strong;
+        track-radius: root.styled-pill ? root.theme.shape.radius-pill : root.theme.shape.radius-container;
+        handle-shape: root.styled-disc ? SliderHandleShape.disc : SliderHandleShape.bar;
     }
     KitSwitch { x: 400px; y: 470px; width: 250px; height: self.preferred-height; theme: root.theme; access: root.access; checked: root.switch-checked; label: "Power"; toggled(value) => { root.switch-toggled(value); } }
     badge := KitBadge { x: 400px; y: 400px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Scheduled"; tone: root.badge-tone; }

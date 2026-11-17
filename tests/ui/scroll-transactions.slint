@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitScrollArea, KitTabs, KitMenuBar, KitTheme, KitThemes, ScrollAxes, OptionRow } from "@kit";
+
+export component ScrollTransactionsFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <ScrollAxes> axes: ScrollAxes.vertical;
+    in property <length> extent: 2000px;
+    out property <length> offset-x: area.content-x;
+    out property <length> offset-y: area.content-y;
+    public function focus-area() { area.take-focus(); }
+    public function restore(x: length, y: length) { area.content-x = x; area.content-y = y; }
+    public function to-end() { area.scroll-to-end(); }
+    area := KitScrollArea {
+        theme: root.theme; axes: root.axes; focusable: true; label: "Scrollable content";
+        line-step: 40px;
+        Rectangle { width: root.axes == ScrollAxes.vertical ? 0px : root.extent; height: root.extent; }
+    }
+}
+
+export component ScrollReversalFixture inherits Window {
+    width: 260px; height: 400px;
+    background: root.theme.canvas;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[OptionRow]> options;
+    in property <Orientation> orientation: Orientation.horizontal;
+    out property <int> tab-active: tabs.state.active-index;
+    out property <int> menu-active: menu.state.active-index;
+    public function focus-tabs() { tabs.take-focus(); }
+    public function focus-menu() { menu.take-focus(); }
+    tabs := KitTabs {
+        x: 0px; y: 0px; width: root.width; height: 180px;
+        theme: root.theme; options: root.options; orientation: root.orientation;
+    }
+    menu := KitMenuBar {
+        x: 0px; y: 240px; width: root.width;
+        theme: root.theme; options: root.options;
+    }
+}

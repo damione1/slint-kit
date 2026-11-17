@@ -14,14 +14,14 @@
   <a href="https://github.com/damione1/slint-kit/actions/workflows/check.yml"><img alt="Kit checks on main" src="https://github.com/damione1/slint-kit/actions/workflows/check.yml/badge.svg?branch=main"></a>
   <a href="https://crates.io/crates/slint-kit"><img alt="crates.io version" src="https://img.shields.io/crates/v/slint-kit.svg"></a>
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/License-GPLv3%2B-blue.svg"></a>
-  <img alt="Rust 1.92 or later" src="https://img.shields.io/badge/Rust-1.92%2B-B7410E?logo=rust&amp;logoColor=white">
-  <a href="https://slint.dev"><img alt="Slint 1.18.1" src="https://img.shields.io/badge/Slint-1.18.1-818CF8"></a>
+  <img alt="Rust 1.95 or later" src="https://img.shields.io/badge/Rust-1.95%2B-B7410E?logo=rust&amp;logoColor=white">
+  <a href="https://slint.dev"><img alt="Slint 1.19.0" src="https://img.shields.io/badge/Slint-1.19.0-818CF8"></a>
   <img alt="Native UI" src="https://img.shields.io/badge/UI-native-0D9488">
   <img alt="No unsafe code in the kit's hand-written Rust" src="https://img.shields.io/badge/kit_unsafe-none-success">
   <a href="https://docs.rs/slint-kit"><img alt="docs.rs" src="https://img.shields.io/docsrs/slint-kit"></a>
 </p>
 
-<p><strong>127 native components</strong> · typed forms and validation · virtualized tables and lists · dates, times and exact decimals · light/dark themes</p>
+<p><strong>139 native components</strong> · typed forms and validation · virtualized tables and lists · dates, times and exact decimals · light/dark themes</p>
 
 </div>
 
@@ -82,24 +82,24 @@ The current series is before 1.0 and breaking changes remain possible. The build
 Every change passes `cargo run -p xtask -- check` in CI:
 
 - No `unsafe` in the kit's hand-written Rust; the domain core and adapters use `#![forbid(unsafe_code)]`.
-- A CI matrix with named checks: the full check on macOS, build checks on Windows, and a Linux headless/clippy job that [passed on Ubuntu 24.04 at `59ece023`](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933). [Announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof; a headless test or a screenshot is not a native, IME or screen-reader qualification.
+- A CI matrix with named checks: a Linux job that runs the full check headlessly on Ubuntu 24.04 (its last recorded result: [headless tests and clippy passed at `59ece023`](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933)), and build checks on Windows. [Announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof; a headless test or a screenshot is not a native, IME or screen-reader qualification.
 - `cargo fmt` and `clippy` with warnings denied; wildcard match arms on domain enums are rejected.
-- Behavior tests cover keyboard, pointer, focus, identity and geometry, alongside domain logic. [Public CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs the full suite on macOS and build/helper checks on Windows; the [Linux job passed headless component/workspace tests and clippy at `59ece023`](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933). Native Linux interaction, mobile, IME and screen readers still require checks on the target device.
+- Behavior tests cover keyboard, pointer, focus, identity and geometry, alongside domain logic. [Public CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs the full suite headlessly on Linux and build/helper checks on Windows; the [Linux job passed headless component/workspace tests and clippy at `59ece023`](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933). CI no longer runs on macOS. Native interaction on every OS, mobile, IME and screen readers still require the manual procedures in the getting-started guide, on the target device.
 - Generated files (shared contracts, Lucide icons) are verified against their generators.
 - A token lint rejects hard-coded colors, sizes and durations in components: everything comes from the theme.
 - Strict types: closed sets are enums, identifiers are newtypes, invalid states are unrepresentable. See the [typed controllers guide](https://slint-kit.dev/guides/controllers/) for application examples.
 
 ## Try it
 
-Install the toolkit from [crates.io](https://crates.io/crates/slint-kit) with Rust 1.92 or later and the native dependencies required by Slint:
+Slint Kit 0.9.0 requires Rust 1.95 and Slint 1.19. Install matching packages from [crates.io](https://crates.io/crates/slint-kit) and Slint’s native dependencies. See the [changelog and migration notes](https://slint-kit.dev/changelog/) for the edition, import and scrolling changes:
 
 ```toml
 [dependencies]
-slint-kit = "0.7"
-slint = "~1.18.1"
+slint-kit = "=0.9.0"
+slint = "~1.19.0"
 
 [build-dependencies]
-slint-kit-build = "0.7"
+slint-kit-build = "=0.9.0"
 ```
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
@@ -109,9 +109,9 @@ For `@kit` completion and diagnostics in VS Code or Zed, configure the language 
 
 ## Build the showcase
 
-The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.92+**.
+The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.95+**.
 
-Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.18.1 build guide](https://github.com/slint-ui/slint/blob/v1.18.1/docs/building.md#prerequisites) for platform setup.
+Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.19.0 build guide](https://github.com/slint-ui/slint/blob/v1.19.0/docs/building.md#prerequisites) for platform setup.
 
 ```sh
 git clone https://github.com/damione1/slint-kit.git
@@ -122,7 +122,7 @@ cargo run --release --locked -p kit-showcase
 
 ## En français
 
-Slint Kit associe **127 composants UI Rust et Slint** à une couche de comportements partagés : validation de formulaires, valeurs exactes, clés stables et thèmes personnalisables. Votre application fournit ses règles métier et ses données ; le kit fournit les mécanismes d’interaction réutilisables. Consultez [Pourquoi Slint Kit](https://slint-kit.dev/fr/guides/why-slint-kit/), les [formulaires typés](https://slint-kit.dev/fr/guides/forms/) et l’[installation](https://slint-kit.dev/fr/guides/getting-started/).
+Slint Kit associe **139 composants UI Rust et Slint** à une couche de comportements partagés : validation de formulaires, valeurs exactes, clés stables et thèmes personnalisables. Votre application fournit ses règles métier et ses données ; le kit fournit les mécanismes d’interaction réutilisables. Consultez [Pourquoi Slint Kit](https://slint-kit.dev/fr/guides/why-slint-kit/), les [formulaires typés](https://slint-kit.dev/fr/guides/forms/) et l’[installation](https://slint-kit.dev/fr/guides/getting-started/).
 
 ## Contribute
 

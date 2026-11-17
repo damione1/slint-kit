@@ -74,7 +74,7 @@ fn formatted_paste_normalizes_the_value_but_not_the_native_draft() {
 fn formatting_is_presentation_and_does_not_replace_the_original_editor() {
     let view = fixture();
     let editor = ElementQuery::from_root(&view)
-        .match_inherits("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Phone"))
         .find_first()
         .unwrap();
@@ -149,7 +149,7 @@ fn structural_phone_errors_are_shown_before_host_business_errors() {
     view.set_draft("123".into());
     assert!(!view.invoke_report());
     let editor = ElementQuery::from_root(&view)
-        .match_inherits("TextInput")
+        .match_inherits("KitTextField")
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Phone"))
         .find_first()
         .unwrap();

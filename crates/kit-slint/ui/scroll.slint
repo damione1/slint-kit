@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitThemeContext, ScrollBarRecipe, ChoiceFlow } from "theme.slint";
 
+// Which way a held track press pages: toward the start or the end of the content.
+enum TrackHold { none, toward-start, toward-end }
+
 // Pointer affordance for one axis of a scrolled viewport. `value` follows
 // Flickable's convention: 0 at the start and -maximum at the end. Like the
 // std-widgets bar it replaces, it takes no focus and adds nothing to the
@@ -14,7 +17,7 @@ export component KitScrollBar inherits Rectangle {
     in property <length> maximum;
     in property <length> page-size;
     in-out property <length> value;
-    // Emitted after a pointer drag, track press or wheel changes `value`.
+    // Emitted after a pointer drag, track press (and each repeat while held) or wheel changes `value`.
     callback scrolled();
     out property <bool> active: root.enabled && (touch.has-hover || touch.pressed);
     in property <ScrollBarRecipe> recipe: KitThemes.scroll-bar-recipe(root.theme);
@@ -26,6 +29,20 @@ export component KitScrollBar inherits Rectangle {
     private property <length> travel: max(0px, root.track-length - root.thumb-length);
     private property <length> thumb-start: root.recipe.inset + (root.range <= 0px ? 0px : root.travel * max(0, min(1, -root.value / root.range)));
     private property <length> thumb-thickness: root.active ? root.recipe.active-thumb-thickness : root.recipe.thumb-thickness;
+    // A track press pages once, then repeats after the theme's repeat delay at
+    // its repeat interval while the button stays down, like a web scrollbar.
+    private property <TrackHold> hold: TrackHold.none;
+    private property <bool> hold-repeating;
+    private property <bool> hold-pending: root.enabled && root.hold != TrackHold.none;
+    function page-held() {
+        // Stops once the thumb reaches the pointer; pauses while the pointer is off the bar.
+        if (!touch.has-hover) { return; }
+        if (root.hold == TrackHold.toward-start && touch.pointer < root.thumb-start) {
+            root.scroll-to(root.value + root.page-size);
+        } else if (root.hold == TrackHold.toward-end && touch.pointer > root.thumb-start + root.thumb-length) {
+            root.scroll-to(root.value - root.page-size);
+        }
+    }
     function scroll-to(next: length) {
         let bounded = max(-root.range, min(0px, next));
         if (bounded != root.value) { root.value = bounded; root.scrolled(); }
@@ -42,7 +59,7 @@ export component KitScrollBar inherits Rectangle {
     accessible-role: none;
     background: root.active ? root.recipe.active-track : root.recipe.track;
     border-radius: min(root.theme.shape.radius-pill, (root.horizontal ? self.height : self.width) / 2);
-    animate background { duration: root.recipe.transition; }
+    animate background { enabled: !root.theme.reduced-motion; duration: root.recipe.transition; }
     thumb := Rectangle {
         visible: root.range > 0px;
         x: root.horizontal ? root.thumb-start : root.width - root.recipe.inset - self.width;
@@ -51,7 +68,19 @@ export component KitScrollBar inherits Rectangle {
         height: root.horizontal ? root.thumb-thickness : root.thumb-length;
         border-radius: min(root.theme.shape.radius-pill, root.thumb-thickness / 2);
         background: root.active ? root.recipe.active-thumb : root.recipe.thumb;
-        animate width, height, background { duration: root.recipe.transition; }
+        animate width, height, background { enabled: !root.theme.reduced-motion; duration: root.recipe.transition; }
+    }
+    // Two timers, because a running Timer keeps its period: the delay timer
+    // hands over to the interval timer after its first trigger.
+    Timer {
+        running: root.hold-pending && !root.hold-repeating;
+        interval: root.theme.motion.repeat-delay;
+        triggered => { root.hold-repeating = true; root.page-held(); }
+    }
+    Timer {
+        running: root.hold-pending && root.hold-repeating;
+        interval: root.theme.motion.repeat-interval;
+        triggered => { root.page-held(); }
     }
     touch := TouchArea {
         enabled: root.enabled;
@@ -61,7 +90,7 @@ export component KitScrollBar inherits Rectangle {
         property <length> press-pointer;
         property <length> press-value;
         property <length> press-range;
-        property <length> pointer: root.horizontal ? self.mouse-x : self.mouse-y;
+        out property <length> pointer: root.horizontal ? self.mouse-x : self.mouse-y;
         function rebase() { self.press-pointer = self.pointer; self.press-value = root.value; self.press-range = root.range; }
         pointer-event(event) => {
             if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
@@ -71,10 +100,14 @@ export component KitScrollBar inherits Rectangle {
                 } else {
                     // A track press moves one page toward the pointer, as on the web.
                     self.dragging = false;
-                    root.scroll-to(root.value + (self.pointer < root.thumb-start ? root.page-size : -root.page-size));
+                    root.hold-repeating = false;
+                    root.hold = self.pointer < root.thumb-start ? TrackHold.toward-start : TrackHold.toward-end;
+                    root.page-held();
                 }
             } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
                 self.dragging = false;
+                root.hold = TrackHold.none;
+                root.hold-repeating = false;
             }
         }
         moved => {
@@ -119,6 +152,36 @@ export component ScrollFrame {
     // Background panning is bounded and direct; wheel/focus/bars remain native.
     in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.native;
     callback scrolled <=> flickable.flicked;
+    // Positive content coordinates; the native Flickable clamps both axes.
+    public function scroll-to(position: Point, behavior: ScrollBehavior) {
+        flickable.scroll-to(position, root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
+    }
+    // Coordinate-based compatibility helpers use a roleless target in the
+    // viewport. Slint handles ancestor offsets, clipping and reduced motion.
+    // ListView places rows directly in viewport coordinates; a regular Flickable
+    // translates its content item. Keep this mapping in local coordinates.
+    in property <length> content-translation-y: root.content-y;
+    public function reveal-horizontal(start: length, end: length, behavior: ScrollBehavior) {
+        root.scroll-to({x: -root.content-x, y: -root.content-y}, ScrollBehavior.instant);
+        reveal-target.x = start; reveal-target.y = -root.content-translation-y;
+        reveal-target.width = min(flickable.width, max(0px, end - start)); reveal-target.height = 0px;
+        if (end - start > flickable.width
+            && reveal-target.absolute-position.x >= flickable.absolute-position.x
+            && reveal-target.absolute-position.x < flickable.absolute-position.x + flickable.width) { return; }
+        reveal-target.ensure-visible(root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
+    }
+    public function reveal-vertical(start: length, end: length, behavior: ScrollBehavior) {
+        root.scroll-to({x: -root.content-x, y: -root.content-y}, ScrollBehavior.instant);
+        reveal-target.x = -flickable.content-x; reveal-target.y = start + flickable.content-y - root.content-translation-y;
+        reveal-target.width = 0px; reveal-target.height = min(flickable.height, max(0px, end - start));
+        // Slint 1.19 cannot reveal a rectangle taller than its viewport.
+        // Preserve a visible leading edge; otherwise reveal a viewport-sized
+        // leading slice, keeping the public oversized-region contract.
+        if (end - start > flickable.height
+            && reveal-target.absolute-position.y >= flickable.absolute-position.y
+            && reveal-target.absolute-position.y < flickable.absolute-position.y + flickable.height) { return; }
+        reveal-target.ensure-visible(root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
+    }
     // The std-widgets ScrollView footprint: a scrolled viewport fills its slot.
     min-height: 50px;
     min-width: 50px;
@@ -161,6 +224,10 @@ export component ScrollFrame {
             content-y <=> vertical-bar.value;
             content-x <=> horizontal-bar.value;
             width: pan.width; height: pan.height;
+            reveal-target := Rectangle {
+                x: 0px; y: 0px; width: 0px; height: 0px;
+                accessible-role: none;
+            }
             @children
         }
     }
@@ -194,6 +261,9 @@ export component ScrollFrame {
 // element whose base is called ListView and that exposes the content-* and
 // visible-* lengths. Internal to the kit, like ScrollFrame.
 export component ListView inherits ScrollFrame {
+    content-translation-y: 0px;
+    // Slint supplies the body from this ListView's virtualized repeater.
+    public function ensure-row-visible(row: int, behavior: ScrollBehavior) {}
     @children
     accessible-role: list;
     accessible-orientation: Orientation.vertical;

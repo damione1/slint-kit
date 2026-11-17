@@ -1,4 +1,4 @@
-import { InterFont } from "@kit/fonts/inter.slint";
+import { InterFont } from "@kit-fonts/inter.slint";
 import { LayoutSpace, KitMetrics, TypographyRole, KitStack } from "@kit";
 import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
@@ -16,6 +16,7 @@ export component Example inherits Window {
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         KitCalendar {
+            // One native keyboard scope delegates accessible focus to the active day.
             // Use the window reading direction; an explicit flow can override the theme.
             flow: root.theme.direction;
             today: {year: 2026, month: 10, day: 19};
@@ -32,6 +33,10 @@ export component Example inherits Window {
             accessible-date-pattern: "%A %-d %B %Y"; title-pattern: "%B %Y";
             today-label: "Today"; range-start-label: "Range start";
             range-end-label: "Range end"; in-range-label: "In selected range";
+            // The heading opens the month and year grids; these names are localizable.
+            view-switch-label: "Choose month and year";
+            previous-year-label: "Previous year"; next-year-label: "Next year";
+            previous-years-label: "Previous years"; next-years-label: "Next years";
             selected: {year: 2026, month: 10, day: 19};
             min: "2026-10-01"; max: "2027-12-31";
             unavailable-weekdays: [WeekStart.saturday, WeekStart.sunday];

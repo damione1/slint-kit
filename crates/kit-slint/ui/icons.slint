@@ -6,7 +6,7 @@ export { IconGlyph, IconStroke }
 // The kit's own glyphs: original stroked paths on the 24-unit grid Lucide
 // uses, so the theme's icon stroke token weighs the same on both sets. No
 // external icon assets. Lucide icons are generated separately into
-// `@kit/icons/lucide/` and are not copied here.
+// `@kit-icons/` and are not copied here.
 export { KitGlyphs } from "icons/kit-glyphs.slint";
 
 // decorative: hidden from assistive technology, because the surrounding control
@@ -79,7 +79,7 @@ export component TurningIcon inherits Rectangle {
     in property <angle> turn: 180deg;
     private property <angle> target: root.turned ? root.turn : 0deg;
     private property <angle> eased: root.target;
-    animate eased { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; easing: ease-in-out; }
+    animate eased { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; easing: ease-in-out; }
     // The rotation currently applied: zero at rest.
     out property <angle> rotation: root.eased - root.target;
     // The glyph drawn for the current state.

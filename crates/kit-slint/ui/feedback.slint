@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
 import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe, TooltipRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
@@ -16,13 +17,37 @@ export global KitAlertMarks {
     }
 }
 export enum ToastInteraction { pointer, focus }
+// Where the keyboard tip sits against its target. `auto` is below the target and
+// flips above it near the bottom edge; `left` and `right` are physical window
+// sides and center the tip on the target's height.
+export enum TooltipPlacement { auto, below, above, left, right }
 export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool, dismiss-label: string }
 
+// Presentation-only: how a progress indicator reports its state. An
+// indeterminate indicator has no value; it animates until the work ends.
+export enum ProgressMode { determinate, indeterminate }
+// The color a progress indicator fills with. `accent` is the theme's brand ink.
+export enum ProgressIntent { accent, success, warning, error }
+
+// Internal: the ink of a progress indicator for its intent.
+export global KitProgressInks {
+    public pure function ink(theme: KitTheme, intent: ProgressIntent) -> color {
+        return intent == ProgressIntent.success ? theme.success
+            : intent == ProgressIntent.warning ? theme.warning
+            : intent == ProgressIntent.error ? theme.danger
+            : theme.accent;
+    }
+}
+
+// Copy, then an optional row of actions: place `KitButton`s (or links) as children
+// and they sit under the message, aligned to the copy.
 export component KitAlert inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <AlertSeverity> severity: AlertSeverity.information;
     in property <string> title;
     in property <string> message;
+    // Replaces the mark of the severity; the recipe still tints it.
+    in property <IconGlyph> glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
     in property <bool> dismissible;
     in property <string> dismiss-label: KitStrings.dismiss-label-template.replace-all("{title}", root.title);
     callback dismissed();
@@ -40,20 +65,32 @@ export component KitAlert inherits Rectangle {
     background: root.recipe.fill;
     border-width: root.recipe.border-width; border-color: root.recipe.border;
     border-radius: root.corner-radius; vertical-stretch: 0;
-    accessible-role: groupbox; accessible-label: root.title; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
+    accessible-role: groupbox; accessible-label: root.title != "" ? root.title : root.message; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
     icon := KitIcon {
         theme: root.theme;
         x: root.inset; y: root.inset;
-        glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
+        glyph: root.glyph;
         ink: root.recipe.mark;
     }
     copy := VerticalLayout {
         x: icon.x + icon.width + root.gap; y: root.inset;
         width: max(0px, root.width - self.x - root.inset - root.trailing-space);
         height: self.preferred-height;
-        spacing: root.theme.spacing.unit; alignment: start;
-        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        spacing: 0px; alignment: start;
+        VerticalLayout {
+            spacing: root.theme.spacing.unit; alignment: start;
+            if root.title != "": Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+            if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        }
+        // Zero tall without children, so an alert without actions keeps its measured height.
+        Rectangle {
+            height: actions.preferred-height > 0px ? actions.preferred-height + root.theme.spacing.unit * 2 : 0px;
+            actions := HorizontalLayout {
+                y: root.theme.spacing.unit * 2; width: parent.width; height: self.preferred-height;
+                spacing: root.theme.spacing.unit * 2; alignment: start;
+                @children
+            }
+        }
     }
     dismiss := KitIconButton {
         width: self.preferred-width; height: self.preferred-height;
@@ -65,55 +102,90 @@ export component KitAlert inherits Rectangle {
     }
 }
 
+// Eight dots on a ring. The mark is square: `control-size` picks it from the icon
+// scale (one and a half icons), `ink` replaces the accent so it can sit on a
+// filled control with the right contrast.
 export component KitSpinner inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label: "Loading";
     in property <bool> running: true;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <color> ink: root.theme.accent;
     private property <int> phase;
-    preferred-width: 24px; preferred-height: 24px; min-width: 16px; min-height: 16px;
+    private property <length> mark: KitMetrics.icon-size(root.theme, root.control-size) * 1.5;
+    private property <length> dot: root.mark / 6;
+    preferred-width: root.mark; preferred-height: root.mark; min-width: self.preferred-width * 2 / 3; min-height: self.preferred-height * 2 / 3;
     max-width: self.preferred-width; max-height: self.preferred-height;
     horizontal-stretch: 0; vertical-stretch: 0;
     accessible-role: AccessibleRole.text; accessible-label: root.label;
-    for index in 8: Rectangle { width: 4px; height: 4px; border-radius: self.width / 2;
-        x: (root.width - self.width) / 2 + (root.width / 2 - 3px) * Math.cos(index * 45deg);
-        y: (root.height - self.height) / 2 + (root.height / 2 - 3px) * Math.sin(index * 45deg);
-        background: root.theme.accent; opacity: root.theme.reduced-motion || !root.running ? 1 : 0.2 + 0.8 * Math.mod(index + 8 - root.phase,8) / 7;
+    for index in 8: Rectangle { width: root.dot; height: root.dot; border-radius: self.width / 2;
+        x: (root.width - self.width) / 2 + (root.width / 2 - root.dot * 0.75) * Math.cos(index * 45deg);
+        y: (root.height - self.height) / 2 + (root.height / 2 - root.dot * 0.75) * Math.sin(index * 45deg);
+        background: root.ink; opacity: root.theme.reduced-motion || !root.running ? 1 : 0.2 + 0.8 * Math.mod(index + 8 - root.phase,8) / 7;
     }
     Timer { interval: 100ms; running: root.running && !root.theme.reduced-motion; triggered => { root.phase = Math.mod(root.phase + 1,8); } }
 }
 
+// A bar for a known fraction, or, in `indeterminate` mode, a segment that runs
+// along the track (still at the start under reduced motion). `value-text` is
+// the visible reading beside the label; assistive technology gets the number.
 export component KitProgress inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
+    in property <string> value-text;
+    in property <ProgressMode> mode: ProgressMode.determinate;
+    in property <ProgressIntent> intent: ProgressIntent.accent;
     out property <float> bounded-value: min(1,max(0,root.value));
+    private property <float> segment: 0.4;
     spacing: root.theme.spacing.unit * 2; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
-    accessible-value: Math.round(root.bounded-value * 100);
+    accessible-value: root.mode == ProgressMode.indeterminate ? "" : Math.round(root.bounded-value * 100);
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.border-subtle;
-        Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: parent.border-radius; background: root.theme.accent; animate width { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; } }
+    if root.label != "" || root.value-text != "": HorizontalLayout {
+        spacing: root.theme.spacing.unit * 2;
+        if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; horizontal-stretch: 1; }
+        if root.label == "": Rectangle { horizontal-stretch: 1; }
+        if root.value-text != "": Text { text: root.value-text; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-stretch: 0; accessible-role: none; }
+    }
+    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.border-subtle; clip: true;
+        Rectangle {
+            y: 0px; height: parent.height; border-radius: parent.border-radius; background: KitProgressInks.ink(root.theme, root.intent);
+            width: root.mode == ProgressMode.indeterminate ? parent.width * root.segment : parent.width * root.bounded-value;
+            x: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? -self.width + (parent.width + self.width) * Math.mod(animation-tick() / 1.6s, 1) : 0px;
+            animate width { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }
+        }
     }
 }
+// A ring for a known fraction, or, in `indeterminate` mode, a quarter arc that
+// turns. `diameter` sizes it, `thickness` its stroke, and the centre shows the
+// percentage unless `show-value` is off or `value-text` replaces it.
 export component KitRadialProgress inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
+    in property <string> value-text;
+    in property <bool> show-value: true;
+    in property <ProgressMode> mode: ProgressMode.determinate;
+    in property <ProgressIntent> intent: ProgressIntent.accent;
+    in property <length> diameter: max(88px, 64px * root.theme.text-scale);
+    in property <length> thickness: root.theme.spacing.unit * 1.5;
     out property <float> bounded-value: min(1,max(0,root.value));
-    preferred-width: max(88px, 64px * root.theme.text-scale); preferred-height: self.preferred-width;
+    preferred-width: root.diameter; preferred-height: self.preferred-width;
     min-width: self.preferred-width; min-height: self.preferred-height; max-width: self.preferred-width; max-height: self.preferred-height;
     horizontal-stretch: 0; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
-    accessible-value: Math.round(root.bounded-value * 100);
+    accessible-value: root.mode == ProgressMode.indeterminate ? "" : Math.round(root.bounded-value * 100);
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    private property <float> visual-value: root.bounded-value;
-    animate visual-value { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
+    private property <float> visual-value: root.mode == ProgressMode.indeterminate ? 0.25 : root.bounded-value;
+    // Where the arc starts, measured from twelve o'clock.
+    private property <angle> start: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? 360deg * Math.mod(animation-tick() / 1.2s, 1) : 0deg;
+    animate visual-value { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }
     Path {
         width: root.width; height: root.height;
         viewbox-width: 100; viewbox-height: 100;
         fill: transparent; stroke: root.theme.border-subtle;
-        stroke-width: root.theme.spacing.unit * 1.5;
+        stroke-width: root.thickness;
         MoveTo { x: 50; y: 6; }
         ArcTo { radius-x: 44; radius-y: 44; sweep: true; x: 50; y: 94; }
         ArcTo { radius-x: 44; radius-y: 44; sweep: true; x: 50; y: 6; }
@@ -121,17 +193,18 @@ export component KitRadialProgress inherits Rectangle {
     if root.visual-value > 0: Path {
         width: root.width; height: root.height;
         viewbox-width: 100; viewbox-height: 100;
-        fill: transparent; stroke: root.theme.accent;
-        stroke-width: root.theme.spacing.unit * 1.5; stroke-line-cap: round;
-        MoveTo { x: 50; y: 6; }
+        fill: transparent; stroke: KitProgressInks.ink(root.theme, root.intent);
+        stroke-width: root.thickness; stroke-line-cap: round;
+        MoveTo { x: 50 + 44 * Math.cos(root.start - 90deg); y: 50 + 44 * Math.sin(root.start - 90deg); }
         ArcTo {
             radius-x: 44; radius-y: 44; sweep: true;
             large-arc: root.visual-value > 0.5;
-            x: 50 + 44 * Math.cos(min(0.99999,root.visual-value) * 360deg - 90deg);
-            y: 50 + 44 * Math.sin(min(0.99999,root.visual-value) * 360deg - 90deg);
+            x: 50 + 44 * Math.cos(root.start + min(0.99999,root.visual-value) * 360deg - 90deg);
+            y: 50 + 44 * Math.sin(root.start + min(0.99999,root.visual-value) * 360deg - 90deg);
         }
     }
-    Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+    if root.show-value && root.mode == ProgressMode.determinate: Text { text: root.value-text != "" ? root.value-text : Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+    if root.show-value && root.mode == ProgressMode.indeterminate && root.value-text != "": Text { text: root.value-text; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 // One projection per component Window, with monotonic owners so a stale blur
@@ -144,19 +217,26 @@ export global KitTooltipState {
     out property <KitTheme> theme: KitThemeContext.current;
     out property <Point> anchor;
     out property <length> anchor-height;
+    out property <length> anchor-width;
+    out property <TooltipPlacement> placement;
+    // True while a KitTooltipLayer is mounted and enabled in this window.
+    out property <bool> layer-active;
     public function allocate() -> int {
         if (KitTooltipState.next-owner == 2147483647) { return 0; }
         KitTooltipState.next-owner += 1;
         return KitTooltipState.next-owner;
     }
-    public function show(owner: int, text: string, theme: KitTheme, anchor: Point, anchor-height: length) {
+    public function show(owner: int, text: string, theme: KitTheme, anchor: Point, anchor-width: length, anchor-height: length, placement: TooltipPlacement) {
         if (owner == 0 || owner == KitTooltipState.suppressed-owner) { return; }
         KitTooltipState.owner = owner;
         KitTooltipState.text = text;
         KitTooltipState.theme = theme;
         KitTooltipState.anchor = anchor;
+        KitTooltipState.anchor-width = anchor-width;
         KitTooltipState.anchor-height = anchor-height;
+        KitTooltipState.placement = placement;
     }
+    public function set-layer-active(active: bool) { KitTooltipState.layer-active = active; }
     public function hide(owner: int) {
         if (KitTooltipState.owner == owner) { KitTooltipState.owner = 0; }
         if (KitTooltipState.suppressed-owner == owner) { KitTooltipState.suppressed-owner = 0; }
@@ -174,13 +254,26 @@ export component KitTooltipLayer inherits Rectangle {
     in property <length> viewport-width: root.width;
     in property <length> viewport-height: root.height;
     public function dismiss() { KitTooltipState.dismiss(); }
-    changed enabled => { KitTooltipState.dismiss(); }
+    init => { KitTooltipState.set-layer-active(root.enabled); }
+    changed enabled => { KitTooltipState.dismiss(); KitTooltipState.set-layer-active(root.enabled); }
     private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(KitTooltipState.theme);
     // The tip's distance from the anchor and the window edges.
     private property <length> gap: root.tip-recipe.gap;
+    // The unclamped position per placement; the clamp keeps the tip inside the viewport.
+    pure function wanted-x(tip-width: length) -> length {
+        if (KitTooltipState.placement == TooltipPlacement.left) { return KitTooltipState.anchor.x - tip-width - root.gap; }
+        if (KitTooltipState.placement == TooltipPlacement.right) { return KitTooltipState.anchor.x + KitTooltipState.anchor-width + root.gap; }
+        return KitTooltipState.anchor.x;
+    }
+    pure function wanted-y(tip-height: length) -> length {
+        if (KitTooltipState.placement == TooltipPlacement.above) { return KitTooltipState.anchor.y - tip-height - root.gap; }
+        if (KitTooltipState.placement == TooltipPlacement.left || KitTooltipState.placement == TooltipPlacement.right) { return KitTooltipState.anchor.y + (KitTooltipState.anchor-height - tip-height) / 2; }
+        if (KitTooltipState.placement == TooltipPlacement.auto && KitTooltipState.anchor.y + KitTooltipState.anchor-height + tip-height + root.gap > root.viewport-height) { return KitTooltipState.anchor.y - tip-height - root.gap; }
+        return KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap;
+    }
     if root.enabled && KitTooltipState.owner != 0: Rectangle {
-        x: max(root.gap,min(KitTooltipState.anchor.x,root.viewport-width - self.width - root.gap));
-        y: max(root.gap,min(root.viewport-height - self.height - root.gap,KitTooltipState.anchor.y + KitTooltipState.anchor-height + self.height + root.gap > root.viewport-height ? KitTooltipState.anchor.y - self.height - root.gap : KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap));
+        x: max(root.gap,min(root.wanted-x(self.width),root.viewport-width - self.width - root.gap));
+        y: max(root.gap,min(root.wanted-y(self.height),root.viewport-height - self.height - root.gap));
         // As wide as one line of its text, up to the recipe's reading width.
         width: min(min(root.tip-recipe.max-width,line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.gap));
         height: min(tip.preferred-height + 2 * root.tip-recipe.padding-block,max(0px,root.viewport-height - 2 * root.gap));
@@ -203,10 +296,13 @@ export component KitTooltipLayer inherits Rectangle {
 
 // Native hover tips stay input-transparent. Bind target-focused to the composed
 // control's has-focus; mount KitTooltipLayer at the Window root for keyboard tips.
+// Describe the target to assistive technology with the control's `description`
+// (KitPressable and its derivatives); this wrapper has no accessible role.
 export component KitTooltip inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <bool> target-focused;
+    in property <TooltipPlacement> placement: TooltipPlacement.auto;
     in property <length> viewport-width: 100000px;
     in property <length> viewport-height: 100000px;
     private property <int> owner;
@@ -214,10 +310,12 @@ export component KitTooltip inherits Rectangle {
     private property <Point> anchor: root.absolute-position;
     private property <KitTheme> observed-theme: root.theme;
     private property <length> observed-height: root.height;
-    out property <bool> keyboard-visible: root.target-focused && !root.suppressed && root.text != "" && KitTooltipState.owner == root.owner && root.owner != 0;
+    private property <length> observed-width: root.width;
+    // False when no enabled KitTooltipLayer is mounted: the native hover tip then stays available.
+    out property <bool> keyboard-visible: root.target-focused && KitTooltipState.layer-active && !root.suppressed && root.text != "" && KitTooltipState.owner == root.owner && root.owner != 0;
     public function dismiss() { root.suppressed = true; if (KitTooltipState.owner == root.owner) { KitTooltipState.dismiss(); } }
     function publish() {
-        if (root.target-focused && !root.suppressed && root.text != "") { KitTooltipState.show(root.owner,root.text,root.theme,root.anchor,root.height); }
+        if (root.target-focused && !root.suppressed && root.text != "") { KitTooltipState.show(root.owner,root.text,root.theme,root.anchor,root.width,root.height,root.placement); }
     }
     init => { root.owner = KitTooltipState.allocate(); root.publish(); }
     changed target-focused => {
@@ -227,6 +325,8 @@ export component KitTooltip inherits Rectangle {
     changed anchor => { root.publish(); }
     changed observed-theme => { root.publish(); }
     changed observed-height => { root.publish(); }
+    changed observed-width => { root.publish(); }
+    changed placement => { root.publish(); }
     changed text => { if (root.text == "") { KitTooltipState.hide(root.owner); } else { root.publish(); } }
     vertical-stretch: 0; horizontal-stretch: 0;
     min-width: content.min-width; preferred-width: content.preferred-width;
@@ -247,6 +347,15 @@ export component KitTooltip inherits Rectangle {
     }
 }
 
+component ToastFocusButton inherits KitButton {
+    in property <int> focus-request;
+    changed focus-request => { self.take-focus(); }
+}
+component ToastFocusIconButton inherits KitIconButton {
+    in property <int> focus-request;
+    changed focus-request => { self.take-focus(); }
+}
+
 export component KitToast inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ToastEntry> entry;
@@ -254,6 +363,25 @@ export component KitToast inherits Rectangle {
     callback action(int);
     callback dismiss(int);
     callback interaction(int,ToastInteraction,bool);
+    // The host raises this serial to move keyboard focus into its first toast;
+    // only the delegate marked as that target reacts.
+    in property <bool> focus-target;
+    in property <int> focus-serial;
+    changed focus-serial => { if (root.focus-target) { root.take-focus(); } }
+    // Focus the first control a keyboard user can operate: the action, else dismiss.
+    public function take-focus() {
+        if (root.entry.action-label != "") { root.action-focus += 1; }
+        else if (root.entry.dismissible) { root.dismiss-focus += 1; }
+    }
+    private property <AlertRecipe> alert: KitThemes.alert-recipe(root.theme, root.entry.severity);
+    // Like Escape on a web toast: a dismissible toast closes from either control.
+    function escape-dismisses(event: KeyEvent) -> KitKeyResult {
+        if (event.text == Key.Escape && root.entry.dismissible) { root.dismiss(root.entry.token); return KitKeyResult.accept; }
+        return KitKeyResult.reject;
+    }
+    // Conditional controls cannot be named outside their condition, so each takes focus when its serial changes.
+    private property <int> action-focus;
+    private property <int> dismiss-focus;
     private property <bool> action-focused;
     private property <bool> dismiss-focused;
     private property <bool> pointer-engaged: hover.has-hover;
@@ -270,13 +398,21 @@ export component KitToast inherits Rectangle {
     hover := TouchArea {
     content := VerticalLayout { padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 3;
         HorizontalLayout { spacing: root.theme.spacing.unit * 3;
+            // The severity mark follows the alert recipe, so the meaning never rests on color alone.
+            VerticalLayout { alignment: start;
+                KitIcon {
+                    theme: root.theme;
+                    glyph: root.entry.severity == AlertSeverity.success ? root.theme.icons.check : root.entry.severity == AlertSeverity.warning || root.entry.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
+                    ink: root.alert.mark;
+                }
+            }
             VerticalLayout { spacing: root.theme.spacing.unit;
                 Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                 if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
-            if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: root.dismiss-label; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
+            if root.entry.dismissible: ToastFocusIconButton { focus-request: root.dismiss-focus; theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: root.dismiss-label; activated => { root.dismiss(root.entry.token); } key-event(event) => { return root.escape-dismisses(event); } focus-observed(focused) => { root.dismiss-focused = focused; } }
         }
-        if root.entry.action-label != "": KitButton { theme: root.theme; text: root.entry.action-label; activated => { root.action(root.entry.token); } focus-observed(focused) => { root.action-focused = focused; } }
+        if root.entry.action-label != "": ToastFocusButton { focus-request: root.action-focus; theme: root.theme; text: root.entry.action-label; activated => { root.action(root.entry.token); } key-event(event) => { return root.escape-dismisses(event); } focus-observed(focused) => { root.action-focused = focused; } }
     }
     }
 }
@@ -288,6 +424,9 @@ export component KitToastHost inherits VerticalLayout {
     callback action(int);
     callback dismiss(int);
     callback interaction(int,ToastInteraction,bool);
+    private property <int> focus-serial;
+    // Move keyboard focus into the first toast, for a hotkey the application defines.
+    public function take-focus() { root.focus-serial += 1; }
     spacing: root.theme.spacing.unit * 3; alignment: start; vertical-stretch: 0;
-    for entry in root.entries: KitToast { theme: root.theme; entry: entry; action(token) => { root.action(token); } dismiss(token) => { root.dismiss(token); } interaction(token,source,engaged) => { root.interaction(token,source,engaged); } }
+    for entry[index] in root.entries: KitToast { theme: root.theme; entry: entry; focus-target: index == 0; focus-serial: root.focus-serial; action(token) => { root.action(token); } dismiss(token) => { root.dismiss(token); } interaction(token,source,engaged) => { root.interaction(token,source,engaged); } }
 }

@@ -53,14 +53,11 @@ fn spin_button(window: &NumberSteppingFixture, label: &str) -> ElementHandle {
         .unwrap_or_else(|| panic!("missing spin button {label}"))
 }
 fn editor(window: &NumberSteppingFixture, label: &str) -> ElementHandle {
-    let requested = label.to_owned();
-    ElementQuery::from_root(window)
-        .match_accessible_role(AccessibleRole::TextInput)
-        .match_predicate(move |element| {
-            element.accessible_label().as_deref() == Some(requested.as_str())
-        })
+    spin_button(window, label)
+        .query_descendants()
+        .match_id("KitTextField::editor")
         .find_first()
-        .unwrap_or_else(|| panic!("missing editor {label}"))
+        .unwrap_or_else(|| panic!("missing native editor {label}"))
 }
 
 #[test]
@@ -351,7 +348,68 @@ fn numeric_fields_expose_a_spin_button_with_range_and_step_actions() {
             .is_none(),
         "plain text fields are not spin buttons"
     );
-    let _ = editor(&window, "Amount");
+    let native = editor(&window, "Amount");
+    assert_eq!(
+        native.accessible_role(),
+        Some(AccessibleRole::None),
+        "the spin button owns its native text exactly once"
+    );
+    assert!(
+        spin.query_descendants()
+            .match_accessible_role(AccessibleRole::TextInput)
+            .find_all()
+            .is_empty()
+    );
+    assert_eq!(
+        spin.query_descendants()
+            .match_type_name("TextInput")
+            .find_first()
+            .unwrap()
+            .id()
+            .as_deref(),
+        Some("KitTextField::editor"),
+        "Slint delegates wrapper text and selection to the first native editor, never the clipboard probe"
+    );
+}
+
+#[test]
+fn accessible_numeric_owner_delegates_selection_and_editing_to_the_retained_native_editor() {
+    let window = fixture();
+    amount(&window, "1234");
+    let spin = spin_button(&window, "Amount");
+    let native = editor(&window, "Amount");
+    spin.set_accessible_selection_offsets(1, 3);
+    assert_eq!(
+        (window.get_selection_anchor(), window.get_cursor_position()),
+        (1, 3)
+    );
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "9".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "9".into() });
+    assert_eq!(window.get_value(), "194");
+    // Native replacement records deletion and insertion separately.
+    undo(&window);
+    undo(&window);
+    assert_eq!(window.get_value(), "1234");
+    spin.set_accessible_value("56");
+    assert_eq!(window.get_value(), "56");
+    // Native replacement records deletion and insertion separately.
+    undo(&window);
+    undo(&window);
+    assert_eq!(window.get_value(), "1234");
+    assert!(
+        native.is_valid(),
+        "semantic actions retain the mounted native editor"
+    );
+    window.set_access(FieldAccess::ReadOnly);
+    spin.set_accessible_value("88");
+    assert_eq!(window.get_value(), "1234");
+    window.set_access(FieldAccess::Disabled);
+    spin.set_accessible_value("99");
+    assert_eq!(window.get_value(), "1234");
 }
 
 #[test]
@@ -395,4 +453,175 @@ fn numeric_spin_buttons_render_focus_and_actions_in_both_themes_and_double_text(
             );
         }
     }
+}
+
+fn reset_stepper(window: &NumberSteppingFixture, value: &str) {
+    window.set_stepper_value(value.into());
+    window.set_stepper_edited_count(0);
+    window.set_stepper_commit_count(0);
+    window.set_stepper_step_count(0);
+}
+fn stepper_button(window: &NumberSteppingFixture, label: &str) -> ElementHandle {
+    let requested = label.to_owned();
+    ElementQuery::from_root(window)
+        .match_accessible_role(AccessibleRole::Button)
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(requested.as_str())
+        })
+        .find_first()
+        .unwrap_or_else(|| panic!("missing step button {label}"))
+}
+fn centre(button: &ElementHandle) -> slint::LogicalPosition {
+    let origin = button.absolute_position();
+    let size = button.size();
+    slint::LogicalPosition::new(origin.x + size.width / 2., origin.y + size.height / 2.)
+}
+fn press(window: &NumberSteppingFixture, button: &ElementHandle) {
+    use slint::platform::PointerEventButton;
+    let position = centre(button);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+}
+fn release(window: &NumberSteppingFixture, button: &ElementHandle) {
+    use slint::platform::PointerEventButton;
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: centre(button),
+            button: PointerEventButton::Left,
+        });
+}
+fn click(window: &NumberSteppingFixture, button: &ElementHandle) {
+    press(window, button);
+    release(window, button);
+}
+fn settle(milliseconds: u64) {
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(milliseconds));
+    slint::platform::update_timers_and_animations();
+}
+
+#[test]
+fn step_buttons_disable_at_the_bounds_and_for_step_any() {
+    let window = fixture();
+    let (more, less) = (
+        stepper_button(&window, "Increase value"),
+        stepper_button(&window, "Decrease value"),
+    );
+    reset_stepper(&window, "4");
+    assert_eq!(more.accessible_enabled(), Some(true));
+    assert_eq!(less.accessible_enabled(), Some(true));
+    reset_stepper(&window, "8");
+    assert_eq!(more.accessible_enabled(), Some(false), "no step past max");
+    assert_eq!(less.accessible_enabled(), Some(true));
+    reset_stepper(&window, "1");
+    assert_eq!(less.accessible_enabled(), Some(false), "no step below min");
+    assert_eq!(more.accessible_enabled(), Some(true));
+    reset_stepper(&window, "7.5");
+    assert_eq!(
+        more.accessible_enabled(),
+        Some(true),
+        "a draft off the lattice still moves to the next step"
+    );
+    window.set_stepper_step("any".into());
+    assert_eq!(
+        more.accessible_enabled(),
+        Some(false),
+        "step any has no lattice"
+    );
+    assert_eq!(less.accessible_enabled(), Some(false));
+}
+
+#[test]
+fn a_step_click_edits_once_and_a_clamped_press_does_nothing() {
+    let window = fixture();
+    let (more, less) = (
+        stepper_button(&window, "Increase value"),
+        stepper_button(&window, "Decrease value"),
+    );
+    reset_stepper(&window, "7");
+    click(&window, &more);
+    assert_eq!(window.get_stepper_value(), "8");
+    assert_eq!(window.get_stepper_edited_count(), 1, "a step is an edit");
+    assert_eq!(window.get_stepper_commit_count(), 1);
+    assert_eq!(window.get_stepper_step_count(), 1);
+    click(&window, &more);
+    assert_eq!(window.get_stepper_value(), "8");
+    assert_eq!(
+        window.get_stepper_commit_count(),
+        1,
+        "a press at the bound repeats no commit"
+    );
+    assert_eq!(window.get_stepper_edited_count(), 1);
+    assert_eq!(window.get_stepper_step_count(), 1);
+    click(&window, &less);
+    assert_eq!(window.get_stepper_value(), "7");
+    assert_eq!(window.get_stepper_edited_count(), 2);
+}
+
+#[test]
+fn holding_a_step_button_repeats_until_release_or_the_bound() {
+    let window = fixture();
+    let more = stepper_button(&window, "Increase value");
+    reset_stepper(&window, "1");
+    press(&window, &more);
+    settle(300);
+    assert_eq!(window.get_stepper_value(), "1", "nothing before the delay");
+    settle(150);
+    assert_eq!(
+        window.get_stepper_value(),
+        "2",
+        "first repeat after the delay"
+    );
+    for _ in 0..3 {
+        settle(60);
+    }
+    assert!(
+        window.get_stepper_value().parse::<i32>().unwrap() >= 4,
+        "then one step per interval, got {}",
+        window.get_stepper_value()
+    );
+    let held = window.get_stepper_value();
+    release(&window, &more);
+    assert_eq!(
+        window.get_stepper_value(),
+        held,
+        "releasing a repeated press steps nothing more"
+    );
+    settle(500);
+    assert_eq!(window.get_stepper_value(), held, "no repeat after release");
+    press(&window, &more);
+    settle(450);
+    for _ in 0..20 {
+        settle(60);
+    }
+    assert_eq!(window.get_stepper_value(), "8", "the repeat stops at max");
+    let edits = window.get_stepper_edited_count();
+    for _ in 0..5 {
+        settle(60);
+    }
+    assert_eq!(window.get_stepper_edited_count(), edits);
+    release(&window, &more);
+    assert_eq!(window.get_stepper_value(), "8");
+    assert_eq!(
+        window.get_stepper_step_count(),
+        window.get_stepper_commit_count()
+    );
+}
+
+#[test]
+fn step_buttons_add_no_tab_stops() {
+    let window = fixture();
+    window.set_stepper_value("4".into());
+    window.invoke_focus_stepper();
+    assert!(window.get_stepper_focus());
+    key(&window, Key::Tab);
+    assert!(
+        window.get_plain_focus(),
+        "Tab leaves the editor for the next field, past both step buttons"
+    );
 }

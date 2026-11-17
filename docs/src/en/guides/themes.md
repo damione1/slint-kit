@@ -34,9 +34,11 @@ export component Example inherits Window {
 
 ## Semantic colors
 
-Custom themes provide canvas, surface and raised surface; primary, secondary and placeholder text; accent, on-accent, accent hover and pressed, subtle accent and text selection; danger with its hover and pressed tones, success, warning and information with their subtle backgrounds; subtle and strong borders, hover, pressed and disabled colors; scrim; `reduced-motion` and `text-scale`. Beyond colors, a theme carries typed token groups: `shape` (radii by role for controls, containers, overlays and pills, plus border widths), `elevation` (a level per role, and a key and an ambient shadow layer per level), `focus` (ring style, width, offset and colors), `typography` (family, weights, sizes), `spacing` (a base unit and the height and paddings of each `ControlSize`) and `motion` (fast, base and slow durations). Slint has no spread syntax and an omitted struct field silently becomes zero or transparent, so write a custom theme as a complete literal, or copy a shipped theme and change fields from Rust. The [public theme declarations](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/ui/theme.slint) define the complete contract.
+Custom themes provide canvas, surface, raised surface and inset surface (`surface-inset`, the well of `SurfaceLevel.inset`); primary, secondary and placeholder text; accent, on-accent, accent hover and pressed, subtle accent and text selection; danger with its hover and pressed tones, success, warning and information with their subtle backgrounds; subtle and strong borders; the rest fill and edge of secondary controls (`control-fill`, `control-border`) and the fill and ink of selection marks (`choice-fill`, `on-choice-fill`: checked boxes, radio dots and on switches); hover, pressed and disabled colors; scrim; `reduced-motion` and `text-scale`. Beyond colors, a theme carries typed token groups: `shape` (radii by role for controls, containers, overlays and pills, plus border widths), `elevation` (a level per role, and a key and an ambient shadow layer per level), `focus` (ring style, width, offset and colors), `typography` (family, weights, sizes from caption to display), `spacing` (a base unit and the height and paddings of each `ControlSize`) and `motion` (fast, base and slow durations, plus `repeat-delay` and `repeat-interval` for press-and-hold repetition). Slint has no spread syntax and an omitted struct field silently becomes zero or transparent, so write a custom theme as a complete literal, or copy a shipped theme and change fields from Rust. The [public theme declarations](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/ui/theme.slint) define the complete contract.
 
 Themed scroll containers reserve a stable gutter for each scrollbar axis whose policy is not `always-off`, including when an `as-needed` bar is hidden. Bind width-sensitive content to `visible-width` and height-sensitive content to `visible-height`; these exclude the reserved space. `KitScrollArea.overlay-scrollbars: true` opts back into bars over content and requires the caller to protect control edges.
+
+Keyboard scrolling is opt-in. `KitScrollArea.focusable: true` makes the viewport a tab stop with the theme's inset focus ring; give it a `label`. Arrows, Page Up/Down, Space (Shift+Space reverses), Home and End scroll it, and keys left unhandled by focused content scroll it too. Set `axes` to `ScrollAxes.horizontal` or `.both` for horizontal or two-axis content, `scroll-to-end()` to jump to the end, and read `at-start`, `at-end` and `edge-reached(ScrollEdge)` for infinite loading or scroll shadows.
 
 Each component defaults to `KitThemeContext.current`, initially `KitThemes.light`. Assign it once for the window's default presentation. An explicit `theme` overrides that component and its internal controls. Children supplied by the application through `@children` keep their own defaults: pass the parent theme explicitly when composing a themed region. To switch the window default from Rust, re-export `KitThemeContext` from the main Slint file, then call `KitThemeContext::get(&window).set_current(theme)`.
 
@@ -66,7 +68,7 @@ export component Example inherits Window {
 }
 ```
 
-**Inter is an optional font.** Import `{ InterFont } from "@kit/fonts/inter.slint"` and set `default-font-family: InterFont.family` on the window to use it, as the documentation examples do. Without this import, the theme uses the application's font. The four static weights total about 1.6 MB of source files; embedded applications can choose a font appropriate to the device.
+**Inter is an optional font.** Import `{ InterFont } from "@kit-fonts/inter.slint"` and set `default-font-family: InterFont.family` on the window to use it, as the documentation examples do. Without this import, the theme uses the application's font. The four static weights total about 1.6 MB of source files; embedded applications can choose a font appropriate to the device.
 
 For application library aliases, start with `slint_kit_build::config_with_libraries(...)`, then use `slint_kit_build::compile_with_config("ui/app.slint", config)`. The helper preserves application aliases and reserves `kit`. Component height stays intrinsic: content and padding can require more room than the nominal size.
 
@@ -88,7 +90,7 @@ Composite groups, selects, tabs and menus retain their theme, size and compositi
 
 ```slint
 import { KitButton, ButtonIntent, KitThemeContext } from "@kit";
-import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideIcons } from "@kit-icons/all.slint";
 
 component ExportAction inherits KitButton {
     text: "Export";
@@ -136,13 +138,13 @@ A neighboring control without an explicit theme still uses the window context. T
 
 ## Icons
 
-`KitIcon` and `KitIconButton` paint an `IconGlyph`. The kit's own glyphs are `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Every [Lucide](https://lucide.dev) 1.64.0 icon is also available: `@kit/icons/lucide/all.slint` exports `LucideIcons`, and each Lucide category has its own file with the same glyphs, for example `LucideArrows` in `@kit/icons/lucide/arrows.slint`. Each icon is a named function, so a misspelt name fails at compile time, and only the icons an application calls reach its binary.
+`KitIcon` and `KitIconButton` paint an `IconGlyph`. The kit's own glyphs are `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Every [Lucide](https://lucide.dev) 1.64.0 icon is also available: `@kit-icons/all.slint` exports `LucideIcons`, and each Lucide category has its own file with the same glyphs, for example `LucideArrows` in `@kit-icons/arrows.slint`. Each icon is a named function, so a misspelt name fails at compile time, and only the icons an application calls reach its binary.
 
 [Browse all Lucide icons and copy their integration](/components/icon/).
 
 ```slint
 import { KitIcon, KitIconButton, IconPurpose } from "@kit";
-import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideIcons } from "@kit-icons/all.slint";
 
 component Toolbar inherits HorizontalLayout {
     spacing: 8px;
@@ -174,9 +176,109 @@ The Lucide files are generated from a vendored release and never edited by hand.
 
 `LayoutSpace` provides shared inset and gap values. `KitCard` and `KitHero` accept these values. Prefer [KitStack](/components/stack/), [KitInline](/components/inline/) and the other layout wrappers when their shared spacing contract suits the application.
 
-## Text scaling and motion
+## Runtime theming
 
-For 200% text, copy a theme value and set its `text-scale` to `2`. For reduced motion set `reduced-motion` to `true`. These are application theme choices; a host must connect the actual operating-system preferences when needed. Let text and control heights grow instead of clipping them inside fixed-height content.
+Let the user choose light, dark or the system appearance, and change theme tokens while the application runs. The choice is the `ThemeMode` enum (`light`, `dark`, `system`), never a string. `KitThemes.resolve(mode, system)` returns `KitThemes.light` or `KitThemes.dark`; `KitThemes.is-dark(mode, system)` answers the same question as a `bool`. `system` is the `ColorScheme` that the operating system reports. It selects the dark theme only when it is `ColorScheme.dark`: a platform that reports `ColorScheme.unknown` shows the light theme.
+
+Read the system scheme from `Palette.color-scheme` (`std-widgets.slint`). Read it once, before the window writes to it: a write to `Palette.color-scheme` replaces the system value. Keep the value in your own property.
+
+```slint
+import { Palette } from "std-widgets.slint";
+import { KitThemes, KitThemeContext, ThemeMode, KitButton } from "@kit";
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    in-out property <ThemeMode> mode: ThemeMode.system;
+    private property <ColorScheme> os-scheme;
+    private property <bool> dark: KitThemes.is-dark(root.mode, root.os-scheme);
+    init => {
+        root.os-scheme = Palette.color-scheme;
+        KitThemeContext.current = KitThemes.resolve(root.mode, root.os-scheme);
+    }
+    changed mode => { KitThemeContext.current = KitThemes.resolve(root.mode, root.os-scheme); }
+    background: KitThemeContext.current.canvas;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        KitButton {
+            text: root.dark ? "Dark" : "Light";
+            activated => { root.mode = root.mode == ThemeMode.light ? ThemeMode.dark : root.mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light; }
+        }
+    }
+}
+```
+
+If the window also drives std-widgets controls, assign `Palette.color-scheme` from `dark` after you have stored the system value, as the showcase does. The showcase theme button cycles light, dark and system, and can be tried natively (`cargo run -p kit-showcase`) and in the browser preview.
+
+**Override tokens at runtime.** A theme is a plain value. Copy a shipped theme, change the tokens you need and assign the result to `KitThemeContext.current` (or to the `theme` property of a subtree). A brand accent changes `accent`, its hover and pressed tones, and the focus ring color. Apply the override again whenever the mode changes, because `resolve` returns the shipped theme without it.
+
+```rust
+use slint_kit::ui::{KitThemeContext, KitThemes, ThemeMode};
+
+fn apply_theme(app: &App, mode: ThemeMode, system_dark: bool) {
+    let shipped = app.global::<KitThemes>();
+    let dark = match mode {
+        ThemeMode::Light => false,
+        ThemeMode::Dark => true,
+        ThemeMode::System => system_dark,
+    };
+    let mut theme = if dark {
+        shipped.get_dark()
+    } else {
+        shipped.get_light()
+    };
+    let brand = slint::Color::from_rgb_u8(0x0d, 0x94, 0x88);
+    theme.accent = brand;
+    theme.accent_hover = brand.darker(0.12);
+    theme.accent_pressed = brand.darker(0.24);
+    theme.focus.color = brand;
+    KitThemeContext::get(app).set_current(theme);
+}
+```
+
+**Persist the choice in the host.** The kit stores nothing. Convert the enum to a stable name with an explicit `match` that lists every variant, and parse the stored text once, when the application starts.
+
+```rust
+fn mode_name(mode: ThemeMode) -> &'static str {
+    match mode {
+        ThemeMode::Light => "light",
+        ThemeMode::Dark => "dark",
+        ThemeMode::System => "system",
+    }
+}
+
+fn parse_mode(name: &str) -> Option<ThemeMode> {
+    match name {
+        "light" => Some(ThemeMode::Light),
+        "dark" => Some(ThemeMode::Dark),
+        "system" => Some(ThemeMode::System),
+        _ => None,
+    }
+}
+```
+
+Fall back to `ThemeMode::System` when nothing is stored or `parse_mode` returns `None`. The kit does not observe the operating system after startup in this flow: a live change of the system appearance reaches an application only when its Slint backend reports it through `Palette.color-scheme`, and only while the application has not written that property.
+
+<h2 id="text-scaling-and-motion">Text scaling and motion</h2>
+
+For 200% text, copy a theme value and set its `text-scale` to `2`. Let text and control heights grow instead of clipping them inside fixed-height content.
+
+`KitTheme.reduced-motion` remains the application override. Set it to `true` to disable kit `animate` transitions, park progress marks and stop the decorative spinner/pulse timers. Keep it connected to an application preference or a host integration; Slint 1.19 exposes no public Slint or Rust getter for the system motion preference.
+
+| Platform / effect | Slint 1.19 behavior |
+| --- | --- |
+| Windows with winit; Android | Reads the system preference automatically for `animate` blocks and SDK scrolling: smooth reveals, wheel movement, flinging and edge snap-back. Direct pointer panning still works. |
+| macOS, Linux, iOS, Web; other backends | Does not read the system preference. The application must set `theme.reduced-motion` for kit effects and use `KitThemes.scroll-behavior(theme)` for custom native reveals. |
+| `Timer` and `animation-tick()` effects, on **every** platform | The system preference does not stop them. Button busy marks, `KitSpinner`, `KitSkeleton` pulses and indeterminate progress still require the application flag, including on Windows and Android. |
+
+The flag cannot re-enable an animation suppressed by the system. A system preference change affects animations started afterwards; an already running animation finishes at its own pace. The flag is not a global SDK scrolling preference: the kit guards its reveal helpers, but applications must configure their own scrolling and inertia where needed. Functional timers for focus, validation, held actions and deferred placement keep running. Public choice and scrollbar recipe `transition` values still become zero with the application flag; custom nonzero recipe durations remain honored when motion is allowed. See [Slint 1.19 reduced motion](https://releases.slint.dev/1.19.0/docs/slint/reference/language/animations/#reduced-motion).
+
+```rust
+let mut theme = window.get_theme();
+theme.reduced_motion = true;
+window.set_theme(theme);
+```
 
 ## Verify the native experience
 
@@ -186,7 +288,7 @@ The site includes browser previews and native captures; their captions identify 
 
 Use `KitAvatar` with `AvatarInteraction.action` for profile navigation: supply an action name and handle `activated`. Static avatars remain images. `KitBadge` and `KitStat` accept optional `leading-icon` glyphs; keep the accompanying status and value readable. Underlined OTP fields still use one native editor. Match visual `slots` with the host’s accepted code length. Tooltips on Kit buttons should bind `target-focused` to `focus-visible`, preserving hover help without turning a pointer click into a keyboard popup.
 
-Custom `KitTypography` values must include `family-monospace`, used by code entry fields. The shipped themes embed and register JetBrains Mono Regular (OFL 1.1) through `@kit/fonts/monospace.slint`, so digits, wide letters and password dots keep equal advances in native and WebAssembly builds. A generic system `monospace` name is not sufficient on all backends. A custom code font must be registered, genuinely monospaced and cover the input alphabet and mask glyphs. `KitTextField.text-cell-width` measures the actual zero glyph for skins that align code cells.
+Custom `KitTypography` values must include `family-monospace`, used by code entry fields. The shipped themes embed and register JetBrains Mono Regular (OFL 1.1) through `@kit-fonts/monospace.slint`, so digits, wide letters and password dots keep equal advances in native and WebAssembly builds. A generic system `monospace` name is not sufficient on all backends. A custom code font must be registered, genuinely monospaced and cover the input alphabet and mask glyphs. `KitTextField.text-cell-width` measures the actual zero glyph for skins that align code cells.
 
 For sliders in a scrollable modal, opt into `KitScrollArea.pan-policy: children-first`. Interactive children keep a press through release; begin a drag on background or text to scroll. Background panning is direct, without inertia. Wheel scrolling, bars and focus reveal keep working. The default `native` policy preserves Slint arbitration.
 
@@ -235,3 +337,7 @@ KitButton keeps its single-line elided label by default. Set `text-wrap: word-wr
 Use `KitAvatarGroup` for bounded overlapping members. Supply `AvatarEntry` through `KeyedModel<K, AvatarEntry>`, resolve tokens/generations with `accept`, and handle the separate overflow action. Set `max-visible`, `overlap`, a preset or exact size; only the visible entries mount. `KitStrings` supplies group/overflow names, and instance text overrides allow custom count formats.
 
 Compose intrinsic icons inside a row-height wrapper and center the icon within that wrapper; assigning a fixed icon size does not center its cell. Multi-select and tag-input chips measure their wrapping height at the available width, retaining native editors as models change. Menu bars and breadcrumbs reserve a stable horizontal scrollbar gutter in addition to their full row height. Unavailable steps keep their action transparent and use the theme’s disabled text; choice rows retain their own disabled fill. A virtual text view should fill a parent frame that fills available space; use an explicit finite viewport only when the caller wants that fixed size.
+
+## Calendar focus and picker help
+
+KitCalendar uses one native keyboard scope with list semantics. Accessible focus delegates to the active day, carrying its selected, disabled and read-only state. Calendar-slot positions stay stable when adjacent-month days are hidden and when geometry is RTL. Slint 1.18.1 has no grid/row/cell roles; this list representation does not qualify VoiceOver or NVDA. KitDatePicker exposes its calendar button’s expanded state and guards its accessible expand action. Its description is associated with the native editor and remains visible below the field. For composed text fields, show-description:false hides only the helper row; description still reaches the native editor.

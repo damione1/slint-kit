@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitFieldDescription, KitStack, LayoutSpace, KitTheme, KitThemes } from "@kit";
+export component App inherits Window {
+    preferred-width: 420px;
+    preferred-height: 220px;
+    max-width: 100000px;
+    max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status: "Ready";
+    callback saved();
+    title: "Slint Kit";
+    background: root.theme.canvas;
+    KitStack {
+        inset: LayoutSpace.roomy;
+        KitButton { theme: root.theme; text: "Run action"; activated => { root.saved(); } }
+        KitFieldDescription { theme: root.theme; text: root.status; }
+    }
+}

@@ -1,20 +1,38 @@
 import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView } from "scroll.slint";
-import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing, TooltipRecipe } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
-import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
+import { KitModalContext } from "modal.slint";
+import { KitIcon, KitGlyphs, TurningIcon, IconGlyph, IconPurpose } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess, SelectionRef } from "contracts.slint";
-import { CheckState, TextPurpose, HtmlInputKind, Ownership } from "shared-contracts.slint";
+import { CheckState, TextPurpose, HtmlInputKind, Ownership, RowGesture, SelectionMode } from "shared-contracts.slint";
 import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
+import { KitSpinner } from "feedback.slint";
 import { CheckMark } from "choice.slint";
+import { KitSelectionService } from "selection-service.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
 export enum DataAlignment { leading, center, trailing }
+// What a data collection has to say when it shows no rows: the rows are `ready`
+// (an empty model then reads as empty), still `loading`, or `failed` to load.
+export enum DataState { ready, loading, failed }
+// What fills a ready, empty collection: the `empty-label` text or the
+// application's own children.
+export enum DataEmptyContent { label, custom }
+// Whether the table paints its own framed surface or sits flush in a host that
+// already provides one, such as a card.
+export enum DataSurface { framed, flush }
+// What the leading cell of a content list row shows: the item's `thumbnail`
+// (the article glyph stands in for an item without an image), the article
+// glyph for every row, or no leading cell.
+export enum ContentThumbnail { image, icon, none }
 export enum TextViewAccess { read-only, edit-line }
+// The typeface of document lines: the theme text face, or its monospace face for logs and source.
+export enum TextViewFont { proportional, monospace }
 export enum TableHeaderFocus { individual, roving }
 enum TableCursorRegion { body, header }
 export enum TableEditOutcome { committed, unchanged, cancelled, rejected-on-blur, superseded, viewport-exit }
@@ -44,37 +62,65 @@ export struct TableColumnSource { mode: ColumnSourceMode, index: int }
 export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth, source: TableColumnSource, visibility: ColumnVisibility }
 // Projection of an optional, validated internal drag payload.
 export struct TableColumnDrop { valid: bool, token: int }
-// Pure view projection, installed once with the other module services. It
-// filters presentation visibility and resolves positional sources before the
-// header/body use the resulting shared column model.
-export global KitDataService {
-    in-out property <bool> ready;
-    pure callback visible-columns([TableColumn]) -> [TableColumn];
-    pure callback source-current([TableColumn], int, int) -> bool;
-    pure callback column-drag([TableColumn], int) -> data-transfer;
-    pure callback column-drop([TableColumn], data-transfer, int) -> TableColumnDrop;
-}
 // What one typed table cell shows. The set is closed and painted by the
 // kit inside the virtualized row, because Slint 1.18.1 rejects `@children`
 // and slot placeholders inside a repeated element and keeps dynamic
 // components experimental. The Rust `CellContent` enum is the sum type;
 // `TableCell` is its flat projection, written once by `From`, so only the
 // fields of `kind` are meaningful: `text` for every kind (it is also the
-// accessible label of a badge or check mark), `tone` for a badge, `check`
-// for a check mark, `access` and `spec` for a field. A `field` is a text
+// accessible label of a badge, check mark, icon or progress bar), `tone` for
+// a badge, an icon, a progress bar and the ink of a text cell (`neutral` is
+// the default text ink), `check` for a check mark, `glyph` for an icon,
+// `fraction` (0 to 1) for a progress bar, `access` and `spec` for a field. A `field` is a text
 // value the user may edit in place: `text` is its accepted value in the
 // canonical draft form of its codec, `spec` the key of the installed
 // `FieldSpec` that parses, validates and displays it ("" for plain text)
-// and `access` whether Enter opens the editor.
-export enum TableCellKind { text, badge, check, field }
-export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
+// and `access` whether Enter opens the editor. The three interactive kinds
+// are activated, never edited: a `toggle` shows `check` (checked or
+// unchecked) next to its `text`, an `action` shows `glyph` (none when empty)
+// and `text`, a `link` shows `text` as a link. For each, `access` is
+// `editable` while the cell may be activated, `read-only` when it only shows
+// its state and `disabled` when it is dimmed. An activation is reported by
+// `KitDataTable.cell-action`; the table never flips a toggle itself.
+export enum TableCellKind { text, badge, check, field, icon, progress, toggle, action, link }
+export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, glyph: IconGlyph, fraction: float, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
 // Where the cell cursor moves inside the active row.
 export enum ColumnStep { previous, next }
 // A row is either plain strings (`cells`) or typed cells (`content`), one
 // per column in column order. When a row carries both, `content` is
 // rendered and `cells` is ignored; the row's accessible name is its first
 // cell's text in either form.
+// The address of one table cell: row token, column token and the generation
+// armed when the session began, named so they cannot be swapped.
+export struct CellRef { row: int, column: int, generation: int }
+// The accepted proposal of one edited cell, with named fields so the row
+// token, the column token and the projection generation cannot be swapped.
+// `commit` is run through the column's `FieldSpec::accept` by the host.
+export struct CellCommit { row: int, column: int, generation: int, commit: FieldCommit }
 export struct TableRow { token: int, cells: [string], content: [TableCell], selected: bool, disabled: bool }
+// The type-ahead session of a table: the typed prefix and the clock of the
+// last key, in the milliseconds of `KitSelectionService.timestamp`.
+export struct TableTypeahead { query: string, has-timestamp: bool, timestamp: int }
+// `handled` is true when the key joined the prefix, so it is not also a shortcut.
+export struct TableTypeaheadResult { row: int, handled: bool, session: TableTypeahead }
+// Pure view projection, installed once with the other module services. It
+// filters presentation visibility and resolves positional sources before the
+// header/body use the resulting shared column model.
+export global KitDataService {
+    in-out property <bool> ready;
+    // Prefix type-ahead over a table's rows, matched on each row's first cell
+    // like the select search: `row` is the index of the first enabled match
+    // (-1 for none) and `session` the prefix and clock to pass back in.
+    pure callback typeahead([TableRow], int, TableTypeahead, string, int) -> TableTypeaheadResult;
+    pure callback typeahead-active(TableTypeahead, int) -> bool;
+    // The position of the first (or, with `true`, last) column of the row
+    // holding an editable field, or -1.
+    pure callback edge-editable-column([TableColumn], TableRow, bool) -> int;
+    pure callback visible-columns([TableColumn]) -> [TableColumn];
+    pure callback source-current([TableColumn], int, int) -> bool;
+    pure callback column-drag([TableColumn], int) -> data-transfer;
+    pure callback column-drop([TableColumn], data-transfer, int) -> TableColumnDrop;
+}
 export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
 export struct TextLine { token: int, number: int, text: string, selected: bool }
 
@@ -90,13 +136,18 @@ component DataKeyboard inherits FocusScope {
     callback navigate-column(ColumnStep);
     callback activate();
     callback confirm();
+    // Shift+Enter, taken only while `link-key` is on; off, it is a plain Enter.
+    in property <bool> link-key;
+    callback link-requested();
     callback edit-requested();
+    callback context-requested();
     callback key-event(KeyEvent) -> KitKeyResult;
     enabled: !root.disabled;
     focus-on-click: false;
     key-pressed(event) => {
         if (root.key-event(event) == KitKeyResult.accept) { return accept; }
         if (event.text == Key.F2) { root.edit-requested(); return accept; }
+        if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) { root.context-requested(); return accept; }
         if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
         if (event.text == Key.UpArrow) {root.navigate(NavigationStep.previous);return accept;}
         if (event.text == Key.Home) {root.navigate(NavigationStep.first);return accept;}
@@ -105,6 +156,7 @@ component DataKeyboard inherits FocusScope {
         if (event.text == Key.PageUp) {root.navigate(NavigationStep.page-previous);return accept;}
         if (root.column-navigation && event.text == Key.LeftArrow) {root.navigate-column(ColumnStep.previous);return accept;}
         if (root.column-navigation && event.text == Key.RightArrow) {root.navigate-column(ColumnStep.next);return accept;}
+        if (event.text == Key.Return && root.link-key && event.modifiers.shift && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {root.link-requested();return accept;}
         if (event.text == Key.Return) {root.confirm();return accept;}
         if (event.text == Key.Space) {root.activate();return accept;}
         return reject;
@@ -115,10 +167,24 @@ component DataAction inherits KitPressable {
     in property <int> token;
     in property <int> generation;
     callback requested(int,int);
+    callback context(int,int);
     callback focus-requested();
+    context-requested => { root.context(root.token, root.generation); }
     private property <int> armed-token;
     private property <int> armed-generation;
-    activation-started => {root.armed-token = root.token;root.armed-generation = root.generation;root.focus-requested();}
+    // The width of the selection checkbox cell at the row's leading edge; 0
+    // when the table has none. A press inside it toggles the row, or extends
+    // the selection with Shift held, whatever else the row does on a click.
+    in property <length> checkbox-width;
+    out property <bool> in-checkbox: root.pointer-x < root.checkbox-width;
+    // The gesture of the armed activation: a held Control or Meta key
+    // toggles, a held Shift extends, anything else selects.
+    out property <RowGesture> armed-gesture: RowGesture.select;
+    activation-started => {
+        root.armed-token = root.token;root.armed-generation = root.generation;
+        root.armed-gesture = root.in-checkbox ? (root.pointer-modifiers.shift ? RowGesture.extend : RowGesture.toggle) : root.pointer-modifiers.control || root.pointer-modifiers.meta ? RowGesture.toggle : root.pointer-modifiers.shift ? RowGesture.extend : RowGesture.select;
+        root.focus-requested();
+    }
     changed token => {root.cancel-press();}
     changed generation => {root.cancel-press();}
     activated => {root.requested(root.armed-token,root.armed-generation);}
@@ -242,6 +308,32 @@ component ColumnResizeHandle inherits Rectangle {
     }
 }
 
+// A one-line text that elides at the cell edge. While it is elided, hovering
+// it shows the whole text in a native tooltip, styled by the tooltip recipe.
+component ElidedText inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <string> text;
+    in property <color> ink;
+    in property <TextHorizontalAlignment> alignment;
+    private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(root.theme);
+    label := Text {
+        width: parent.width; height: parent.height; text: root.text; color: root.ink;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+        overflow: elide; vertical-alignment: center; horizontal-alignment: root.alignment;
+    }
+    // The native tooltip is not reachable by the headless test backend; this
+    // empty marker is mounted exactly when the tooltip is.
+    if label.preferred-width > label.width && root.text != "": Rectangle { elided-marker := Rectangle { width: 0px; height: 0px; } }
+    if label.preferred-width > label.width && root.text != "": Tooltip {
+        full-text := Rectangle { background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
+            width: min(root.tip-recipe.max-width, tip-line.preferred-width + 2 * root.tip-recipe.padding-inline);
+            height: tip-text.preferred-height + 2 * root.tip-recipe.padding-block;
+            tip-line := Text { visible: false; accessible-role: none; text: root.text; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; }
+            tip-text := Text { x: root.tip-recipe.padding-inline; y: root.tip-recipe.padding-block; width: parent.width - 2 * root.tip-recipe.padding-inline; text: root.text; color: root.tip-recipe.foreground; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; wrap: word-wrap; }
+        }
+    }
+}
+
 // One row cell, painted by its kind inside the column's constraints. Slint
 // fixes element kinds at compile time, so each kind is its own element; the
 // text of every kind is the cell's accessible label, so a badge or a check
@@ -253,6 +345,9 @@ component ColumnResizeHandle inherits Rectangle {
 // undo and IME. The editor reports its outcomes upward and never decides
 // the editing session itself.
 component TableCellView inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme;
     in property <ControlSize> control-size;
     in property <TableCell> cell;
@@ -273,20 +368,44 @@ component TableCellView inherits Rectangle {
     in property <int> commit-request;
     in property <bool> pointed;
     callback point-requested();
+    // The accessible default action of an interactive cell.
+    callback action-requested();
     callback reveal-requested(length, length);
-    // A replacement column model can mount this cell already active. Change
-    // observers start from that state, so mounting must reveal it once too.
-    init => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    in property <length> viewport-width;
+    in property <int> reveal-request;
+    // A ListView constructs a delegate before placing its row. Its first
+    // absolute position is provisional: revealing it then stops the native
+    // row animation at the wrong location. As for NotificationItem focus,
+    // the first event-loop tick is a layout barrier, not an animation delay.
+    private property <bool> initial-layout-pending: true;
+    Timer {
+        running: root.initial-layout-pending && (root.focus-indicated || root.editing);
+        interval: 0ms;
+        triggered => {
+            root.initial-layout-pending = false;
+            if (root.focus-indicated || root.editing) { root.reveal(); }
+        }
+    }
+    function reveal() {
+        if (root.initial-layout-pending) { return; }
+        if (root.width <= root.viewport-width) {
+            root.ensure-visible(root.editing ? ScrollBehavior.instant : KitThemes.scroll-behavior(root.theme));
+        } else {
+            root.reveal-requested(root.absolute-position.x - root.content-origin-x, root.width);
+        }
+    }
+    changed reveal-request => { if (root.focus-indicated || root.editing) { root.reveal(); } }
     in property <length> viewport-offset-x;
+    in property <length> content-origin-x;
     // A manual horizontal scroll moves the viewport, not the column's layout.
     // Keep cursor reveal tied to column changes and the next cell action.
-    changed viewport-offset-x => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    changed viewport-offset-x => { if (root.editing) { root.reveal(); } }
     changed pointed => { if (root.pointed) { root.point-requested(); } }
-    private property <length> reveal-x: root.absolute-position.x - root.viewport-offset-x;
-    changed reveal-x => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    changed width => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    changed focus-indicated => { if (root.focus-indicated) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    changed editing => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    private property <length> reveal-x: root.absolute-position.x - root.content-origin-x;
+    changed reveal-x => { if (root.focus-indicated || root.editing) { root.reveal(); } }
+    changed width => { if (root.focus-indicated || root.editing) { root.reveal(); } }
+    changed focus-indicated => { if (root.focus-indicated) { root.reveal(); } }
+    changed editing => { if (root.editing) { root.reveal(); } }
     // The draft stays separate from the accepted row while its editor is
     // visible. Leaving the viewport cancels the session without committing.
     in-out property <string> draft;
@@ -302,22 +421,27 @@ component TableCellView inherits Rectangle {
     pure function text-alignment() -> TextHorizontalAlignment {
         return root.alignment == DataAlignment.trailing ? TextHorizontalAlignment.right : root.alignment == DataAlignment.center ? TextHorizontalAlignment.center : TextHorizontalAlignment.left;
     }
-    clip: true;
-    if root.cell.kind == TableCellKind.text: Text {
-        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
-        text: root.cell.text;
-        color: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
-        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-        overflow: elide; vertical-alignment: center;
-        horizontal-alignment: root.text-alignment();
+    // The ink a tone paints; `neutral` is the ordinary text ink.
+    pure function tone-ink(tone: Tone) -> color {
+        return tone == Tone.neutral ? root.theme.text-primary : tone == Tone.accent ? root.theme.accent : tone == Tone.success ? root.theme.success : tone == Tone.warning ? root.theme.warning : tone == Tone.danger ? root.theme.danger : root.theme.information;
     }
-    if root.cell.kind == TableCellKind.field && !root.editing: Text {
-        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+    // Disabled and selected rows keep one readable ink; a tone is data and
+    // only colours a row at rest.
+    private property <color> cell-ink: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.tone-ink(root.cell.tone);
+    // The ink of an interactive cell: accent while it may be activated, the
+    // ordinary ink when it only shows its state, dimmed when disabled.
+    private property <color> action-ink: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.cell.access == FieldAccess.read-only ? root.theme.text-primary : root.theme.accent;
+    private property <bool> activatable: !root.row-disabled && root.cell.access == FieldAccess.editable;
+    clip: true;
+    if root.cell.kind == TableCellKind.text: ElidedText {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset); height: parent.height;
+        theme: root.theme; text: root.cell.text; ink: root.cell-ink; alignment: root.text-alignment();
+    }
+    if root.cell.kind == TableCellKind.field && !root.editing: ElidedText {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset); height: parent.height;
+        theme: root.theme; alignment: root.text-alignment();
         text: KitFieldService.ready ? KitFieldService.display(root.cell.spec, root.cell.text) : root.cell.text;
-        color: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
-        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-        overflow: elide; vertical-alignment: center;
-        horizontal-alignment: root.text-alignment();
+        ink: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
     }
     // A new session creates a fresh model/delegate even when a synchronous
     // callback reopens the same cell before the next frame (an ABA).
@@ -337,6 +461,7 @@ component TableCellView inherits Rectangle {
             return reject;
         }
         editor := KitTextField {
+            modal-layer: root.modal-layer;
             implicit-form-submit: false;
             x: 0px; y: (parent.height - self.height) / 2; width: parent.width; height: self.preferred-height;
             theme: root.theme; control-size: root.control-size;
@@ -407,12 +532,145 @@ component TableCellView inherits Rectangle {
         access: root.row-disabled ? FieldAccess.disabled : FieldAccess.read-only;
         accessible-role: text; accessible-label: root.cell.text;
     }
+    // An icon is informative when the host gave it words, decorative when
+    // `text` is empty.
+    if root.cell.kind == TableCellKind.icon: KitIcon {
+        theme: root.theme; control-size: root.control-size;
+        glyph: root.cell.glyph;
+        purpose: root.cell.text == "" ? IconPurpose.decorative : IconPurpose.informative;
+        label: root.cell.text;
+        ink: root.cell-ink;
+        x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+    }
+    // A toggle paints its state as a check mark and names it with `text`. The
+    // check mark is the pointer target of the row; the table flips nothing.
+    if root.cell.kind == TableCellKind.toggle: toggle-mark := CheckMark {
+        theme: root.theme; control-size: root.control-size;
+        x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+        state: root.cell.check == CheckState.checked ? CheckState.checked : CheckState.unchecked;
+        access: root.row-disabled ? FieldAccess.disabled : root.cell.access;
+        accessible-role: checkbox; accessible-label: root.cell.text;
+        accessible-checkable: true; accessible-checked: root.cell.check == CheckState.checked;
+        accessible-enabled: root.activatable;
+        accessible-action-default => { root.action-requested(); }
+    }
+    if root.cell.kind == TableCellKind.action: action-label := HorizontalLayout {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset); height: parent.height;
+        spacing: root.theme.spacing.unit * 2; alignment: root.alignment == DataAlignment.trailing ? end : root.alignment == DataAlignment.center ? center : start;
+        accessible-role: button; accessible-label: root.cell.text; accessible-enabled: root.activatable;
+        accessible-action-default => { root.action-requested(); }
+        if root.cell.glyph.stroke != "" || root.cell.glyph.fill != "": KitIcon {
+            theme: root.theme; control-size: root.control-size; glyph: root.cell.glyph; ink: root.action-ink;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            horizontal-stretch: 0; max-width: max(0px, parent.width - 2 * root.inset); text: root.cell.text; color: root.action-ink;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-weight: root.theme.typography.weight-medium; overflow: elide; vertical-alignment: center;
+        }
+    }
+    if root.cell.kind == TableCellKind.link: Rectangle {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+        accessible-role: button; accessible-label: root.cell.text; accessible-enabled: root.activatable;
+        accessible-action-default => { root.action-requested(); }
+        link-text := Text {
+            width: parent.width; height: parent.height; text: root.cell.text; color: root.action-ink;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            overflow: elide; vertical-alignment: center; horizontal-alignment: root.text-alignment();
+        }
+        // The rule marks the text as a link without relying on colour alone.
+        Rectangle {
+            x: root.alignment == DataAlignment.trailing ? parent.width - self.width : root.alignment == DataAlignment.center ? (parent.width - self.width) / 2 : 0px;
+            y: (parent.height + link-text.preferred-height) / 2; height: root.theme.shape.border-width;
+            width: min(parent.width, link-text.preferred-width); background: root.action-ink;
+        }
+    }
+    if root.cell.kind == TableCellKind.progress: Rectangle {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+        height: root.theme.spacing.unit * 2; y: (parent.height - self.height) / 2;
+        border-radius: min(root.theme.shape.radius-pill, self.height / 2);
+        background: root.theme.border-subtle;
+        accessible-role: progress-indicator; accessible-label: root.cell.text;
+        accessible-value: Math.round(min(1, max(0, root.cell.fraction)) * 100);
+        accessible-value-minimum: 0; accessible-value-maximum: 100;
+        Rectangle {
+            x: 0px; y: 0px; height: parent.height;
+            width: parent.width * min(1, max(0, root.cell.fraction));
+            border-radius: parent.border-radius;
+            background: root.row-disabled ? root.theme.disabled-text : root.cell.tone == Tone.neutral ? root.theme.accent : root.tone-ink(root.cell.tone);
+        }
+    }
+}
+
+// The centered message of a data collection without rows. `ready` shows the
+// empty label or the application's children, `loading` a spinner and `failed`
+// the error with a retry action. Rows, when present, are never covered.
+component DataStatePanel inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
+    in property <KitTheme> theme;
+    in property <DataState> state;
+    in property <bool> rowless;
+    in property <DataEmptyContent> empty-content;
+    in property <string> empty-label;
+    in property <string> loading-label;
+    in property <string> error-label;
+    in property <string> retry-label;
+    callback retry-requested();
+    if root.rowless && root.state == DataState.loading: VerticalLayout {
+        alignment: center; spacing: root.theme.spacing.unit * 2;
+        KitSpinner { theme: root.theme; label: root.loading-label; horizontal-stretch: 0; }
+        Text {text: root.loading-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center;}
+    }
+    if root.rowless && root.state == DataState.failed: VerticalLayout {
+        alignment: center; spacing: root.theme.spacing.unit * 2;
+        Text {text: root.error-label; color: root.theme.danger; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; wrap: word-wrap; accessible-role: AccessibleRole.text;}
+        if root.retry-label != "": HorizontalLayout { alignment: center; KitButton { theme: root.theme; modal-layer: root.modal-layer; text: root.retry-label; activated => { root.retry-requested(); } } }
+    }
+    if root.rowless && root.state == DataState.ready && root.empty-content == DataEmptyContent.label: Text {text: root.empty-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; vertical-alignment: center;}
+    // Slint cannot place `@children` inside a conditional element, so the
+    // custom content is always built and hidden when it does not apply.
+    Rectangle { visible: root.rowless && root.state == DataState.ready && root.empty-content == DataEmptyContent.custom; @children }
 }
 
 export component KitDataTable inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <bool> interactive: true;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <TableHeaderFocus> header-focus: TableHeaderFocus.individual;
+    // Off, the column header row is not painted, takes no space, and leaves
+    // the tab order and the row cursor: the columns still size the rows.
+    in property <bool> show-header: true;
+    // A summary line in a footer strip under the rows, such as a row count
+    // or a total. An empty `summary` shows no footer.
+    in property <string> summary;
     in property <string> header-label: "Column headers";
+    // How many rows the host keeps selected. With `none` the rows are not
+    // announced as selectable; with `single` or `multiple` they are. The host
+    // applies the typed `gesture`s to its own selection.
+    in property <SelectionMode> selection-mode: SelectionMode.none;
+    // Paints a leading checkbox column, with a tri-state select-all header,
+    // in front of `columns`. It exists only while `selection-mode` is
+    // `multiple`; the column is not part of `columns` and has no token. A
+    // checkbox click is a `toggle` gesture; the header reports
+    // `select-all-requested`.
+    in property <bool> selection-column: false;
+    // The select-all header state the host publishes: `checked` when every
+    // enabled row is selected, `mixed` when some are, `unchecked` otherwise.
+    in property <CheckState> selection-state: CheckState.unchecked;
+    // Accessible words the application localizes: the header checkbox name,
+    // and its description while the selection is partial.
+    in property <string> select-all-label: "Select all rows";
+    in property <string> some-selected-label: "Some rows selected";
+    // The select-all header, or Control/Meta with A while the selection mode
+    // is `multiple`, asks the host to select every enabled row, or to clear
+    // the selection when all are selected.
+    callback select-all-requested();
+    private property <bool> selection-visible: root.selection-column && root.selection-mode == SelectionMode.multiple;
+    private property <length> selection-width: root.row-height;
     private property <TableCursorRegion> cursor-region: TableCursorRegion.body;
     private property <int> keyboard-resize-request;
     private property <length> keyboard-resize-delta;
@@ -427,10 +685,10 @@ export component KitDataTable inherits Rectangle {
         }
     }
     changed header-focus => { root.cursor-region = TableCursorRegion.body; }
-    public function sort-active-column() { if (root.interactive && root.has-active-column() && root.display-columns[root.active-column].sortable) { root.sort-requested(root.display-columns[root.active-column].token); } }
-    public function resize-active-column(delta: length) { if (root.interactive && root.has-active-column() && root.display-columns[root.active-column].width.resizable) { root.keyboard-resize-delta = delta; root.keyboard-resize-request += 1; } }
+    public function sort-active-column() { if (root.live && root.has-active-column() && root.display-columns[root.active-column].sortable) { root.sort-requested(root.display-columns[root.active-column].token); } }
+    public function resize-active-column(delta: length) { if (root.live && root.has-active-column() && root.display-columns[root.active-column].width.resizable) { root.keyboard-resize-delta = delta; root.keyboard-resize-request += 1; } }
     public function reorder-active-column(step: ColumnStep) {
-        if (!root.interactive || !KitDataService.ready || !root.has-active-column()) { return; }
+        if (!root.live || !KitDataService.ready || !root.has-active-column()) { return; }
         let target = root.active-column + (step == ColumnStep.previous ? -1 : 1);
         if (target >= 0 && target < root.display-columns.length) {
             let source-token = root.display-columns[root.active-column].token;
@@ -448,6 +706,20 @@ export component KitDataTable inherits Rectangle {
     in property <int> active-index: -1;
     in property <string> label: "Data table";
     in property <string> empty-label: "No matching records";
+    // `loading` and `failed` replace the empty message while `rows` is empty;
+    // rows already present stay visible and the state is still announced.
+    in property <DataState> state: DataState.ready;
+    in property <string> loading-label: "Loading";
+    in property <string> error-label: "The data could not be loaded";
+    // An empty `retry-label` hides the retry action of the `failed` state.
+    in property <string> retry-label: "Retry";
+    callback retry-requested();
+    // `custom` shows the table's children instead of `empty-label` when
+    // `state` is ready and `rows` is empty.
+    in property <DataEmptyContent> empty-content: DataEmptyContent.label;
+    in property <DataSurface> surface-style: DataSurface.framed;
+    // Alternate row fills; off, every row uses the surface fill.
+    in property <bool> striped: true;
     // Accessible words the application localizes. The kit joins them to the
     // column label with ", " and never builds a sentence from them.
     in property <string> sort-ascending-label: "ascending";
@@ -458,6 +730,8 @@ export component KitDataTable inherits Rectangle {
     in property <string> resize-label: "width";
     in property <string> editable-label: "editable";
     in property <string> read-only-label: "read only";
+    // The accessible description of an active toggle, action or link cell.
+    in property <string> actionable-label: "actionable";
     // The floor of every `fill` column. A `fixed` column is exactly its
     // basis within its own bounds.
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
@@ -467,8 +741,31 @@ export component KitDataTable inherits Rectangle {
     in-out property <int> active-column: -1;
     callback cursor-requested(int, int);
     callback key-event(KeyEvent) -> KitKeyResult;
+    // Row intent without a gesture: it fires for every pointer click, Space and
+    // Enter, whatever the modifiers. Hosts that need more than one selected
+    // row or a separate open action handle `gesture` instead, not both.
     callback activate(int,int);
+    // The typed row gesture: `(row-token, generation, gesture)`. A click is
+    // `select`, `toggle` with Control or Meta held and `extend` with Shift
+    // held; Space is `toggle`; Enter and a double-click on a row without an
+    // editable cell are `open`.
+    callback gesture(int,int,RowGesture);
+    // A row context-menu gesture: `(row-token, generation, x, y)`. The
+    // secondary button reports the pointer point and the menu key (or
+    // Shift+F10) reports the active row, a row height in from its leading edge
+    // and centred vertically. Both are in this table's coordinates, so the
+    // host can anchor a popover there. It selects nothing: the host decides
+    // whether the row joins the selection. Disabled rows report nothing.
+    callback context-requested(int,int,length,length);
     callback navigate(NavigationStep);
+    // Typing a character, or several in a row, asks the host to move its
+    // active row to the next enabled row whose first cell starts with what
+    // was typed: `(row-token, generation)`, like `activate`. A pause of 700 ms
+    // starts a new prefix; repeating one letter cycles the rows that start
+    // with it. It selects nothing and opens nothing. Space joins the prefix
+    // only while one is being typed. Control and Meta shortcuts are left
+    // alone, and so is a table whose cells are being edited.
+    callback typeahead-requested(int,int);
     callback sort-requested(int);
     // A clamped width the user asked for, by column token. The table paints
     // nothing from it: the host changes the column's `width` policy.
@@ -481,14 +778,36 @@ export component KitDataTable inherits Rectangle {
     // armed when editing began, then the field commit to run through the
     // column's `FieldSpec::accept`. The host fences it with the generation
     // and republishes the row; the table paints nothing from it.
-    callback cell-committed(int,int,int,FieldCommit);
+    callback cell-committed(CellCommit);
+    // An activated `toggle`, `action` or `link` cell: row token, column token
+    // and the projection generation current at the activation, like
+    // `cell-committed`. It comes from Enter or Space on the cell cursor, a
+    // pointer click on the cell or the accessible default action, never
+    // selects the row and never fires for a read-only or disabled cell or a
+    // disabled row. The host fences it with the generation, applies the
+    // change (flipping a toggle's state) and republishes the row.
+    callback cell-action(CellRef);
     in property <TableEditBlurPolicy> edit-blur-policy: TableEditBlurPolicy.commit-or-drop;
     in property <TableUnchangedEditPolicy> unchanged-edit-policy: TableUnchangedEditPolicy.report;
-    callback edit-started(int,int,int);
-    callback edit-ended(int,int,int,TableEditOutcome,string);
-    callback validate-edit(int,int,int,FieldCommit) -> string;
-    validate-edit(row, column, generation, commit) => { return ""; }
-    public function take-focus() {if(root.interactive){keys.focus();}}
+    callback edit-started(CellRef);
+    callback edit-ended(CellRef,TableEditOutcome,string);
+    callback validate-edit(CellRef,FieldCommit) -> string;
+    validate-edit(cell, commit) => { return ""; }
+    // Reports the displayed text of the active cell as copied: its `CellRef`
+    // and the text now on the clipboard. Control or
+    // Meta with C calls it too; a row or header cursor copies nothing.
+    callback cell-copied(CellRef, string);
+    public function copy-active-cell() {
+        if (root.cursor-region != TableCursorRegion.body || !root.has-active-cell()) { return; }
+        let row-token = root.rows[root.active-index].token;
+        let column-token = root.display-columns[root.active-column].token;
+        let generation = root.generation;
+        clipboard-source.text = root.active-cell-value();
+        clipboard-source.select-all();
+        clipboard-source.copy();
+        root.cell-copied({ row: row-token, column: column-token, generation: generation }, root.active-cell-value());
+    }
+    public function take-focus() {if(root.live){keys.focus();}}
     public function edit-active() { if (!root.edit-open && KitFieldService.ready && KitDataService.ready && root.active-cell-editable()) { root.begin-edit(); } }
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
     public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.cancelled); } }
@@ -499,11 +818,20 @@ export component KitDataTable inherits Rectangle {
     out property <bool> end-near: root.rows.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.rows.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.row-height, 0px, max(0px, root.rows.length * root.row-height - list.visible-height)); }
-    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    // Uniform rows have exact content geometry before materialization. Reveal
+    // their rectangle natively, without leaving a pending repeater request that
+    // a newer coordinate restoration cannot cancel in Slint 1.19. Seed the
+    // extent per command: a content-height binding disables native row seeking.
+    function reveal-row(index: int, behavior: ScrollBehavior) {
+        if (index < 0 || index >= root.rows.length) { return; }
+        list.content-height = root.rows.length * root.row-height;
+        list.reveal-vertical(index * root.row-height, (index + 1) * root.row-height, behavior);
+    }
+    public function scroll-to-index(index: int) { root.reveal-row(clamp(index, 0, root.rows.length - 1), KitThemes.scroll-behavior(root.theme)); }
+    public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
-        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
-        list.content-y = clamp(y, -max(0px, root.rows.length * root.row-height - list.visible-height), 0px);
+        list.content-height = root.rows.length * root.row-height;
+        list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y: list.content-y;
@@ -562,11 +890,30 @@ export component KitDataTable inherits Rectangle {
         return root.active-data-index < row.cells.length ? row.cells[root.active-data-index] : "";
     }
     pure function active-cell-editable() -> bool {
-        return root.interactive && root.has-active-cell() && !root.rows[root.active-index].disabled
+        return root.live && root.has-active-cell() && !root.rows[root.active-index].disabled
             && root.active-data-index >= 0 && root.active-data-index < root.rows[root.active-index].content.length
             && root.rows[root.active-index].content[root.active-data-index].kind == TableCellKind.field
             && root.rows[root.active-index].content[root.active-data-index].access == FieldAccess.editable;
     }
+    pure function cell-actionable(cell: TableCell) -> bool {
+        return (cell.kind == TableCellKind.toggle || cell.kind == TableCellKind.action || cell.kind == TableCellKind.link) && cell.access == FieldAccess.editable;
+    }
+    // Whether the cell at a row position and a column position may be
+    // activated now, read from the projection the host published.
+    pure function action-cell-at(row-position: int, column-position: int) -> bool {
+        if (!root.live || row-position < 0 || row-position >= root.rows.length || column-position < 0 || column-position >= root.display-columns.length || root.rows[row-position].disabled) { return false; }
+        let data-index = root.cell-data-index(root.display-columns[column-position], column-position);
+        return data-index >= 0 && data-index < root.rows[row-position].content.length && root.cell-actionable(root.rows[row-position].content[data-index]);
+    }
+    pure function active-cell-actionable() -> bool {
+        return root.cursor-region == TableCursorRegion.body && root.action-cell-at(root.active-index, root.active-column);
+    }
+    function fire-action(row-position: int, column-position: int) {
+        if (root.action-cell-at(row-position, column-position)) {
+            root.cell-action({ row: root.rows[row-position].token, column: root.display-columns[column-position].token, generation: root.generation });
+        }
+    }
+    public function activate-active-cell() { if (root.active-cell-actionable()) { root.fire-action(root.active-index, root.active-column); } }
     pure function same-edit-session(identity: TableEditIdentity) -> bool {
         return root.edit-open && root.edit-session == identity.session
             && root.edit-row-token == identity.row-token && root.edit-column-token == identity.column-token
@@ -585,7 +932,10 @@ export component KitDataTable inherits Rectangle {
         if (root.edit-session == 2147483647) { return; }
         root.edit-session += 1;
         root.cursor-region = TableCursorRegion.body;
-        root.reveal-active();
+        // Restore the editor's virtual row before mounting/focusing it, as
+        // native TextInput restores its caret immediately. Ordinary navigation
+        // remains smooth; editing has no invisible pending session.
+        root.reveal-row(root.active-index, ScrollBehavior.instant);
         root.edit-row-token = root.rows[root.active-index].token;
         root.edit-column-token = root.display-columns[root.active-column].token;
         root.edit-generation = root.generation;
@@ -595,7 +945,7 @@ export component KitDataTable inherits Rectangle {
         root.edit-bounds = { valid: false };
         root.edit-error = "";
         root.edit-open = true;
-        root.edit-started(root.edit-row-token, root.edit-column-token, root.edit-generation);
+        root.edit-started({ row: root.edit-row-token, column: root.edit-column-token, generation: root.edit-generation });
     }
     // Close the session; `refocus` returns the keyboard to the table when
     // the editor had it, and stays away when focus already went elsewhere.
@@ -609,14 +959,43 @@ export component KitDataTable inherits Rectangle {
         root.edit-focused = false;
         root.edit-error = "";
         if (refocus) { keys.focus(); }
-        root.edit-ended(row, column, generation, outcome, message);
+        root.edit-ended({ row: row, column: column, generation: generation }, outcome, message);
     }
     pure function edits-cell(row: TableRow, column: TableColumn) -> bool {
         return root.edit-open && row.token == root.edit-row-token && column.token == root.edit-column-token;
     }
     function confirm-active() {
         if (root.active-cell-editable()) { root.edit-active(); }
-        else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token, root.generation); }
+        else if (root.active-cell-actionable()) { root.activate-active-cell(); }
+        else if (root.has-active-row && !root.rows[root.active-index].disabled) {
+            root.activate(root.rows[root.active-index].token, root.generation);
+            root.gesture(root.rows[root.active-index].token, root.generation, RowGesture.open);
+        }
+    }
+    // Tab and Shift+Tab leaving an edit: the next or previous cell, and past
+    // the last or first cell the first or last editable cell of the next or
+    // previous row. The host moves the row, so at the end of the rows the
+    // cursor stays where it is.
+    function tab-step(step: ColumnStep) {
+        let edge = step == ColumnStep.previous ? root.active-column <= 0 : root.active-column >= root.display-columns.length - 1;
+        if (!edge || !KitDataService.ready) { root.step-column(step); return; }
+        let before = root.active-index;
+        root.navigate(step == ColumnStep.previous ? NavigationStep.previous : NavigationStep.next);
+        if (root.active-index != before && root.has-active-row) {
+            let target = KitDataService.edge-editable-column(root.display-columns, root.rows[root.active-index], step == ColumnStep.previous);
+            root.active-column = target >= 0 ? target : step == ColumnStep.previous ? root.display-columns.length - 1 : 0;
+        }
+    }
+    private property <TableTypeahead> typeahead-session;
+    function typeahead-key(event: KeyEvent) -> bool {
+        if (!KitDataService.ready || !KitSelectionService.ready || root.cursor-region != TableCursorRegion.body || root.edit-open || root.rows.length == 0
+            || event.modifiers.control || event.modifiers.meta) { return false; }
+        let now = KitSelectionService.timestamp();
+        if (event.text == " " && !KitDataService.typeahead-active(root.typeahead-session, now)) { return false; }
+        let result = KitDataService.typeahead(root.rows, root.active-index, root.typeahead-session, event.text, now);
+        root.typeahead-session = result.session;
+        if (result.row >= 0 && result.row < root.rows.length) { root.typeahead-requested(root.rows[result.row].token, root.generation); }
+        return result.handled;
     }
     function step-column(step: ColumnStep) {
         if (root.cursor-region == TableCursorRegion.body && !root.has-active-row) { return; }
@@ -624,11 +1003,15 @@ export component KitDataTable inherits Rectangle {
         if (step == ColumnStep.next) { root.active-column = min(root.display-columns.length - 1, root.active-column + 1); }
     }
     changed generation => { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.superseded); } }
-    changed interactive => { if (!root.interactive && root.edit-open) { root.end-edit(false, TableEditOutcome.superseded); } }
+    changed live => { if (!root.live && root.edit-open) { root.end-edit(false, TableEditOutcome.superseded); } }
     private property <ButtonRecipe> row-recipe: KitThemes.table-row-recipe(root.theme, root.control-size);
     private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
     private property <ColumnHandleRecipe> handle-recipe: KitThemes.column-handle-recipe(root.theme);
     private property <length> row-height: root.row-recipe.height;
+    private property <length> header-height: root.show-header ? root.row-height : 0px;
+    private property <length> summary-height: root.summary != "" ? root.row-height : 0px;
+    private property <bool> header-tab-stop: root.show-header && root.header-focus == TableHeaderFocus.individual;
+    changed show-header => { if (!root.show-header) { root.cursor-region = TableCursorRegion.body; } }
     private property <length> cell-inset: root.theme.spacing.unit * 4;
     // The ceiling of an unbounded column: a layout bound, not a width the
     // grid can reach, so the constraints never depend on the grid width.
@@ -676,21 +1059,24 @@ export component KitDataTable inherits Rectangle {
         root.reveal-active();
     }
     function reveal-cell(x: length, width: length) {
-        let left = list.absolute-position.x + list.viewport-x;
-        if (x < left) { list.content-x += left - x; }
-        else if (x + width > left + list.visible-width) { list.content-x -= x + width - left - list.visible-width; }
+        list.reveal-horizontal(x, x + width, root.edit-open ? ScrollBehavior.instant : KitThemes.scroll-behavior(root.theme));
     }
+    private property <int> cell-reveal-request;
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
-        if (root.active-index >= 0) {
-            if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
-            if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
-        }
+        root.reveal-row(root.active-index, KitThemes.scroll-behavior(root.theme));
+        // Reveal the materialized active cell after the row so
+        // its native rectangle can move both axes in one request.
+        root.cell-reveal-request += 1;
     }
     min-width: 0px; preferred-width: 700px;
     min-height: 160px; preferred-height: 320px;
-    background: root.surface.fill; border-width: root.surface.border-width; border-color: root.surface.border; border-radius: root.surface.radius;
-    drop-shadow-offset-y: root.surface.shadow.offset-y; drop-shadow-blur: root.surface.shadow.blur; drop-shadow-color: root.surface.shadow.color;
+    background: root.surface-style == DataSurface.framed ? root.surface.fill : transparent;
+    border-width: root.surface-style == DataSurface.framed ? root.surface.border-width : 0px;
+    border-color: root.surface.border; border-radius: root.surface-style == DataSurface.framed ? root.surface.radius : 0px;
+    drop-shadow-offset-y: root.surface-style == DataSurface.framed ? root.surface.shadow.offset-y : 0px;
+    drop-shadow-blur: root.surface-style == DataSurface.framed ? root.surface.shadow.blur : 0px;
+    drop-shadow-color: root.surface-style == DataSurface.framed ? root.surface.shadow.color : transparent;
     // Slint 1.18.1 has no row, cell or column-header roles, and delegated
     // accessible focus addresses mounted descendants, which virtualized rows
     // do not number stably. Like KitCalendar, the composite keeps focus on its
@@ -699,14 +1085,15 @@ export component KitDataTable inherits Rectangle {
     // three separate facts in the accessible tree.
     clip: true; accessible-role: table; forward-focus: keys;
     accessible-label: root.label + (root.cursor-region == TableCursorRegion.header && root.has-active-column() ? ": " + root.header-label + ", " + root.header-name(root.display-columns[root.active-column]) : (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.display-columns[root.active-column].label : ""));
-    accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.edit-active(); } }
+    accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.active-cell-actionable()) { root.activate-active-cell(); } else { root.edit-active(); } }
     accessible-value: root.active-cell-value();
-    accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
+    accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.active-cell-actionable() ? root.actionable-label : root.read-only-label) : root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     // Keep the scrollbar corner in the header canvas on either side.
-    Rectangle { width: root.width; height: root.row-height; background: root.theme.canvas; }
+    Rectangle { visible: root.show-header; width: root.width; height: root.header-height; background: root.theme.canvas; }
     header := Rectangle {
+        visible: root.show-header;
         x: list.x + list.viewport-x; y: 0px;
-        width: list.visible-width; height: root.row-height; background: root.theme.canvas; clip: true;
+        width: list.visible-width; height: root.header-height; background: root.theme.canvas; clip: true;
         header-cells := HorizontalLayout {
             x: list.content-x; width: root.grid-width; height: root.row-height; spacing: 0px; padding: 0px;
             // Header cells share the flat, square row recipe so a fill never
@@ -718,9 +1105,30 @@ export component KitDataTable inherits Rectangle {
             // element. Keyboard, pointer and the accessible default action of
             // a sortable header all go through one pressable, so one
             // `disabled` rule decides all three.
+            if root.selection-visible: select-all-cell := Rectangle {
+                min-width: root.selection-width; max-width: root.selection-width; preferred-width: root.selection-width;
+                horizontal-stretch: 0; height: root.row-height; clip: true;
+                KitPressable {
+                    theme: root.theme; control-width: ControlWidth.fill;
+                    width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
+                    recipe: root.row-recipe; disabled: !root.interactive || root.rows.length == 0; modal-layer: root.modal-layer; tab-stop: root.header-tab-stop;
+                    focus-ring: KitThemes.inset-focus(root.theme);
+                    background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
+                    accessible-role: checkbox; accessible-name: root.select-all-label;
+                    description: root.selection-state == CheckState.mixed ? root.some-selected-label : "";
+                    accessible-checkable: true; accessible-checked: root.selection-state == CheckState.checked;
+                    activated => { root.select-all-requested(); }
+                    CheckMark {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        state: root.selection-state;
+                        access: root.interactive && root.rows.length > 0 ? FieldAccess.editable : FieldAccess.disabled;
+                    }
+                }
+            }
             for column[column-index] in root.display-columns: header-cell := Rectangle {
                 private property <bool> active-header: keys.has-focus && root.cursor-region == TableCursorRegion.header && column-index == root.active-column;
-                changed active-header => { if (self.active-header) { root.reveal-cell(self.absolute-position.x, self.width); } }
+                changed active-header => { if (self.active-header) { root.reveal-cell(self.x, self.width); } }
                 private property <int> resize-request: root.keyboard-resize-request;
                 changed resize-request => { if (column-index == root.active-column && column.width.resizable) { root.resize-requested(column.token, clamp(self.width + root.keyboard-resize-delta, root.column-floor(column), root.column-ceiling(column))); } }
                 min-width: root.cell-min(column); max-width: root.cell-max(column); preferred-width: root.cell-preferred(column);
@@ -729,13 +1137,13 @@ export component KitDataTable inherits Rectangle {
                 column-drag := DragArea {
                     width: max(0px, parent.width - (column.width.resizable ? root.handle-recipe.width : 0px));
                     height: parent.height;
-                    enabled: root.interactive && KitDataService.ready;
+                    enabled: root.live && KitDataService.ready;
                     allow-move: true;
                     data: KitDataService.column-drag(root.columns, column.token);
                     if column.sortable: KitPressable {
                         theme: root.theme; control-width: ControlWidth.fill;
                         width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
-                        recipe: root.row-recipe; disabled: !root.interactive; tab-stop: root.header-focus == TableHeaderFocus.individual;
+                        recipe: root.row-recipe; disabled: !root.interactive; modal-layer: root.modal-layer; tab-stop: root.header-tab-stop;
                         focus-indicated: header-cell.active-header; focus-ring: KitThemes.inset-focus(root.theme);
                         background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
                         accessible-name: root.header-name(column);
@@ -758,7 +1166,7 @@ export component KitDataTable inherits Rectangle {
                     }
                 }
                 column-drop := DropArea {
-                    enabled: root.interactive && KitDataService.ready;
+                    enabled: root.live && KitDataService.ready;
                     can-drop(event) => {
                         return KitDataService.column-drop(root.columns, event.data, column.token).valid ? DragAction.move : DragAction.none;
                     }
@@ -780,7 +1188,7 @@ export component KitDataTable inherits Rectangle {
                 // reports none rather than a number the column can exceed.
                 if column.width.resizable && column.width.ceiling == ColumnCeiling.bounded: ColumnResizeHandle {
                     x: parent.width - self.width; height: parent.height;
-                    theme: root.theme; recipe: root.handle-recipe; disabled: !root.interactive; tab-stop: root.header-focus == TableHeaderFocus.individual;
+                    theme: root.theme; recipe: root.handle-recipe; disabled: !root.live; tab-stop: root.header-tab-stop;
                     accessible-name: root.handle-name(column);
                     accessible-value-maximum: root.column-ceiling(column) / 1px;
                     current-width: parent.width; minimum: root.column-floor(column); ceiling: ColumnCeiling.bounded; maximum: root.column-ceiling(column);
@@ -791,7 +1199,7 @@ export component KitDataTable inherits Rectangle {
                 }
                 if column.width.resizable && column.width.ceiling == ColumnCeiling.unbounded: ColumnResizeHandle {
                     x: parent.width - self.width; height: parent.height;
-                    theme: root.theme; recipe: root.handle-recipe; disabled: !root.interactive; tab-stop: root.header-focus == TableHeaderFocus.individual;
+                    theme: root.theme; recipe: root.handle-recipe; disabled: !root.live; tab-stop: root.header-tab-stop;
                     accessible-name: root.handle-name(column);
                     current-width: parent.width; minimum: root.column-floor(column); ceiling: ColumnCeiling.unbounded; maximum: root.unbounded;
                     preview(width) => { root.preview-token = column.token; root.preview-width = width; root.previewing = true; }
@@ -803,7 +1211,7 @@ export component KitDataTable inherits Rectangle {
         }
     }
     keys := DataKeyboard {
-        disabled: !root.interactive;
+        disabled: !root.live;
         column-navigation: true;
         key-event(event) => {
             if (root.key-event(event) == KitKeyResult.accept) { return KitKeyResult.accept; }
@@ -812,29 +1220,48 @@ export component KitDataTable inherits Rectangle {
                 return KitKeyResult.accept;
             }
             if (event.modifiers.alt && root.cursor-region == TableCursorRegion.header && (event.text == Key.LeftArrow || event.text == Key.RightArrow)) { root.resize-active-column(event.text == Key.LeftArrow ? -root.handle-recipe.step : root.handle-recipe.step); return KitKeyResult.accept; }
+            // With a cell cursor (or on a header cell), Home and End walk the
+            // cells of the active row; Control or Meta with Home and End keep
+            // the row edges. A row cursor leaves both to the row navigation.
+            if (!event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && !event.modifiers.shift && (event.text == Key.Home || event.text == Key.End) && root.display-columns.length > 0 && (root.cursor-region == TableCursorRegion.header || root.has-active-cell())) {
+                root.active-column = event.text == Key.Home ? 0 : root.display-columns.length - 1;
+                return KitKeyResult.accept;
+            }
+            if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "a" || event.text == "A") && root.selection-mode == SelectionMode.multiple && root.cursor-region == TableCursorRegion.body) {
+                root.select-all-requested();
+                return KitKeyResult.accept;
+            }
+            if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "c" || event.text == "C") && root.cursor-region == TableCursorRegion.body && root.has-active-cell()) {
+                root.copy-active-cell();
+                return KitKeyResult.accept;
+            }
+            if (root.typeahead-key(event)) { return KitKeyResult.accept; }
             return KitKeyResult.reject;
         }
         edit-requested => { if (root.cursor-region == TableCursorRegion.body) { root.edit-active(); } }
         navigate(step) => {
-            if (root.header-focus == TableHeaderFocus.roving && step == NavigationStep.previous && (root.active-index == 0 || !root.has-active-row) && root.display-columns.length > 0 && root.cursor-region == TableCursorRegion.body) { root.cursor-region = TableCursorRegion.header; root.active-column = clamp(root.active-column, 0, root.display-columns.length - 1); }
+            root.typeahead-session = { query: "", has-timestamp: false, timestamp: 0 };
+            if (root.show-header && root.header-focus == TableHeaderFocus.roving && step == NavigationStep.previous && (root.active-index == 0 || !root.has-active-row) && root.display-columns.length > 0 && root.cursor-region == TableCursorRegion.body) { root.cursor-region = TableCursorRegion.header; root.active-column = clamp(root.active-column, 0, root.display-columns.length - 1); }
             else if (step == NavigationStep.next && root.cursor-region == TableCursorRegion.header) { root.cursor-region = TableCursorRegion.body; }
             else if (root.cursor-region == TableCursorRegion.body) { root.navigate(step); }
         }
         navigate-column(step) => {root.step-column(step);}
-        activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); } }
+        context-requested => { if (root.cursor-region == TableCursorRegion.body && root.has-active-row && !root.rows[root.active-index].disabled) { root.context-requested(root.rows[root.active-index].token, root.generation, root.row-height, root.header-height + root.row-height * (root.active-index + 0.5) + list.content-y); } }
+        activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.active-cell-actionable()) { root.activate-active-cell(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); root.gesture(root.rows[root.active-index].token,root.generation,RowGesture.toggle); } }
         confirm => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.confirm-active(); } }
     }
+    clipboard-source := TextInput { visible: false; width: 0px; height: 0px; }
     list := ListView {
         theme: root.theme;
-        y:root.row-height; height:max(0px,root.height - root.row-height);
+        y:root.header-height; height:max(0px,root.height - root.header-height - root.summary-height);
         content-width: root.grid-width;
         for row[index] in root.rows: row-action := DataAction {
             token:row.token;generation:root.generation;theme:root.theme;
             width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
-            intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;
+            intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;modal-layer:root.modal-layer;
             accessible-name:root.row-name(row);
-            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:true;accessible-item-selected:row.selected;
-            background:row.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
+            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:root.selection-mode != SelectionMode.none;accessible-item-selected:row.selected;
+            background:row.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : root.striped && Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
             // The row ring shows while the cursor is the whole row; a cell
             // ring takes over once Left/Right chose a column. A row with an
             // open editor hands the pointer to it: caret and selection stay
@@ -843,14 +1270,34 @@ export component KitDataTable inherits Rectangle {
             pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
             focus-requested => {keys.focus();}
-            double-activated => { root.edit-active(); }
-            requested(token,generation) => {keys.focus();root.activate(token,generation);}
+            context(token,generation) => {keys.focus();root.context-requested(token,generation,list.content-x + row-action.pointer-x,root.header-height + root.row-height * index + list.content-y + row-action.pointer-y);}
+            checkbox-width: root.selection-visible ? root.selection-width : 0px;
+            double-activated => { if (row-action.in-checkbox || root.action-cell-at(index, root.active-column)) { return; } if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
+            // A press on an actionable cell is that cell's activation: it
+            // moved the cell cursor on press and neither selects nor opens the
+            // row. The press armed this row and generation; a changed
+            // projection cancelled it.
+            requested(token,generation) => {
+                keys.focus();
+                if (!row-action.in-checkbox && root.action-cell-at(index, root.active-column)) { root.fire-action(index, root.active-column); }
+                else { root.activate(token,generation);root.gesture(token,generation,row-action.armed-gesture); }
+            }
             // Row cells take the constraints of their column, so the solver
             // lays them out exactly as the header above. A row paints its
             // typed `content` when it has any, otherwise its plain `cells`
             // as text cells.
             if row.content.length == 0: HorizontalLayout {spacing:0px; padding: 0px;
-                for column[column-index] in root.display-columns: row-cell := TableCellView {
+                if root.selection-visible: Rectangle {
+                    min-width: root.selection-width; max-width: root.selection-width; preferred-width: root.selection-width;
+                    horizontal-stretch: 0;
+                    CheckMark {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        state: row.selected ? CheckState.checked : CheckState.unchecked;
+                        access: row.disabled ? FieldAccess.disabled : FieldAccess.editable;
+                    }
+                }
+                for column[column-index] in root.display-columns: row-cell := TableCellView { modal-layer: root.modal-layer;
                     min-width: root.cell-min(root.display-columns[column-index]); max-width: root.cell-max(root.display-columns[column-index]); preferred-width: root.cell-preferred(root.display-columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.display-columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
@@ -858,6 +1305,9 @@ export component KitDataTable inherits Rectangle {
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     viewport-offset-x: list.content-x;
+                    viewport-width: list.visible-width;
+                    reveal-request: root.cell-reveal-request;
+                    content-origin-x: row-action.absolute-position.x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
                     cell: { kind: TableCellKind.text, text: self.data-index >= 0 && self.data-index < row.cells.length ? row.cells[self.data-index] : "" };
                     alignment: root.display-columns[column-index].alignment;
@@ -866,19 +1316,33 @@ export component KitDataTable inherits Rectangle {
                 }
             }
             if row.content.length > 0: HorizontalLayout {spacing:0px; padding: 0px;
+                if root.selection-visible: Rectangle {
+                    min-width: root.selection-width; max-width: root.selection-width; preferred-width: root.selection-width;
+                    horizontal-stretch: 0;
+                    CheckMark {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        state: row.selected ? CheckState.checked : CheckState.unchecked;
+                        access: row.disabled ? FieldAccess.disabled : FieldAccess.editable;
+                    }
+                }
                 // The editor mounts on the cell whose row and column tokens
                 // are the armed ones, wherever the viewport now paints them.
                 // Its outcomes are forwarded only while that session is the
                 // open one, so the blur the closing itself provokes cannot
                 // commit a second time or to another cell.
-                for column[column-index] in root.display-columns: content-cell := TableCellView {
+                for column[column-index] in root.display-columns: content-cell := TableCellView { modal-layer: root.modal-layer;
                     min-width: root.cell-min(root.display-columns[column-index]); max-width: root.cell-max(root.display-columns[column-index]); preferred-width: root.cell-preferred(root.display-columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.display-columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
+                    action-requested => { root.fire-action(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     viewport-offset-x: list.content-x;
+                    viewport-width: list.visible-width;
+                    reveal-request: root.cell-reveal-request;
+                    content-origin-x: row-action.absolute-position.x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
                     cell: self.data-index >= 0 && self.data-index < row.content.length ? row.content[self.data-index] : { kind: TableCellKind.text };
                     alignment: root.display-columns[column-index].alignment;
@@ -904,7 +1368,7 @@ export component KitDataTable inherits Rectangle {
                             if (!root.edit-available) { root.end-edit(focused && root.edit-focused, TableEditOutcome.superseded); }
                             else if (root.edit-row-outside-viewport) { root.end-edit(focused && root.edit-focused, TableEditOutcome.viewport-exit); }
                             else {
-                                let rejection = root.validate-edit(row-token, column-token, generation, commit);
+                                let rejection = root.validate-edit({ row: row-token, column: column-token, generation: generation }, commit);
                                 // A verdict may cancel/reopen the identical public address. Only
                                 // the original private session may consume this native payload.
                                 if (root.same-edit-session(identity)) {
@@ -915,7 +1379,7 @@ export component KitDataTable inherits Rectangle {
                                         root.end-edit(focused && root.edit-focused, unchanged ? TableEditOutcome.unchanged : TableEditOutcome.committed);
                                         // An end observer may open another editor, but must not
                                         // retarget the original proposal to a different data source.
-                                        if (report && root.commit-address-current(identity, row-position)) { root.cell-committed(row-token, column-token, generation, commit); }
+                                        if (report && root.commit-address-current(identity, row-position)) { root.cell-committed({ row: row-token, column: column-token, generation: generation, commit: commit }); }
                                     } else { root.edit-error = rejection; }
                                 }
                             }
@@ -925,7 +1389,7 @@ export component KitDataTable inherits Rectangle {
                     // The commit ran before this: a closed session means it
                     // was accepted and the cursor may move on; an open one
                     // keeps the invalid draft in the editor.
-                    step-requested(identity, step) => { if (!root.edit-open && root.edit-session == identity.session) { root.step-column(step); } }
+                    step-requested(identity, step) => { if (!root.edit-open && root.edit-session == identity.session) { root.tab-step(step); } }
                     blurred(identity) => {
                         if (root.same-edit-session(identity) && root.edits-cell(row, root.display-columns[column-index])) {
                             if (!root.edit-available) { root.end-edit(false, TableEditOutcome.superseded); }
@@ -939,7 +1403,23 @@ export component KitDataTable inherits Rectangle {
             }
         }
     }
-    if root.rows.length == 0: Text {y:root.row-height;text:root.empty-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);horizontal-alignment:center;vertical-alignment:center;}
+    DataStatePanel { modal-layer: root.modal-layer;
+        y: root.header-height; height: max(0px, root.height - root.header-height - root.summary-height);
+        theme: root.theme; state: root.state; rowless: root.rows.length == 0; empty-content: root.empty-content;
+        empty-label: root.empty-label; loading-label: root.loading-label; error-label: root.error-label; retry-label: root.retry-label;
+        retry-requested => { root.retry-requested(); }
+        @children
+    }
+    if root.summary != "": Rectangle {
+        x: 0px; y: root.height - root.summary-height; width: root.width; height: root.summary-height;
+        background: root.theme.canvas;
+        Text {
+            x: root.cell-inset; width: parent.width - 2 * root.cell-inset; height: parent.height;
+            text: root.summary; color: root.theme.text-secondary; font-family: root.theme.typography.family;
+            font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; overflow: elide;
+            accessible-role: AccessibleRole.text;
+        }
+    }
     if keys.has-focus && root.cursor-region == TableCursorRegion.body && (root.active-index < 0 || root.active-index >= root.rows.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
@@ -947,73 +1427,147 @@ export component KitDataTable inherits Rectangle {
 }
 
 export component KitContentList inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme:KitThemeContext.current;
     in property <[ContentItem]> items;
     in property <int> generation;
     in property <int> active-index:-1;
     in property <string> label:"Articles";
     in property <string> empty-label:"No articles found";
-    callback activate(int,int);callback navigate(NavigationStep);
-    public function take-focus(){keys.focus();}
+    // As on KitDataTable: `loading` and `failed` replace the empty message
+    // while `items` is empty, and `custom` shows the list's children instead.
+    in property <DataState> state: DataState.ready;
+    in property <string> loading-label: "Loading";
+    in property <string> error-label: "The articles could not be loaded";
+    in property <string> retry-label: "Retry";
+    callback retry-requested();
+    in property <DataEmptyContent> empty-content: DataEmptyContent.label;
+    // Row density, which also scales the thumbnail.
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ContentThumbnail> thumbnail: ContentThumbnail.image;
+    // Lines of excerpt shown before it is elided; below one, one is used.
+    in property <int> excerpt-lines: 2;
+    // Off, the rows, the link and the key scope are inert, so a host can
+    // block the list behind a dialog without covering it.
+    in property <bool> interactive: true;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
+    in property <ScrollBarPolicy> vertical-scrollbar-policy: ScrollBarPolicy.always-on;
+    // The row's own link label was pressed, or Shift+Enter was pressed on the
+    // active row that has one; the row itself is not activated.
+    callback link-activated(int,int);
+    // Row intent without a gesture; hosts that need several selected rows or
+    // a separate open action handle `gesture` instead, not both.
+    callback activate(int,int);
+    // The typed row gesture, as on KitDataTable: a click is `select`,
+    // `toggle` or `extend` by modifier; Space is `toggle`; Enter and a
+    // double-click are `open`.
+    callback gesture(int,int,RowGesture);
+    // A row context-menu gesture, as on KitDataTable: `(row-token, generation,
+    // x, y)` in this list's coordinates. The secondary button reports the
+    // pointer point; the menu key (or Shift+F10) the active row, a row height
+    // in from its leading edge and centred vertically (capped to the list).
+    callback context-requested(int,int,length,length);
+    callback navigate(NavigationStep);
+    public function take-focus(){if(root.live){keys.focus();}}
     in property <int> near-end-rows: 3;
     out property <int> first-visible-index: root.items.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.row-height), 0, root.items.length - 1);
     out property <int> visible-row-count: root.items.length == 0 || list.visible-height <= 0px ? 0 : max(0, min(root.items.length, ceil((list.visible-height - list.content-y) / root.row-height)) - root.first-visible-index);
     out property <bool> end-near: root.items.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.items.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.row-height, 0px, max(0px, root.items.length * root.row-height - list.visible-height)); }
-    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    // Uniform rows have exact content geometry before materialization. Reveal
+    // their rectangle natively, without leaving a pending repeater request that
+    // a newer coordinate restoration cannot cancel in Slint 1.19. Seed the
+    // extent per command: a content-height binding disables native row seeking.
+    function reveal-row(index: int, behavior: ScrollBehavior) {
+        if (index < 0 || index >= root.items.length) { return; }
+        list.content-height = root.items.length * root.row-height;
+        list.reveal-vertical(index * root.row-height, (index + 1) * root.row-height, behavior);
+    }
+    public function scroll-to-index(index: int) { root.reveal-row(clamp(index, 0, root.items.length - 1), KitThemes.scroll-behavior(root.theme)); }
+    public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
-        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
-        list.content-y = clamp(y, -max(0px, root.items.length * root.row-height - list.visible-height), 0px);
+        list.content-height = root.items.length * root.row-height;
+        list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y:list.content-y;
     out property <length> scroll-x:list.content-x;
-    private property <length> row-height:max(132px,116px * root.theme.text-scale);
-    changed active-index => { root.reveal-active(); }
-    public function reveal-active() {
-        if (root.active-index >= 0 && root.active-index < root.items.length) {
-            if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
-            if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
-        }
+    private property <length> thumbnail-size: root.control-size == ControlSize.compact ? 48px : root.control-size == ControlSize.comfortable ? 96px : 72px;
+    private property <length> excerpt-line-height: root.theme.typography.line-height-control * root.theme.text-scale;
+    private property <int> shown-excerpt-lines: max(1, root.excerpt-lines);
+    private property <length> base-row-height: root.control-size == ControlSize.compact ? max(96px, 84px * root.theme.text-scale) : root.control-size == ControlSize.comfortable ? max(168px, 148px * root.theme.text-scale) : max(132px, 116px * root.theme.text-scale);
+    private property <length> row-height: root.base-row-height + (root.shown-excerpt-lines - 2) * root.excerpt-line-height;
+    pure function item-name(item: ContentItem) -> string {
+        return item.title != "" && item.metadata != "" ? item.title + ", " + item.metadata : item.title != "" ? item.title : item.metadata;
     }
+    changed active-index => { root.reveal-active(); }
+    public function reveal-active() { root.reveal-row(root.active-index, KitThemes.scroll-behavior(root.theme)); }
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
-    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
-    function activate-active() {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);}}
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.activate-active();}confirm=>{root.activate-active();}}
+    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
+    function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
+    private property <bool> active-has-link: root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled&&root.items[root.active-index].link-label!="";
+    keys := DataKeyboard {disabled:!root.live;link-key:root.active-has-link;link-requested=>{root.link-activated(root.items[root.active-index].token,root.generation);}navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}context-requested=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.context-requested(root.items[root.active-index].token,root.generation,min(root.row-height,root.width),root.row-height*(root.active-index+0.5)+list.content-y);}}}
     list := ListView {
         theme: root.theme;
-        vertical-scrollbar-policy: ScrollBarPolicy.always-on;
+        vertical-scrollbar-policy: root.vertical-scrollbar-policy;
         horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
         y: 0px;
         content-width:self.visible-width;
-        for item[index] in root.items: DataAction {
+        // The row and its link are siblings: a pressable paints its children
+        // under its own pointer area, so a link inside the row could not be hit.
+        for item[index] in root.items: Rectangle {
             width:list.visible-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
-            theme:root.theme;token:item.token;generation:root.generation;disabled:item.disabled;intent:ButtonIntent.quiet;
-            accessible-name:item.title + ", " + item.metadata;accessible-role:AccessibleRole.list-item;
-            accessible-item-index:index;accessible-item-count:root.items.length;accessible-item-selectable:true;accessible-item-selected:item.selected;
-            focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
-            background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
-            focus-requested => {keys.focus();}
-            requested(token,generation)=>{keys.focus();root.activate(token,generation);}
-            HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
-                Rectangle {width:72px; horizontal-stretch:0;
-                    Rectangle {y:(parent.height - self.height) / 2;width:72px;height:72px;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;
-                    if item.thumbnail.width > 0 && item.thumbnail.height > 0: Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
-                    if item.thumbnail.width <= 0 || item.thumbnail.height <= 0: KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:root.theme.icons.article;ink:root.theme.accent;}
+            row := DataAction {
+                width:parent.width;height:parent.height;
+                theme:root.theme;token:item.token;generation:root.generation;disabled:!root.interactive || item.disabled;modal-layer:root.modal-layer;intent:ButtonIntent.quiet;
+                accessible-name:root.item-name(item);description:item.excerpt;accessible-role:AccessibleRole.list-item;
+                accessible-item-index:index;accessible-item-count:root.items.length;accessible-item-selectable:true;accessible-item-selected:item.selected;
+                focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
+                background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
+                focus-requested => {keys.focus();}
+                context(token,generation)=>{keys.focus();root.context-requested(token,generation,list.content-x + row.pointer-x,root.row-height * index + list.content-y + row.pointer-y);}
+                requested(token,generation)=>{keys.focus();root.activate(token,generation);root.gesture(token,generation,self.armed-gesture);}
+                double-activated => { if (!item.disabled) { root.gesture(item.token, root.generation, RowGesture.open); } }
+            }
+            HorizontalLayout {
+                x:row.padding-inline;y:row.padding-block;width:max(0px,parent.width - 2 * row.padding-inline);height:max(0px,parent.height - 2 * row.padding-block);
+                spacing:root.theme.spacing.unit * 4; alignment: start;
+                if root.thumbnail != ContentThumbnail.none: Rectangle {width:root.thumbnail-size; horizontal-stretch:0;
+                    Rectangle {y:(parent.height - self.height) / 2;width:root.thumbnail-size;height:root.thumbnail-size;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;
+                    if root.thumbnail == ContentThumbnail.image && item.thumbnail.width > 0 && item.thumbnail.height > 0: Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
+                    if root.thumbnail == ContentThumbnail.icon || item.thumbnail.width <= 0 || item.thumbnail.height <= 0: KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:root.thumbnail-size / 3;height:root.thumbnail-size / 3;glyph:root.theme.icons.article;ink:root.theme.accent;}
                 }
                 }
                 VerticalLayout {spacing:root.theme.spacing.unit;alignment:center;
                     Text {text:item.title;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}
-                    Text {text:item.excerpt;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;max-height:2 * root.theme.typography.line-height-control * root.theme.text-scale;overflow:elide;}
+                    Text {text:item.excerpt;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;max-height:root.shown-excerpt-lines * root.excerpt-line-height;overflow:elide;}
                     Text {text:item.metadata;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
-                    Text {text:item.link-label;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.accent;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
+                    if item.link-label != "": Rectangle {
+                        horizontal-stretch:0;vertical-stretch:0;height:link-text.preferred-height;max-width:link-text.preferred-width;
+                        link-text := Text {width:parent.width;text:item.link-label;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.accent;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
+                        DataAction {
+                            theme:root.theme;token:item.token;generation:root.generation;disabled:!root.interactive || item.disabled;modal-layer:root.modal-layer;intent:ButtonIntent.quiet;
+                            width:parent.width;height:parent.height;padding-inline:0px;padding-block:0px;
+                            accessible-name:item.link-label;accessible-role:AccessibleRole.button;
+                            background:transparent;
+                            focus-requested => {keys.focus();}
+                            requested(token,generation)=>{root.link-activated(token,generation);}
+                        }
+                    }
                 }
             }
         }
     }
-    if root.items.length==0: Text {text:root.empty-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);horizontal-alignment:center;vertical-alignment:center;}
+    DataStatePanel { modal-layer: root.modal-layer;
+        height: root.height;
+        theme: root.theme; state: root.state; rowless: root.items.length == 0; empty-content: root.empty-content;
+        empty-label: root.empty-label; loading-label: root.loading-label; error-label: root.error-label; retry-label: root.retry-label;
+        retry-requested => { root.retry-requested(); }
+        @children
+    }
     if keys.has-focus && (root.active-index < 0 || root.active-index >= root.items.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
@@ -1035,6 +1589,9 @@ component DocumentLineAction inherits KitButton {
 }
 
 export component KitVirtualTextView inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme:KitThemeContext.current;
     in property <[TextLine]> lines;
     in property <int> generation;
@@ -1047,7 +1604,21 @@ export component KitVirtualTextView inherits Rectangle {
     in property <string> editor-placeholder:"Select a line to edit";
     in property <string> save-label:"Save line";
     in property <string> copy-label:"Copy";
+    in property <TextViewFont> font:TextViewFont.proportional;
+    in property <bool> show-line-numbers:true;
+    in property <string> empty-label:"No lines";
+    // As on KitDataTable: `loading` and `failed` replace the empty message
+    // while `lines` is empty, and `custom` shows the view's children instead.
+    in property <DataState> state: DataState.ready;
+    in property <string> loading-label: "Loading";
+    in property <string> error-label: "The text could not be loaded";
+    // An empty `retry-label` hides the retry action of the `failed` state.
+    in property <string> retry-label: "Retry";
+    callback retry-requested();
+    in property <DataEmptyContent> empty-content: DataEmptyContent.label;
     callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
+    // Reports the stored text of the active line after it is placed on the clipboard, in any access mode.
+    callback copy-line-text(int,int,string);
     private property <bool> has-active-line: root.active-index >= 0 && root.active-index < root.lines.length;
     private property <bool> can-edit-line: root.access == TextViewAccess.edit-line && root.has-active-line;
     pure function current-line() -> SelectionRef {
@@ -1070,6 +1641,20 @@ export component KitVirtualTextView inherits Rectangle {
         line-editor.copy-selection();
         if (root.current-source(source, generation)) { root.copy-requested(source.token, generation); }
     }
+    // Copies the stored text of the active line, not the draft, and leaves focus where it is.
+    public function copy-active-line() {
+        if (!root.has-active-line) { return; }
+        let token = root.lines[root.active-index].token;
+        let generation = root.generation;
+        clipboard-source.text = root.lines[root.active-index].text;
+        clipboard-source.select-all();
+        clipboard-source.copy();
+        root.copy-line-text(token, generation, root.lines[root.active-index].text);
+    }
+    private property <length> line-font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+    private property <string> line-family: root.font == TextViewFont.monospace ? root.theme.typography.family-monospace : root.theme.typography.family;
+    // Sized from the largest (last) line number, so it follows the font and the text scale.
+    private property <length> gutter-width: root.show-line-numbers && root.lines.length > 0 ? gutter-probe.preferred-width : 0px;
     public function take-focus(){keys.focus();}
     in property <int> near-end-rows: 3;
     out property <int> first-visible-index: root.lines.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.line-height), 0, root.lines.length - 1);
@@ -1077,11 +1662,20 @@ export component KitVirtualTextView inherits Rectangle {
     out property <bool> end-near: root.lines.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.lines.length;
     callback near-end();
     changed end-near => { if (root.end-near) { root.near-end(); } }
-    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.line-height, 0px, max(0px, root.lines.length * root.line-height - list.visible-height)); }
-    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    // Uniform rows have exact content geometry before materialization. Reveal
+    // their rectangle natively, without leaving a pending repeater request that
+    // a newer coordinate restoration cannot cancel in Slint 1.19. Seed the
+    // extent per command: a content-height binding disables native row seeking.
+    function reveal-row(index: int, behavior: ScrollBehavior) {
+        if (index < 0 || index >= root.lines.length) { return; }
+        list.content-height = root.lines.length * root.line-height;
+        list.reveal-vertical(index * root.line-height, (index + 1) * root.line-height, behavior);
+    }
+    public function scroll-to-index(index: int) { root.reveal-row(clamp(index, 0, root.lines.length - 1), KitThemes.scroll-behavior(root.theme)); }
+    public function scroll-to-top() { list.scroll-to({x: 0px, y: 0px}, KitThemes.scroll-behavior(root.theme)); }
     public function set-scroll(x: length, y: length) {
-        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
-        list.content-y = clamp(y, -max(0px, root.lines.length * root.line-height - list.visible-height), 0px);
+        list.content-height = root.lines.length * root.line-height;
+        list.scroll-to({x: -x, y: -y}, ScrollBehavior.instant);
     }
     out property <int> page-rows: max(1, floor(list.visible-height / root.line-height));
     out property <length> scroll-y:list.content-y;
@@ -1090,16 +1684,33 @@ export component KitVirtualTextView inherits Rectangle {
     private property <length> edit-height:root.access==TextViewAccess.edit-line ? editor-panel.preferred-height : 0px;
     private property <bool> footer-stacked: root.width < KitMetrics.font-size(root.theme, TypographyRole.control) * 32;
     changed active-index => {root.reveal-active();}
-    public function reveal-active() {if(root.active-index>=0 && root.active-index<root.lines.length){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
+    public function reveal-active() { root.reveal-row(root.active-index, KitThemes.scroll-behavior(root.theme)); }
     min-width:0px;preferred-width:700px;min-height:max(root.theme.spacing.unit * 45,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
-    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
+    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function select-active() {if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.select-active();}confirm=>{root.select-active();}}
+    keys := DataKeyboard {
+        disabled: KitModalContext.inert(root.modal-layer);
+        navigate(step)=>{root.navigate(step);}activate=>{root.select-active();}confirm=>{root.select-active();}
+        key-event(event) => {
+            if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "c" || event.text == "C") && root.has-active-line) {
+                root.copy-active-line();
+                return KitKeyResult.accept;
+            }
+            return KitKeyResult.reject;
+        }
+    }
+    clipboard-source := TextInput { visible: false; width: 0px; height: 0px; }
+    gutter-probe := Text {
+        visible: false;
+        text: root.lines.length > 0 ? root.lines[root.lines.length - 1].number : 0;
+        font-family: root.line-family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+    }
     list := ListView {
         theme: root.theme;
         y: 0px;
         height:max(0px,root.height - root.edit-height);content-width:self.visible-width;
         for line[index] in root.lines: DataAction {
+            modal-layer: root.modal-layer;
             width:list.visible-width;height:root.line-height;min-height:root.line-height;preferred-height:root.line-height;token:line.token;generation:root.generation;theme:root.theme;intent:ButtonIntent.quiet;
             recipe:KitThemes.table-row-recipe(root.theme,ControlSize.medium);
             background:line.selected?root.theme.accent-subtle:self.pressed?self.recipe.pressed-fill:self.hovered?self.recipe.hover-fill:root.theme.surface;
@@ -1109,10 +1720,17 @@ export component KitVirtualTextView inherits Rectangle {
             focus-requested => {keys.focus();}
             requested(token,generation)=>{keys.focus();root.select-line(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 3;
-                Text {width:64px;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
-                Text {text:line.text;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;}
+                if root.show-line-numbers: Text {width:root.gutter-width;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.line-family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
+                Text {text:line.text;color:root.theme.text-primary;font-family: root.line-family; font-size:root.line-font-size;overflow:elide;vertical-alignment:center;}
             }
         }
+    }
+    DataStatePanel { modal-layer: root.modal-layer;
+        y: 0px; height: max(0px, root.height - root.edit-height);
+        theme: root.theme; state: root.state; rowless: root.lines.length == 0; empty-content: root.empty-content;
+        empty-label: root.empty-label; loading-label: root.loading-label; error-label: root.error-label; retry-label: root.retry-label;
+        retry-requested => { root.retry-requested(); }
+        @children
     }
     editor-panel := Rectangle {
         visible: root.access==TextViewAccess.edit-line;
@@ -1127,13 +1745,13 @@ export component KitVirtualTextView inherits Rectangle {
                 spacing:KitMetrics.inline-gap(root.theme);
                 // Resolve the editor width before measuring its wrapped label
                 // and help. Its height must not feed back into flexbox width.
-                line-editor:=KitTextField {
+                line-editor:=KitTextField { modal-layer: root.modal-layer;
                     implicit-form-submit: false;width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:root.editor-label;placeholder:root.editor-placeholder;access:root.can-edit-line?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{let source = root.current-line(); let generation = root.generation; root.commit-current(source,generation,text);}}
                 HorizontalLayout {
                     width:save-line.preferred-width + copy-line.preferred-width + KitMetrics.inline-gap(root.theme);
                     spacing:KitMetrics.inline-gap(root.theme);alignment:start;vertical-stretch:0;
-                    save-line := DocumentLineAction {theme:root.theme;text:root.save-label;line-source:root.current-line();generation:root.generation;disabled:!root.can-edit-line;requested(source,generation)=>{root.commit-current(source,generation,root.line-draft);}}
-                    copy-line := DocumentLineAction {theme:root.theme;text:root.copy-label;line-source:root.current-line();generation:root.generation;disabled:!root.can-edit-line;requested(source,generation)=>{root.copy-current(source,generation);}}
+                    save-line := DocumentLineAction { modal-layer: root.modal-layer;theme:root.theme;text:root.save-label;line-source:root.current-line();generation:root.generation;disabled:!root.can-edit-line;requested(source,generation)=>{root.commit-current(source,generation,root.line-draft);}}
+                    copy-line := DocumentLineAction { modal-layer: root.modal-layer;theme:root.theme;text:root.copy-label;line-source:root.current-line();generation:root.generation;disabled:!root.can-edit-line;requested(source,generation)=>{root.copy-current(source,generation);}}
                 }
             }
             if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}

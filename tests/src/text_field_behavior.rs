@@ -128,6 +128,7 @@ fn overflowing_multiline_editor_preserves_mouse_selection_and_has_scrollbar() {
                         == Some(i_slint_backend_testing::AccessibleRole::TextInput)
                 })
                 .unwrap();
+            let editor = crate::native_editor(&editor);
             let bounds = editor.absolute_position();
             let start = slint::LogicalPosition::new(bounds.x + 4., bounds.y + 8.);
             let end = slint::LogicalPosition::new(bounds.x + 140., bounds.y + 30.);
@@ -322,7 +323,7 @@ fn right_click_editor(app: &TextFieldBehaviorFixture) {
     let editor = ElementHandle::find_by_accessible_label(app, "Name")
         .find(|element| element.accessible_role() == Some(AccessibleRole::TextInput))
         .unwrap();
-    editor.mock_single_click(slint::platform::PointerEventButton::Right);
+    crate::native_editor(&editor).mock_single_click(slint::platform::PointerEventButton::Right);
     slint::platform::update_timers_and_animations();
 }
 #[test]
@@ -637,5 +638,98 @@ fn native_text_pointer_reference_preserves_selection_through_plain_wrappers() {
     }
     for (probe, (cursor, anchor)) in results {
         assert_ne!(cursor, anchor, "native {probe:?} pointer reference");
+    }
+}
+
+#[test]
+fn native_caret_follow_preserves_inset_selection_and_history_in_both_line_modes() {
+    use i_slint_backend_testing::{ElementQuery, TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = TextFieldBehaviorFixture::new().unwrap();
+    kit_slint::install(&app);
+    app.show().unwrap();
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        app.window().take_snapshot().unwrap();
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_secs(1));
+        slint::platform::update_timers_and_animations();
+        app.window().take_snapshot().unwrap()
+    };
+    for (name, base) in [("light", app.get_theme()), ("dark", app.get_dark_theme())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            app.set_text_inset(24.);
+            for multiline in [false, true] {
+                app.set_multiline(multiline);
+                let content = if multiline {
+                    "A native line\n".repeat(30)
+                } else {
+                    "W".repeat(300)
+                };
+                app.set_text(content.clone().into());
+                app.invoke_focus_field();
+                frame();
+                app.invoke_selection(0, 0);
+                frame();
+                let editor = ElementQuery::from_root(&app)
+                    .match_inherits("KitTextField")
+                    .find_first()
+                    .unwrap();
+                let editor = crate::native_editor(&editor);
+                let viewport = ElementQuery::from_root(&app)
+                    .match_inherits("Flickable")
+                    .find_first()
+                    .unwrap();
+                let initial = editor.absolute_position();
+                assert!(
+                    (initial.x - viewport.absolute_position().x - 24.).abs() < 0.1,
+                    "horizontal inset remains visible at the start"
+                );
+                let end = i32::try_from(content.len()).unwrap();
+                app.invoke_selection(end, end);
+                key(&app, "Z");
+                let snapshot = frame();
+                let position = editor.absolute_position();
+                if multiline {
+                    assert!(position.y < initial.y);
+                    assert!(
+                        position.y + editor.size().height
+                            <= viewport.absolute_position().y + viewport.size().height + 1.
+                    );
+                } else {
+                    assert!(position.x < initial.x);
+                    assert!(
+                        position.x + editor.size().width
+                            <= viewport.absolute_position().x + viewport.size().width + 2.
+                    );
+                }
+                assert_eq!(app.get_cursor(), end + 1);
+                assert_eq!(app.get_anchor(), end + 1);
+                app.invoke_undo();
+                assert_eq!(app.get_text(), content);
+                app.invoke_redo();
+                assert_eq!(app.get_text(), format!("{content}Z"));
+                app.invoke_selection(0, 0);
+                frame();
+                assert!(editor.absolute_position().x >= viewport.absolute_position().x - 0.1);
+                assert!(editor.absolute_position().x <= viewport.absolute_position().x + 24.1);
+                app.invoke_selection(0, 1);
+                assert_eq!((app.get_anchor(), app.get_cursor()), (0, 1));
+                assert!(
+                    (editor.absolute_position().y - viewport.absolute_position().y).abs() < 0.1
+                );
+                crate::choice_presentation::save_capture(
+                    &snapshot,
+                    &format!("native-caret-{multiline}-{name}-{scale}"),
+                );
+            }
+        }
     }
 }

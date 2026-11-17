@@ -11,7 +11,7 @@ use slint::platform::Key;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use slint_kit::{
     CellCodec, CellContent, DraftValue, FieldAccess, FieldSpec, FieldSpecKey, KeyedModel,
-    TextValue, table_cells,
+    NumberSyntax, TextValue, table_cells,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -76,7 +76,7 @@ fn record(token: i32, title: &str, quantity: i64, owner: &str, access: FieldAcce
             CellContent::text(title),
             CellContent::typed_field(
                 quantity_key(),
-                &FieldSpec::integer(),
+                &FieldSpec::integer(NumberSyntax::en_ca(), None),
                 Some(&quantity),
                 access,
             ),
@@ -110,7 +110,7 @@ fn editing(rows: Vec<TableRow>) -> Editing {
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -132,7 +132,13 @@ fn editing(rows: Vec<TableRow>) -> Editing {
     });
     let commits: Commits = Rc::default();
     let recorded = commits.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         recorded
             .borrow_mut()
             .push((row, column, generation, commit));
@@ -178,6 +184,11 @@ fn shift_tab(window: &BaseDataFixture) {
 fn open(window: &BaseDataFixture, column: i32) {
     window.set_table_active_column(column);
     key(window, Key::Return);
+    assert!(
+        window.get_table_editing(),
+        "the edit request survives pending reveal"
+    );
+    crate::settle_scroll(window);
     flush();
     assert!(window.get_table_editing(), "Enter opens the editor");
     assert_eq!(editors(window).len(), 1, "one editor mounts");
@@ -318,7 +329,10 @@ fn enter_commits_once_with_the_armed_identity_and_the_codec_accepts_it() {
     let (row, column, generation, commit) = &recorded[0];
     assert_eq!((*row, *column, *generation), (2, QUANTITY, 1));
     assert_eq!(commit.value.text, "7");
-    assert_eq!(FieldSpec::integer().accept(commit.clone()), Ok(Some(7)));
+    assert_eq!(
+        FieldSpec::integer(NumberSyntax::en_ca(), None).accept(commit.clone()),
+        Ok(Some(7))
+    );
     drop(recorded);
     assert!(table_has_focus(&window));
 }
@@ -492,12 +506,22 @@ fn keyed_model_cell_commits_reject_a_stale_generation_and_name_the_key() {
     };
     let stale = model.generation();
     model.sort_by(|left, right| right.0.cmp(&left.0));
-    handler(token, QUANTITY, stale, commit.clone());
+    handler(CellCommit {
+        row: token,
+        column: QUANTITY,
+        generation: stale,
+        commit: commit.clone(),
+    });
     assert!(
         received.borrow().is_empty(),
         "a commit armed before the sort is rejected"
     );
-    handler(token, QUANTITY, model.generation(), commit);
+    handler(CellCommit {
+        row: token,
+        column: QUANTITY,
+        generation: model.generation(),
+        commit,
+    });
     assert_eq!(
         &*received.borrow(),
         &[(RecordId(9), QUANTITY, "7".to_string())],
@@ -611,7 +635,7 @@ fn only_the_edited_cell_mounts_an_editor_across_a_large_model() {
     assert_eq!(editors(&window).len(), 1);
     assert!(delegates(&window, "KitDataTable").len() < 40);
     key(&window, Key::Escape);
-    key(&window, Key::End);
+    modified_key(&window, Key::Control, Key::End);
     assert_eq!(window.get_table_active(), 9_999);
     open(&window, 2);
     assert_eq!(
@@ -640,7 +664,7 @@ fn field_cells_project_once_and_format_their_typed_value() {
     assert_eq!(plain.access, ui::FieldAccess::ReadOnly);
     let typed = TableCell::from(CellContent::typed_field(
         quantity_key(),
-        &FieldSpec::integer(),
+        &FieldSpec::integer(NumberSyntax::en_ca(), None),
         Some(&1_234),
         FieldAccess::Editable,
     ));
@@ -652,7 +676,7 @@ fn field_cells_project_once_and_format_their_typed_value() {
     assert_eq!(typed.access, ui::FieldAccess::Editable);
     let absent = TableCell::from(CellContent::typed_field(
         quantity_key(),
-        &FieldSpec::integer(),
+        &FieldSpec::integer(NumberSyntax::en_ca(), None),
         None,
         FieldAccess::Disabled,
     ));
@@ -742,7 +766,7 @@ fn plain_text_editor_rendering_keeps_native_editing_in_light_dark_and_large_text
     window.show().unwrap();
     let committed = Rc::new(RefCell::new(Vec::new()));
     let recorded = committed.clone();
-    window.on_cell_committed(move |_, _, _, commit| recorded.borrow_mut().push(commit));
+    window.on_cell_committed(move |proposal| recorded.borrow_mut().push(proposal.commit));
     for (name, theme) in [
         ("light", window.get_theme()),
         ("dark", window.get_dark_theme()),
@@ -834,6 +858,104 @@ fn pointer_cell_cursor_and_double_click_open_the_pointed_field() {
     assert_eq!(editors(&window).len(), 1);
 }
 
+/// Dispatches a left press and release at `position` and lets timers run.
+fn click_at(window: &BaseDataFixture, position: slint::LogicalPosition) {
+    use slint::platform::{PointerEventButton, WindowEvent};
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    flush();
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(50));
+    flush();
+}
+/// A point `inset` logical pixels from the left edge at mid-height. The
+/// inset clears the field's own padding so the press lands on the native
+/// text input.
+fn point(handle: &ElementHandle, inset: f32) -> slint::LogicalPosition {
+    let origin = handle.absolute_position();
+    slint::LogicalPosition::new(origin.x + inset, origin.y + handle.size().height / 2.)
+}
+
+#[test]
+fn a_pointer_places_the_caret_inside_the_open_editor_and_an_outside_click_commits_once() {
+    let Editing {
+        window,
+        commits,
+        activations,
+    } = editing(records());
+    open(&window, OWNER);
+    let editor = editors(&window).remove(0);
+    let before = activations.borrow().len();
+
+    // The value opens fully selected. A press at its leading edge collapses
+    // the selection and puts the caret first, so typing prepends.
+    click_at(&window, point(&editor, 14.));
+    assert!(
+        window.get_table_editing(),
+        "a click inside keeps the editor"
+    );
+    text(&window, ">");
+    // A press in the empty space after the text puts the caret last.
+    click_at(&window, point(&editor, 120.));
+    assert!(
+        window.get_table_editing(),
+        "a second click keeps the editor"
+    );
+    text(&window, "<");
+    assert_eq!(
+        activations.borrow().len(),
+        before,
+        "presses inside the open editor never activate the row"
+    );
+    assert!(commits.borrow().is_empty(), "nothing commits while editing");
+
+    // A press on a different row ends the session through blur, once, with
+    // the identity armed at the start.
+    let other = ElementHandle::find_by_element_id(&window, "KitDataTable::content-cell")
+        .nth(4)
+        .unwrap();
+    click_at(&window, point(&other, other.size().width / 2.));
+    flush();
+    assert!(
+        !window.get_table_editing(),
+        "an outside click ends the session"
+    );
+    assert!(editors(&window).is_empty());
+    assert_eq!(commits.borrow().len(), 1, "blur commits exactly once");
+    let (row, column, _, commit) = commits.borrow()[0].clone();
+    assert_eq!((row, column), (1, OWNER));
+    assert_eq!(commit.value.text, ">Elliot<");
+}
+
+#[test]
+fn a_row_with_fewer_cells_than_columns_keeps_every_cell_under_its_header() {
+    let mut rows = records();
+    rows[1].content = table_cells([CellContent::text("Short row")]);
+    let Editing { window, .. } = editing(rows);
+    let cells = ElementHandle::find_by_element_id(&window, "KitDataTable::content-cell")
+        .collect::<Vec<_>>();
+    assert_eq!(cells.len(), 9, "a short row is padded to the column count");
+    for column in 0..3 {
+        let expected = cells[column].absolute_position().x;
+        for row in 1..3 {
+            let cell = &cells[row * 3 + column];
+            assert_eq!(
+                cell.absolute_position().x,
+                expected,
+                "row {row} column {column} stays under its header"
+            );
+            assert_eq!(cell.size().width, cells[column].size().width);
+        }
+    }
+}
+
 #[test]
 fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
     let Editing { window, .. } = editing(records());
@@ -862,6 +984,7 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
     for cell in cells {
         assert!((cell.size().width - 500.).abs() < 1.);
     }
+    crate::settle_scroll(&window);
     flush();
     assert!(
         window.get_table_scroll_x() < 0.,
@@ -947,7 +1070,7 @@ fn constrained_cells_filter_numbers_and_keep_rejected_domain_values_open() {
     key(&window, Key::Escape);
     key(&window, Key::F2);
     text(&window, "8");
-    window.on_validate_table_edit(|_, _, _, _| "The record is locked".into());
+    window.on_validate_table_edit(|_, _| "The record is locked".into());
     key(&window, Key::Return);
     assert!(window.get_table_editing());
     assert_eq!(window.get_table_edit_error(), "The record is locked");
@@ -971,7 +1094,7 @@ fn constrained_host_rejections_can_retry_the_same_draft_without_retyping() {
         let observed = locked.clone();
         let verdicts = Rc::new(std::cell::Cell::new(0));
         let observed_verdicts = verdicts.clone();
-        window.on_validate_table_edit(move |_, _, _, _| {
+        window.on_validate_table_edit(move |_, _| {
             observed_verdicts.set(observed_verdicts.get() + 1);
             if observed.get() {
                 "The record is locked".into()
@@ -1148,7 +1271,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1159,7 +1282,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
     window.show().unwrap();
     let commits = Rc::new(RefCell::new(0));
     let observed = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| *observed.borrow_mut() += 1);
+    window.on_cell_committed(move |_| *observed.borrow_mut() += 1);
     for (name, theme) in [
         ("light", window.get_theme()),
         ("dark", window.get_dark_theme()),
@@ -1168,7 +1291,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
             let mut theme = theme.clone();
             theme.text_scale = scale;
             window.set_theme(theme);
-            window.on_validate_table_edit(|_, _, _, _| "".into());
+            window.on_validate_table_edit(|_, _| "".into());
             window.invoke_focus_table();
             open(&window, 1);
             text(&window, "25");
@@ -1189,7 +1312,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
             key(&window, Key::Escape);
             key(&window, Key::F2);
             text(&window, "8");
-            window.on_validate_table_edit(|_, _, _, _| "The record is locked".into());
+            window.on_validate_table_edit(|_, _| "The record is locked".into());
             key(&window, Key::Return);
             assert!(window.get_table_editing());
             assert_eq!(window.get_table_edit_error(), "The record is locked");
@@ -1218,7 +1341,7 @@ fn scrolling_or_shrinking_an_edited_row_outside_the_viewport_cancels_without_gho
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1242,7 +1365,7 @@ fn scrolling_or_shrinking_an_edited_row_outside_the_viewport_cancels_without_gho
     window.window().take_snapshot().unwrap();
     let commits = Rc::new(std::cell::Cell::new(0));
     let observed = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| observed.set(observed.get() + 1));
+    window.on_cell_committed(move |_| observed.set(observed.get() + 1));
     let navigated = Rc::new(std::cell::Cell::new(0));
     let observed = navigated.clone();
     window.on_navigate(move |collection, step| {
@@ -1350,20 +1473,20 @@ struct SessionObserver {
 fn observe_sessions(window: &BaseDataFixture) -> SessionObserver {
     let observer = SessionObserver::default();
     let observed = observer.started.clone();
-    window.on_table_edit_started(move |row, column, generation| {
+    window.on_table_edit_started(move |cell| {
         observed.borrow_mut().push(SessionAddress {
-            row,
-            column,
-            generation,
+            row: cell.row,
+            column: cell.column,
+            generation: cell.generation,
         });
     });
     let observed = observer.ended.clone();
-    window.on_table_edit_ended(move |row, column, generation, outcome, message| {
+    window.on_table_edit_ended(move |cell, outcome, message| {
         observed.borrow_mut().push(ObservedSessionEnd {
             address: SessionAddress {
-                row,
-                column,
-                generation,
+                row: cell.row,
+                column: cell.column,
+                generation: cell.generation,
             },
             outcome,
             message: message.to_string(),
@@ -1562,7 +1685,8 @@ fn an_end_observer_can_open_another_cell_without_redirecting_the_accepted_commit
     let opened = Rc::new(std::cell::Cell::new(false));
     let observed = opened.clone();
     let weak = window.as_weak();
-    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+    window.on_table_edit_ended(move |cell, outcome, _| {
+        let (row, column, generation) = (cell.row, cell.column, cell.generation);
         if outcome == ui::TableEditOutcome::Committed && !observed.replace(true) {
             assert_eq!((row, column, generation), (1, QUANTITY, 1));
             let window = weak.upgrade().unwrap();
@@ -1612,7 +1736,7 @@ fn session_bounds_follow_native_geometry_and_viewport_exit_reports_one_closed_ou
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1638,7 +1762,7 @@ fn session_bounds_follow_native_geometry_and_viewport_exit_reports_one_closed_ou
     let observed = observe_sessions(&window);
     let commits = Rc::new(std::cell::Cell::new(0));
     let counted = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| counted.set(counted.get() + 1));
+    window.on_cell_committed(move |_| counted.set(counted.get() + 1));
     let wheel = |delta| {
         let view = table(&window);
         window
@@ -1732,7 +1856,7 @@ fn a_verdict_that_replaces_the_projection_ends_the_original_session_as_supersede
     } = editing(records());
     let observed = observe_sessions(&window);
     let weak = window.as_weak();
-    window.on_validate_table_edit(move |_, _, _, _| {
+    window.on_validate_table_edit(move |_, _| {
         weak.upgrade().unwrap().set_table_generation(2);
         "".into()
     });
@@ -1794,7 +1918,7 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1821,7 +1945,7 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
     let observed = observe_sessions(&window);
     let commits = Rc::new(std::cell::Cell::new(0));
     let count = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| count.set(count.get() + 1));
+    window.on_cell_committed(move |_| count.set(count.get() + 1));
     window.invoke_focus_table();
     open(&window, 1);
     text(&window, "x");
@@ -1829,6 +1953,7 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
     let error = window.get_table_edit_error();
     assert!(!error.is_empty());
     window.invoke_scroll_table_to(500);
+    crate::settle_scroll(&window);
     flush();
     window.window().take_snapshot().unwrap();
     flush();
@@ -1875,7 +2000,7 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1899,7 +2024,13 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
     window.show().unwrap();
     let accepted: Commits = Rc::new(RefCell::new(Vec::new()));
     let observed = accepted.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         observed
             .borrow_mut()
             .push((row, column, generation, commit))
@@ -1941,6 +2072,11 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
             // Keep the keyboard owner from before the wheel; do not refocus or call
             // edit-active here, since either would mask an offscreen-start regression.
             key(&window, Key::Return);
+            assert!(
+                window.get_table_editing(),
+                "offscreen request must not cancel before arrival"
+            );
+            crate::settle_scroll(&window);
             let editing = frame();
             assert!(window.get_table_editing());
             assert_eq!(window.get_table_scroll(), 0.);
@@ -2127,7 +2263,13 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
     window.show().unwrap();
     let commits: Commits = Rc::default();
     let recorded = commits.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         recorded
             .borrow_mut()
             .push((row, column, generation, commit))
@@ -2145,7 +2287,7 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
                 theme.direction = direction;
                 theme.text_scale = scale;
                 window.set_theme(theme);
-                window.on_validate_table_edit(|_, _, _, _| "".into());
+                window.on_validate_table_edit(|_, _| "".into());
                 columns.set_row_data(0, owner.clone());
                 window.invoke_focus_table();
                 window.set_table_active_column(0);
@@ -2208,7 +2350,8 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
                 let source = columns.clone();
                 let mut replacement = owner.clone();
                 replacement.source = slint_kit::ColumnDataIndex::try_from(1usize).unwrap().into();
-                window.on_validate_table_edit(move |row, column, generation, _| {
+                window.on_validate_table_edit(move |cell, _| {
+                    let (row, column, generation) = (cell.row, cell.column, cell.generation);
                     assert_eq!((row, column, generation), (101, OWNER, 1));
                     if !reopened.replace(true) {
                         let window = weak.upgrade().unwrap();
@@ -2283,7 +2426,8 @@ fn assert_reentrant_source_reopen(during: ReopenDuring) {
     };
     match during {
         ReopenDuring::VerdictCurrent | ReopenDuring::VerdictRetargeted => {
-            window.on_validate_table_edit(move |row, column, generation, _| {
+            window.on_validate_table_edit(move |cell, _| {
+                let (row, column, generation) = (cell.row, cell.column, cell.generation);
                 assert_eq!((row, column, generation), (1, OWNER, 1));
                 if !reopened.replace(true) {
                     reopen();
@@ -2292,7 +2436,8 @@ fn assert_reentrant_source_reopen(during: ReopenDuring) {
             });
         }
         ReopenDuring::EndRetargeted => {
-            window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+            window.on_table_edit_ended(move |cell, outcome, _| {
+                let (row, column, generation) = (cell.row, cell.column, cell.generation);
                 assert_eq!((row, column, generation), (1, OWNER, 1));
                 if outcome == ui::TableEditOutcome::Committed && !reopened.replace(true) {
                     reopen();
@@ -2381,7 +2526,8 @@ fn an_end_observer_hiding_the_original_column_suppresses_the_stale_proposal() {
     let columns = Rc::new(VecModel::from(vec![owner.clone()]));
     window.set_columns(columns.clone().into());
     let hidden = columns.clone();
-    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+    window.on_table_edit_ended(move |cell, outcome, _| {
+        let (row, column, generation) = (cell.row, cell.column, cell.generation);
         assert_eq!(
             (row, column, generation, outcome),
             (1, OWNER, 1, ui::TableEditOutcome::Committed)
@@ -2424,7 +2570,8 @@ fn assert_end_projection_keeps_the_original_source(change: EndProjection) {
     let source = Rc::new(VecModel::from(original));
     window.set_columns(source.clone().into());
     let projected = source.clone();
-    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+    window.on_table_edit_ended(move |cell, outcome, _| {
+        let (row, column, generation) = (cell.row, cell.column, cell.generation);
         assert_eq!(
             (row, column, generation, outcome),
             (1, OWNER, 1, ui::TableEditOutcome::Committed)
@@ -2491,7 +2638,7 @@ fn assert_immediate_commit_after_source_replacement(request: ImmediateCommitRequ
     window.set_columns(source.clone().into());
     let verdicts = Rc::new(std::cell::Cell::new(0));
     let called = verdicts.clone();
-    window.on_validate_table_edit(move |_, _, _, _| {
+    window.on_validate_table_edit(move |_, _| {
         called.set(called.get() + 1);
         "".into()
     });
@@ -2573,7 +2720,13 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
         .expect("native body viewport");
     let committed: Commits = Rc::default();
     let observed = committed.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         observed
             .borrow_mut()
             .push((row, column, generation, commit));
@@ -2596,6 +2749,7 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
                 // Establish the far column, then move the actual native viewport
                 // with a horizontal wheel event before each keyboard action.
                 window.set_table_active_column(2);
+                crate::settle_scroll(&window);
                 frame();
                 let right_scroll = window.get_table_scroll_x();
                 assert!(
@@ -2641,6 +2795,7 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
                     assert!(editors(&window).is_empty());
                     // Do not refocus or reveal the table between wheel and key.
                     key(&window, direction);
+                    crate::settle_scroll(&window);
                     let snapshot = frame();
                     assert_eq!(window.get_table_active(), 0);
                     assert_eq!(window.get_table_active_column(), expected);
@@ -2718,5 +2873,442 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
     assert!(
         committed.borrow().is_empty(),
         "scrolling and cell arrows never submit a value"
+    );
+}
+
+fn modified_key(window: &BaseDataFixture, modifier: Key, pressed: Key) {
+    down(window, modifier);
+    key(window, pressed);
+    up(window, modifier);
+}
+fn modified_text(window: &BaseDataFixture, modifier: Key, pressed: &str) {
+    down(window, modifier);
+    text(window, pressed);
+    up(window, modifier);
+}
+
+#[test]
+fn home_and_end_walk_the_cells_while_control_keeps_the_row_edges() {
+    let Editing { window, .. } = editing(records());
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_table_active(), 1);
+
+    key(&window, Key::End);
+    assert_eq!(
+        window.get_table_active(),
+        2,
+        "with a row cursor End still means the last row"
+    );
+    key(&window, Key::Home);
+    assert_eq!(window.get_table_active(), 0);
+    key(&window, Key::DownArrow);
+
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_table_active_column(), 0);
+    key(&window, Key::End);
+    assert_eq!(window.get_table_active_column(), 2, "End is the last cell");
+    assert_eq!(window.get_table_active(), 1, "the row does not change");
+    key(&window, Key::Home);
+    assert_eq!(
+        window.get_table_active_column(),
+        0,
+        "Home is the first cell"
+    );
+    assert_eq!(window.get_table_active(), 1);
+
+    key(&window, Key::RightArrow);
+    modified_key(&window, Key::Control, Key::End);
+    assert_eq!(window.get_table_active(), 2, "Control+End is the last row");
+    assert_eq!(window.get_table_active_column(), 1, "the cell cursor stays");
+    modified_key(&window, Key::Control, Key::Home);
+    assert_eq!(
+        window.get_table_active(),
+        0,
+        "Control+Home is the first row"
+    );
+    assert_eq!(window.get_table_active_column(), 1);
+}
+
+#[test]
+fn copy_reports_the_displayed_text_of_the_active_cell_only() {
+    let Editing { window, .. } = editing(records());
+    let copied = Rc::new(RefCell::new(Vec::new()));
+    let recorded = copied.clone();
+    window.on_table_cell_copied(move |cell, text| {
+        recorded
+            .borrow_mut()
+            .push((cell.row, cell.column, cell.generation, text.to_string()));
+    });
+
+    modified_text(&window, Key::Control, "c");
+    assert!(
+        copied.borrow().is_empty(),
+        "a row cursor has no cell to copy"
+    );
+
+    key(&window, Key::RightArrow);
+    key(&window, Key::RightArrow);
+    modified_text(&window, Key::Control, "c");
+    assert_eq!(
+        &*copied.borrow(),
+        &[(1, QUANTITY, 1, "12".to_string())],
+        "Control+C names the cell and its displayed text"
+    );
+
+    modified_text(&window, Key::Meta, "c");
+    assert_eq!(copied.borrow().len(), 2, "Meta+C copies as well");
+
+    window.invoke_copy_table_cell();
+    assert_eq!(
+        copied.borrow().len(),
+        3,
+        "the public function shares the path"
+    );
+
+    key(&window, Key::Return);
+    assert!(window.get_table_editing());
+    assert_eq!(copied.borrow().len(), 3, "an open editor keeps native copy");
+}
+
+const QUANTITY_COLUMN: i32 = 1;
+const OWNER_COLUMN: i32 = 2;
+
+#[test]
+fn tab_past_the_last_cell_enters_the_next_row_on_its_first_editable_cell() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    open(&window, OWNER_COLUMN);
+    text(&window, "Ada");
+    key(&window, Key::Tab);
+    flush();
+    assert!(
+        !window.get_table_editing(),
+        "Tab commits and leaves the editor"
+    );
+    assert_eq!(commits.borrow().len(), 1);
+    assert_eq!(
+        window.get_table_active(),
+        1,
+        "the cursor moves to the next row"
+    );
+    assert_eq!(
+        window.get_table_active_column(),
+        QUANTITY_COLUMN,
+        "on its first editable cell, past the text title"
+    );
+    assert!(table_has_focus(&window));
+    key(&window, Key::Return);
+    assert!(
+        window.get_table_editing(),
+        "Enter opens the cell Tab reached"
+    );
+}
+
+#[test]
+fn tab_in_the_last_row_keeps_the_cursor_on_the_last_cell() {
+    let Editing { window, .. } = editing(records());
+    key(&window, Key::DownArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_table_active(), 2);
+    open(&window, OWNER_COLUMN);
+    key(&window, Key::Tab);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(window.get_table_active(), 2, "the last row has no next row");
+    assert_eq!(window.get_table_active_column(), OWNER_COLUMN);
+}
+
+#[test]
+fn shift_tab_before_the_first_column_enters_the_last_editable_cell_of_the_previous_row() {
+    let Editing { window, .. } = editing(records());
+    // Quantity leads the visible columns; the title keeps its data index.
+    let source = |index| slint_kit::ui::TableColumnSource {
+        mode: slint_kit::ui::ColumnSourceMode::DataIndex,
+        index,
+    };
+    window.set_columns(ModelRc::new(VecModel::from(vec![
+        TableColumn {
+            source: source(1),
+            ..column(QUANTITY, "Quantity")
+        },
+        TableColumn {
+            source: source(0),
+            ..column(TITLE, "Title")
+        },
+        TableColumn {
+            source: source(2),
+            ..column(OWNER, "Owner")
+        },
+    ])));
+    flush();
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_table_active(), 1);
+    open(&window, 0);
+    shift_tab(&window);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(window.get_table_active(), 0, "the previous row");
+    assert_eq!(
+        window.get_table_active_column(),
+        2,
+        "on its last editable cell, the owner"
+    );
+}
+
+#[test]
+fn shift_tab_in_the_first_row_keeps_the_cursor_on_the_first_cell() {
+    let Editing { window, .. } = editing(records());
+    window.set_columns(ModelRc::new(VecModel::from(vec![TableColumn {
+        source: slint_kit::ui::TableColumnSource {
+            mode: slint_kit::ui::ColumnSourceMode::DataIndex,
+            index: 1,
+        },
+        ..column(QUANTITY, "Quantity")
+    }])));
+    flush();
+    open(&window, 0);
+    shift_tab(&window);
+    flush();
+    assert_eq!(window.get_table_active(), 0);
+    assert_eq!(window.get_table_active_column(), 0);
+}
+
+fn named(token: i32, title: &str, disabled: bool) -> TableRow {
+    TableRow {
+        disabled,
+        ..record(token, title, 1, "Elliot", FieldAccess::Editable)
+    }
+}
+type Requests = Rc<RefCell<Vec<(i32, i32)>>>;
+fn typeahead_window() -> (Editing, Requests) {
+    let editing = editing(vec![
+        named(11, "Amber", false),
+        named(22, "Apricot", false),
+        named(33, "Blocked", true),
+        named(44, "Banana", false),
+    ]);
+    let requested = Rc::new(RefCell::new(Vec::new()));
+    let recorded = requested.clone();
+    let weak = editing.window.as_weak();
+    editing.window.on_table_typeahead(move |token, generation| {
+        recorded.borrow_mut().push((token, generation));
+        let window = weak.upgrade().unwrap();
+        window.set_table_active(match token {
+            11 => 0,
+            22 => 1,
+            33 => 2,
+            44 => 3,
+            other => panic!("unknown token {other}"),
+        });
+    });
+    (editing, requested)
+}
+
+#[test]
+fn typing_moves_the_active_row_to_the_next_enabled_row_with_that_prefix() {
+    let (Editing { window, .. }, requested) = typeahead_window();
+    text(&window, "b");
+    assert_eq!(
+        requested.borrow().last().copied(),
+        Some((44, 1)),
+        "the disabled Blocked row is skipped"
+    );
+    assert_eq!(window.get_table_active(), 3);
+    text(&window, "a");
+    assert_eq!(window.get_table_active(), 3, "\"ba\" still matches Banana");
+    text(&window, "x");
+    assert_eq!(
+        window.get_table_active(),
+        3,
+        "no match leaves the row in place"
+    );
+}
+
+#[test]
+fn a_repeated_letter_cycles_the_matches_and_a_pause_starts_a_new_prefix() {
+    let (Editing { window, .. }, requested) = typeahead_window();
+    text(&window, "a");
+    assert_eq!(
+        window.get_table_active(),
+        1,
+        "from Amber, \"a\" finds Apricot"
+    );
+    text(&window, "a");
+    assert_eq!(
+        window.get_table_active(),
+        0,
+        "the same letter cycles and wraps"
+    );
+    text(&window, "p");
+    assert_eq!(window.get_table_active(), 1, "\"ap\" matches Apricot only");
+    assert_eq!(requested.borrow().last().map(|r| r.0), Some(22));
+    std::thread::sleep(std::time::Duration::from_millis(800));
+    text(&window, "b");
+    assert_eq!(
+        window.get_table_active(),
+        3,
+        "after a pause \"b\" is a fresh prefix"
+    );
+}
+
+#[test]
+fn space_joins_the_prefix_only_while_typing_and_modified_keys_are_not_typed() {
+    let (
+        Editing {
+            window,
+            activations,
+            ..
+        },
+        requested,
+    ) = typeahead_window();
+    key(&window, Key::Space);
+    assert!(requested.borrow().is_empty());
+    assert_eq!(
+        activations.borrow().len(),
+        1,
+        "an idle Space activates the row"
+    );
+    down(&window, Key::Control);
+    text(&window, "b");
+    up(&window, Key::Control);
+    assert!(requested.borrow().is_empty(), "Control+B is not a search");
+    key(&window, Key::DownArrow);
+    key(&window, Key::DownArrow);
+    key(&window, Key::Tab);
+    assert!(requested.borrow().is_empty(), "named keys are not text");
+}
+
+#[test]
+fn typing_in_a_cell_editor_does_not_search_the_rows() {
+    let (Editing { window, .. }, requested) = typeahead_window();
+    open(&window, QUANTITY_COLUMN);
+    text(&window, "b");
+    assert!(requested.borrow().is_empty());
+}
+
+#[test]
+fn a_distant_active_cell_reveals_both_axes_before_editing() {
+    let rows = (1..=10_000)
+        .map(|index| {
+            record(
+                index,
+                &format!("Record {index}"),
+                i64::from(index),
+                "Owner",
+                FieldAccess::Editable,
+            )
+        })
+        .collect();
+    let Editing { window, .. } = editing(rows);
+    let wide = columns()
+        .iter()
+        .map(|mut column| {
+            column.width = ColumnWidth {
+                sizing: ColumnSizing::Fixed,
+                basis: 500.,
+                ..Default::default()
+            };
+            column
+        })
+        .collect::<Vec<_>>();
+    window.set_columns(ModelRc::new(VecModel::from(wide)));
+    assert!(delegates(&window, "KitDataTable").len() < 40);
+    window.set_table_active_column(2);
+    modified_key(&window, Key::Control, Key::End);
+    // A newer keyboard destination wins before the first layout barrier.
+    modified_key(&window, Key::Control, Key::Home);
+    crate::settle_scroll(&window);
+    assert_eq!(window.get_table_active(), 0);
+    assert_eq!(window.get_table_first_visible(), 0);
+    modified_key(&window, Key::Control, Key::End);
+    crate::settle_scroll(&window);
+    assert_eq!(window.get_table_active(), 9_999);
+    assert!(!window.get_table_editing());
+    assert!(editors(&window).is_empty());
+    let rows = delegates(&window, "KitDataTable");
+    assert!(rows.len() < 40);
+    let last = rows
+        .iter()
+        .find(|row| row.accessible_label().as_deref() == Some("Record 10000"))
+        .unwrap_or_else(|| {
+            panic!(
+                "the distant row is materialized: y={}, x={}, first={}",
+                window.get_table_scroll(),
+                window.get_table_scroll_x(),
+                window.get_table_first_visible()
+            )
+        });
+    let cells = last
+        .query_descendants()
+        .match_inherits("TableCellView")
+        .find_all();
+    let viewport = table(&window)
+        .query_descendants()
+        .match_type_name("Flickable")
+        .find_first()
+        .unwrap();
+    let cell = cells
+        .iter()
+        .find(|cell| {
+            cell.query_descendants()
+                .match_predicate(|element| element.accessible_label().as_deref() == Some("Owner"))
+                .find_first()
+                .is_some()
+        })
+        .expect("the Owner column is visible inside the destination row");
+    assert!(cell.absolute_position().x >= viewport.absolute_position().x - 0.1);
+    assert!(
+        cell.absolute_position().x + cell.size().width
+            <= viewport.absolute_position().x + viewport.size().width + 0.1
+    );
+    assert!(cell.absolute_position().y >= viewport.absolute_position().y - 0.1);
+    assert!(
+        cell.absolute_position().y + cell.size().height
+            <= viewport.absolute_position().y + viewport.size().height + 0.1
+    );
+}
+
+#[test]
+fn restoring_after_an_immediate_distant_edit_cancels_the_session_without_late_scroll() {
+    let editing = editing(
+        (1..=20_000)
+            .map(|token| {
+                record(
+                    token,
+                    &format!("Row {token}"),
+                    12,
+                    "Owner",
+                    FieldAccess::Editable,
+                )
+            })
+            .collect(),
+    );
+    let window = &editing.window;
+    window.set_table_active_column(1);
+    window.set_table_active(19_900);
+    crate::settle_scroll(window);
+    // Establish an offscreen active row before the two competing commands.
+    window.invoke_restore_table_scroll(0., 0.);
+    crate::settle_scroll(window);
+    window.invoke_edit_table();
+    assert!(window.get_table_editing());
+    // No layout or event-loop turn between arming the editor and restoring.
+    window.invoke_restore_table_scroll(0., -3200.25);
+    crate::settle_scroll(window);
+    assert!(
+        (window.get_table_scroll() + 3200.25).abs() < 0.1,
+        "restored offset: {}",
+        window.get_table_scroll()
+    );
+    assert!(!window.get_table_editing());
+    assert!(editors(window).is_empty());
+    assert!(editing.commits.borrow().is_empty());
+    assert!(delegates(window, "KitDataTable").len() < 40);
+    crate::settle_scroll(window);
+    assert!(
+        (window.get_table_scroll() + 3200.25).abs() < 0.1,
+        "restored offset: {}",
+        window.get_table_scroll()
     );
 }

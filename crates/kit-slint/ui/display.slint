@@ -261,7 +261,7 @@ export component KitSkeleton inherits Rectangle {
     preferred-height: root.theme.typography.line-height-control; min-height: root.theme.spacing.unit * 2; vertical-stretch: 0;
     background: root.theme.border-subtle; border-radius: root.theme.shape.radius-control;
     opacity: root.running && root.pulse && !root.theme.reduced-motion ? 0.5 : 1;
-    animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
+    animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }
     Timer { interval: 650ms; running: root.running && !root.theme.reduced-motion; triggered => { root.pulse = !root.pulse; } }
 }
 export component KitEmptyState inherits Rectangle {

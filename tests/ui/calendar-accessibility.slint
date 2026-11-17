@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDatePicker, KitTextField, KitTheme, KitThemes, FieldAccess, ChoiceFlow, CalendarOutsideDays, CivilDateView } from "@kit";
+export component CalendarAccessibilityFixture inherits Window {
+    width: 960px; height: 1100px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <CalendarOutsideDays> outside-days: CalendarOutsideDays.dim;
+    in-out property <CivilDateView> selected: {year: 2026, month: 10, day: 2};
+    in-out property <CivilDateView> focused: root.selected;
+    out property <int> active: calendar.active-index;
+    out property <bool> calendar-focused: calendar.has-focus;
+    in-out property <bool> open;
+    in property <string> hint: "Use ISO dates; weekends are unavailable.";
+    public function focus-calendar() { calendar.take-focus(); }
+    public function focus-editor() { picker.take-focus(); }
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        calendar := KitCalendar {
+            theme: root.theme; access: root.access; flow: root.flow; outside-days: root.outside-days;
+            label: "Reservation calendar"; today: {year: 2026, month: 10, day: 2};
+            selected <=> root.selected; focused <=> root.focused;
+            min: "2026-10-01"; max: "2026-11-30";
+        }
+        picker := KitDatePicker {
+            theme: root.theme; access: root.access; flow: root.flow;
+            label: "Reservation date"; calendar-accessible-name: "Open reservation calendar";
+            description: root.hint; today: {year: 2026, month: 10, day: 2};
+            accepted-date: root.selected; open <=> root.open;
+        }
+        KitTextField {
+            theme: root.theme; label: "Separate field"; description: "Help rendered by the host"; show-description: false;
+        }
+    }
+}

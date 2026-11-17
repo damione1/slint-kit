@@ -1,0 +1,16 @@
+import { InterFont } from "@kit-fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ButtonIntent, DialogTabPolicy, KitDialog, KitTextField, KitTheme, KitThemes } from "@kit";
+
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    title: "KitDialog example";
+    preferred-width: 560px;
+    preferred-height: 420px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    KitDialog { tab-policy: DialogTabPolicy.native; theme: root.theme; width: parent.width; height: parent.height; title: "Archive project"; description: "You can restore it later from the archive."; state: { open: true, topmost: true, busy: false }; actions: [{ token: 1, text: "Cancel", intent: ButtonIntent.secondary, disabled: false }, { token: 2, text: "Archive project", intent: ButtonIntent.primary, disabled: false }]; action-activated(token) => { root.status = "Action requested"; } KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; } }
+}

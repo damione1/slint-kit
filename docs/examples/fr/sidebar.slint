@@ -1,0 +1,42 @@
+import { InterFont } from "@kit-fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { LucideIcons } from "@kit-icons/all.slint";
+import { KitSidebar, KitButton, SidebarRow, SidebarRowKind, KitTheme, KitThemes } from "@kit";
+
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    title: "Exemple KitSidebar";
+    preferred-width: 640px;
+    preferred-height: 380px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status: "Aucune page choisie";
+    in-out property <bool> collapsed;
+    in property <[SidebarRow]> rows: [
+        { item: { token: 1, generation: 1, label: "Espace de travail", description: "", disabled: false }, kind: SidebarRowKind.section, parent: { present: false, token: 0 }, leading-icon: { stroke: "", fill: "", viewbox: 24 }, badge: "" },
+        { item: { token: 2, generation: 1, label: "Tableau de bord", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: false, token: 0 }, leading-icon: LucideIcons.layout-dashboard(), badge: "" },
+        { item: { token: 3, generation: 1, label: "Projets", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: false, token: 0 }, leading-icon: LucideIcons.folder(), badge: "" },
+        { item: { token: 4, generation: 1, label: "Actifs", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: true, token: 3 }, leading-icon: { stroke: "", fill: "", viewbox: 24 }, badge: "" },
+        { item: { token: 5, generation: 1, label: "Archivés", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: true, token: 3 }, leading-icon: { stroke: "", fill: "", viewbox: 24 }, badge: "" },
+        { item: { token: 6, generation: 1, label: "Réglages", description: "", disabled: false }, kind: SidebarRowKind.item, parent: { present: false, token: 0 }, leading-icon: LucideIcons.settings(), badge: "3" }
+    ];
+    HorizontalLayout {
+        KitSidebar {
+            theme: root.theme;
+            rows: root.rows;
+            collapsed: root.collapsed;
+            accessible-name: "Navigation principale";
+            chosen(row) => { root.status = "Page courante : " + row.label; }
+            rail-parent-activated(row) => { root.collapsed = false; }
+        }
+        VerticalLayout {
+            padding: 24px;
+            spacing: 12px;
+            alignment: start;
+            KitButton { theme: root.theme; text: root.collapsed ? "Déployer la barre latérale" : "Réduire aux icônes"; activated => { root.collapsed = !root.collapsed; } }
+            Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+        }
+    }
+}

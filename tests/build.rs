@@ -58,7 +58,10 @@ fn main() {
     }
     kit_build::compile_with_config(
         "ui/fixture.slint",
-        kit_build::config().with_debug_info(true),
+        kit_build::config()
+            .with_debug_info(true)
+            .with_bundled_translations("lang")
+            .with_default_translation_context(slint_build::DefaultTranslationContext::None),
     )
     .expect("public component fixture compiles");
 }

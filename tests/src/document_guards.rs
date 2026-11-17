@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use crate::{DocumentGuardsFixture, TextLine};
+use crate::{DocumentGuardsFixture, TextLine, TextViewAccess, TextViewFont};
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::{
     ComponentHandle, LogicalPosition, Model, ModelRc, SharedString, VecModel,
@@ -313,5 +313,62 @@ fn invalid_and_valid_footer_states_render_intrinsically_in_both_themes_and_text_
                 );
             }
         }
+    }
+}
+#[test]
+fn read_only_copy_reports_the_stored_line_without_moving_focus_and_ignores_invalid_indices() {
+    let app = fixture();
+    app.set_lines(ModelRc::from(Rc::new(VecModel::from(raw_lines()))));
+    app.set_access(TextViewAccess::ReadOnly);
+    app.set_draft("Draft must not be copied".into());
+    app.show().unwrap();
+    settle(&app);
+    let copied = Rc::new(RefCell::new(Vec::new()));
+    let observed = copied.clone();
+    app.on_line_copied(move |token, generation, text| {
+        observed
+            .borrow_mut()
+            .push((token, generation, text.to_string()))
+    });
+    app.invoke_seed_clipboard();
+    app.invoke_focus_document();
+    for active in [-1, 3, 99] {
+        app.set_active_index(active);
+        settle(&app);
+        app.invoke_focus_document();
+        shortcut(&app, "c");
+        app.invoke_copy_active_line();
+        assert!(copied.borrow().is_empty(), "index={active}");
+    }
+    app.invoke_paste_clipboard();
+    assert_eq!(app.get_clipboard_text(), "Clipboard sentinel");
+    app.set_active_index(1);
+    settle(&app);
+    app.invoke_focus_document();
+    shortcut(&app, "c");
+    assert_eq!(*copied.borrow(), vec![(502, 7, "Beta".to_string())]);
+    app.invoke_paste_clipboard();
+    assert_eq!(app.get_clipboard_text(), "Beta");
+    app.set_active_index(2);
+    app.invoke_seed_clipboard();
+    app.invoke_copy_active_line();
+    app.invoke_paste_clipboard();
+    assert_eq!(app.get_clipboard_text(), "Gamma");
+    assert_eq!(copied.borrow().len(), 2);
+}
+#[test]
+fn font_and_line_number_options_render_in_every_mode() {
+    for (font, numbers) in [
+        (TextViewFont::Proportional, true),
+        (TextViewFont::Monospace, true),
+        (TextViewFont::Monospace, false),
+    ] {
+        let app = fixture();
+        app.set_lines(ModelRc::from(Rc::new(VecModel::from(raw_lines()))));
+        app.set_document_font(font);
+        app.set_show_line_numbers(numbers);
+        app.show().unwrap();
+        settle(&app);
+        assert!(app.get_page_rows() > 0);
     }
 }

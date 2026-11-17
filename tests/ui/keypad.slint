@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitKeypad, KitCodeIndicator, FieldAccess, ControlSize, ButtonIntent } from "@kit";
+import { KitTheme, KitThemes, KitKeypad, KitCodeIndicator, FieldAccess, ControlSize, ButtonIntent, TypographyRole } from "@kit";
 
 // A keypad and a code indicator; the fixture, like a host, counts the digits
 // without the keypad holding them.
@@ -11,9 +11,20 @@ export component KeypadFixture inherits Window {
     out property <KitTheme> dark: KitThemes.dark;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> can-confirm;
+    in property <bool> digits-enabled: true;
+    in property <bool> can-delete: true;
+    in property <bool> show-confirm: true;
+    in property <string> extra-label;
+    in property <bool> extra-enabled: true;
+    in property <bool> handle-escape;
+    callback extra-pressed();
+    callback cancelled();
     in property <length> available-width: 480px;
     callback activation-started();
     in property <ControlSize> control-size: ControlSize.comfortable;
+    // The keypad's own defaults, so a test changes one at a time.
+    in property <length> key-height: root.theme.spacing.unit * 12;
+    in property <TypographyRole> digit-role: TypographyRole.title;
     in property <int> code-length: 4;
     in property <int> code-filled: 2;
     out property <length> keypad-width: keypad.width;
@@ -33,7 +44,12 @@ export component KeypadFixture inherits Window {
     keypad := KitKeypad {
         x: 20px; y: 80px; width: min(root.available-width, self.preferred-width); height: self.preferred-height;
         theme: root.theme; control-size: root.control-size; access: root.access;
+        key-height: root.key-height; digit-role: root.digit-role;
         label: "Access code"; confirm-label: "Unlock"; can-confirm: root.can-confirm;
+        digits-enabled: root.digits-enabled; can-delete: root.can-delete; show-confirm: root.show-confirm;
+        extra-label: root.extra-label; extra-enabled: root.extra-enabled; handle-escape: root.handle-escape;
+        extra => { root.extra-pressed(); }
+        cancel => { root.cancelled(); }
         activation-started => { root.activation-started(); }
         digit(value) => { root.digit-entered(value); }
         delete-requested => { root.deleted(); }

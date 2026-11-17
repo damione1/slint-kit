@@ -22,7 +22,7 @@ export function iconSnippet(name, mode, french = false) {
       break;
     default: throw new Error(`Unknown icon integration: ${mode}`);
   }
-  return `import { ${imports} } from "@kit/kit.slint";\nimport { LucideIcons } from "@kit/icons/lucide/all.slint";\n\nexport component App inherits Window {\n    preferred-width: 240px;\n    preferred-height: 100px;\n${mode==='standalone'?'':'    callback action-requested();\n'}    ${content}\n}`;
+  return `import { ${imports} } from "@kit";\nimport { LucideIcons } from "@kit-icons/all.slint";\n\nexport component App inherits Window {\n    preferred-width: 240px;\n    preferred-height: 100px;\n${mode==='standalone'?'':'    callback action-requested();\n'}    ${content}\n}`;
 }
 
 const gallery = typeof document === 'undefined' ? null : document.querySelector('.lucide-gallery');

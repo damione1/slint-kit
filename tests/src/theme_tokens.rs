@@ -86,6 +86,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         canvas,
         surface,
         surface_raised,
+        surface_inset,
         text_primary,
         text_secondary,
         placeholder,
@@ -118,6 +119,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         information_subtle,
         border_subtle,
         border_strong,
+        control_fill,
+        control_border,
+        choice_fill,
+        on_choice_fill,
         hover,
         pressed,
         disabled_fill,
@@ -139,6 +144,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("canvas", canvas),
         ("surface", surface),
         ("surface-raised", surface_raised),
+        ("surface-inset", surface_inset),
         ("text-primary", text_primary),
         ("text-secondary", text_secondary),
         ("placeholder", placeholder),
@@ -171,6 +177,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("information-subtle", information_subtle),
         ("border-subtle", border_subtle),
         ("border-strong", border_strong),
+        ("control-fill", control_fill),
+        ("control-border", control_border),
+        ("choice-fill", choice_fill),
+        ("on-choice-fill", on_choice_fill),
         ("hover", hover),
         ("pressed", pressed),
         ("disabled-fill", disabled_fill),
@@ -327,6 +337,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         size_body,
         size_subtitle,
         size_title,
+        size_display,
         line_height_control,
     } = typography;
     tokens.push(("typography.family".into(), Token::Text(family)));
@@ -348,6 +359,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("typography.size-body", size_body),
         ("typography.size-subtitle", size_subtitle),
         ("typography.size-title", size_title),
+        ("typography.size-display", size_display),
         ("typography.line-height-control", line_height_control),
     ] {
         tokens.push((name.to_owned(), Token::Length(size)));
@@ -364,10 +376,21 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     density(&mut tokens, "medium", medium);
     density(&mut tokens, "comfortable", comfortable);
 
-    let KitMotion { fast, base, slow } = motion;
+    let KitMotion {
+        fast,
+        base,
+        slow,
+        repeat_delay,
+        repeat_interval,
+    } = motion;
     tokens.push(("motion.fast".into(), Token::Millis(fast)));
     tokens.push(("motion.base".into(), Token::Millis(base)));
     tokens.push(("motion.slow".into(), Token::Millis(slow)));
+    tokens.push(("motion.repeat-delay".into(), Token::Millis(repeat_delay)));
+    tokens.push((
+        "motion.repeat-interval".into(),
+        Token::Millis(repeat_interval),
+    ));
 
     tokens.push(("reduced-motion".into(), Token::Flag(reduced_motion)));
     tokens.push(("text-scale".into(), Token::Float(text_scale)));
@@ -513,6 +536,40 @@ fn components_default_to_the_theme_context_and_keep_local_overrides() {
 }
 
 #[test]
+fn theme_mode_resolves_to_a_shipped_theme_from_the_system_scheme() {
+    let window = fixture();
+    let light = window.get_light();
+    let dark = window.get_dark();
+    // (mode, system is dark, system reports nothing) -> shows the dark theme
+    let cases = [
+        (ThemeMode::Light, false, false, false),
+        (ThemeMode::Light, true, false, false),
+        (ThemeMode::Light, true, true, false),
+        (ThemeMode::Dark, false, false, true),
+        (ThemeMode::Dark, true, false, true),
+        (ThemeMode::Dark, false, true, true),
+        (ThemeMode::System, false, false, false),
+        (ThemeMode::System, true, false, true),
+        // A platform without a scheme falls back to light, never to dark.
+        (ThemeMode::System, false, true, false),
+    ];
+    for (mode, system_dark, unknown, shows_dark) in cases {
+        let label = format!("{mode:?} system_dark={system_dark} unknown={unknown}");
+        assert_eq!(
+            window.invoke_mode_is_dark(mode, system_dark, unknown),
+            shows_dark,
+            "{label}"
+        );
+        let expected = if shows_dark { &dark } else { &light };
+        assert_eq!(
+            &window.invoke_resolve_theme(mode, system_dark, unknown),
+            expected,
+            "{label}"
+        );
+    }
+}
+
+#[test]
 fn metrics_derive_from_tokens_and_follow_text_scale() {
     let window = fixture();
     for mut theme in [window.get_light(), window.get_dark()] {
@@ -586,6 +643,7 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
                     TypographyRole::Body => 14.,
                     TypographyRole::Subtitle => 18.,
                     TypographyRole::Title => 30.,
+                    TypographyRole::Display => 48.,
                 };
                 assert_eq!(window.invoke_font_size(theme.clone(), role), size * scale);
             }
@@ -669,12 +727,15 @@ fn recipes_reproduce_the_default_geometry() {
         for level in surface_levels() {
             let fill = match level {
                 SurfaceLevel::Flat => theme.surface,
+                SurfaceLevel::Inset => theme.surface_inset,
                 SurfaceLevel::Raised | SurfaceLevel::Overlay | SurfaceLevel::Popover => {
                     theme.surface_raised
                 }
             };
+            // A well keeps the container radius and casts no shadow.
             let (radius, elevation) = match level {
                 SurfaceLevel::Flat | SurfaceLevel::Raised => (8., ElevationLevel::Sm),
+                SurfaceLevel::Inset => (8., ElevationLevel::None),
                 SurfaceLevel::Overlay => (12., ElevationLevel::Lg),
                 SurfaceLevel::Popover => (12., ElevationLevel::Md),
             };
@@ -684,7 +745,11 @@ fn recipes_reproduce_the_default_geometry() {
             assert_eq!(surface.border, theme.border_subtle);
             assert_eq!(surface.border_width, 1.);
             assert_eq!(surface.elevation, elevation);
-            assert!(surface.shadow.color.alpha() > 0);
+            assert_eq!(
+                surface.shadow.color.alpha() > 0,
+                elevation != ElevationLevel::None,
+                "{level:?}"
+            );
         }
 
         let choice = window.invoke_choice(theme.clone(), ControlSize::Medium);
@@ -915,10 +980,10 @@ fn outline_is_a_bordered_transparent_intent_distinct_from_secondary() {
                 )
             );
             // Distinct surface: secondary is filled, outline shows its parent.
-            assert_eq!(secondary.fill.color(), theme.surface);
+            assert_eq!(secondary.fill.color(), theme.control_fill);
             assert_eq!(outline.fill.color().alpha(), 0);
             assert_eq!(outline.disabled_fill.color().alpha(), 0);
-            assert_eq!(secondary.border, theme.border_subtle);
+            assert_eq!(secondary.border, theme.control_border);
             assert_eq!(outline.border, theme.border_strong);
             assert_eq!(outline.foreground, theme.text_primary);
             assert_eq!(outline.disabled_foreground, theme.disabled_text);
@@ -1190,6 +1255,18 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
                 theme.surface_raised,
                 4.5,
             ),
+            (
+                "text-primary/surface-inset",
+                theme.text_primary,
+                theme.surface_inset,
+                4.5,
+            ),
+            (
+                "text-primary/control-fill",
+                theme.text_primary,
+                theme.control_fill,
+                4.5,
+            ),
             ("text-primary/hover", theme.text_primary, theme.hover, 4.5),
             (
                 "text-primary/pressed",
@@ -1219,6 +1296,18 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
                 "text-secondary/surface-raised",
                 theme.text_secondary,
                 theme.surface_raised,
+                4.5,
+            ),
+            (
+                "text-secondary/surface-inset",
+                theme.text_secondary,
+                theme.surface_inset,
+                4.5,
+            ),
+            (
+                "on-choice-fill/choice-fill",
+                theme.on_choice_fill,
+                theme.choice_fill,
                 4.5,
             ),
             (
@@ -1272,6 +1361,14 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
                 theme.surface_raised,
                 3.,
             ),
+            (
+                "focus/surface-inset",
+                theme.focus.color,
+                theme.surface_inset,
+                3.,
+            ),
+            ("choice-fill/surface", theme.choice_fill, theme.surface, 3.),
+            ("choice-fill/canvas", theme.choice_fill, theme.canvas, 3.),
             (
                 "invalid-focus/surface",
                 theme.focus.invalid_color,
@@ -1328,21 +1425,38 @@ fn default_themes_use_tailwind_role_radii_density_and_shadows() {
         for level in surface_levels() {
             let (radius, elevation) = match level {
                 SurfaceLevel::Flat | SurfaceLevel::Raised => (8., ElevationLevel::Sm),
+                SurfaceLevel::Inset => (8., ElevationLevel::None),
                 SurfaceLevel::Overlay => (12., ElevationLevel::Lg),
                 SurfaceLevel::Popover => (12., ElevationLevel::Md),
             };
             let surface = window.invoke_surface(theme.clone(), level);
             assert_eq!(surface.radius, radius, "{level:?}");
             assert_eq!(surface.elevation, elevation, "{level:?}");
-            assert!(surface.shadow.color.alpha() > 0, "{level:?} key layer");
-            assert!(
-                surface.ambient_shadow.color.alpha() > 0,
-                "{level:?} ambient layer"
-            );
-            // The ambient layer sits tighter and closer than the key layer.
-            assert!(surface.ambient_shadow.offset_y <= surface.shadow.offset_y);
-            assert!(surface.ambient_shadow.blur < surface.shadow.blur);
-            assert!(surface.ambient_shadow.spread < 0.);
+            match level {
+                // A well is sunk into its parent: neither shadow layer paints.
+                SurfaceLevel::Inset => {
+                    assert_eq!(surface.shadow.color.alpha(), 0, "{level:?} key layer");
+                    assert_eq!(
+                        surface.ambient_shadow.color.alpha(),
+                        0,
+                        "{level:?} ambient layer"
+                    );
+                }
+                SurfaceLevel::Flat
+                | SurfaceLevel::Raised
+                | SurfaceLevel::Overlay
+                | SurfaceLevel::Popover => {
+                    assert!(surface.shadow.color.alpha() > 0, "{level:?} key layer");
+                    assert!(
+                        surface.ambient_shadow.color.alpha() > 0,
+                        "{level:?} ambient layer"
+                    );
+                    // The ambient layer sits tighter and closer than the key layer.
+                    assert!(surface.ambient_shadow.offset_y <= surface.shadow.offset_y);
+                    assert!(surface.ambient_shadow.blur < surface.shadow.blur);
+                    assert!(surface.ambient_shadow.spread < 0.);
+                }
+            }
         }
         for scale in [1., 2.] {
             theme.text_scale = scale;
@@ -1497,6 +1611,7 @@ fn every_shipped_theme_sets_state_tones_apart_from_their_surfaces() {
         let surfaces = [
             ("surface", theme.surface),
             ("surface-raised", theme.surface_raised),
+            ("surface-inset", theme.surface_inset),
         ];
         let tones = [
             ("hover", theme.hover),
@@ -1717,6 +1832,7 @@ fn tabs_keep_the_whole_row_visible_with_overflow_and_large_text() {
                 };
                 state.active_index = 2;
                 window.set_state(state);
+                crate::settle_scroll(&window);
                 slint::platform::update_timers_and_animations();
                 let last = ElementQuery::from_root(&window)
                     .match_inherits("KitNavigationAction")
@@ -1735,5 +1851,120 @@ fn tabs_keep_the_whole_row_visible_with_overflow_and_large_text() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn secondary_buttons_read_the_control_tokens_and_other_intents_ignore_them() {
+    let window = fixture();
+    let mut theme = window.get_light();
+    theme.control_fill = slint::Color::from_rgb_u8(250, 240, 230);
+    theme.control_border = slint::Color::from_rgb_u8(200, 150, 100);
+    for size in control_sizes() {
+        for intent in button_intents() {
+            let recipe = window.invoke_button(theme.clone(), intent, size);
+            match intent {
+                ButtonIntent::Secondary => {
+                    assert_eq!(recipe.fill.color(), theme.control_fill, "{size:?}");
+                    assert_eq!(recipe.border, theme.control_border, "{size:?}");
+                    // Hover and press still read the shared state tones.
+                    assert_eq!(recipe.hover_fill.color(), theme.hover);
+                    assert_eq!(recipe.pressed_fill.color(), theme.pressed);
+                }
+                ButtonIntent::Primary
+                | ButtonIntent::Outline
+                | ButtonIntent::Quiet
+                | ButtonIntent::Destructive
+                | ButtonIntent::Success
+                | ButtonIntent::Warning
+                | ButtonIntent::Information
+                | ButtonIntent::Link => {
+                    assert_ne!(recipe.fill.color(), theme.control_fill, "{intent:?}");
+                    assert_ne!(recipe.border, theme.control_border, "{intent:?}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_display_role_is_the_largest_and_scales_with_text() {
+    let window = fixture();
+    for (name, theme) in shipped_themes(&window) {
+        for scale in [1., 2.] {
+            let mut scaled = theme.clone();
+            scaled.text_scale = scale;
+            let display = window.invoke_font_size(scaled.clone(), TypographyRole::Display);
+            assert_eq!(display, theme.typography.size_display * scale, "{name}");
+            for role in typography_roles() {
+                let size = window.invoke_font_size(scaled.clone(), role);
+                match role {
+                    TypographyRole::Display => assert_eq!(size, display),
+                    TypographyRole::Caption
+                    | TypographyRole::Control
+                    | TypographyRole::Body
+                    | TypographyRole::Subtitle
+                    | TypographyRole::Title => {
+                        assert!(size < display, "{name} {role:?}: {size} < {display}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_inset_surface_reads_its_own_token() {
+    let window = fixture();
+    let mut theme = window.get_light();
+    theme.surface_inset = slint::Color::from_rgb_u8(247, 247, 249);
+    for level in surface_levels() {
+        let surface = window.invoke_surface(theme.clone(), level);
+        match level {
+            SurfaceLevel::Inset => assert_eq!(surface.fill.color(), theme.surface_inset),
+            SurfaceLevel::Flat
+            | SurfaceLevel::Raised
+            | SurfaceLevel::Overlay
+            | SurfaceLevel::Popover => {
+                assert_ne!(surface.fill.color(), theme.surface_inset, "{level:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn oversized_tabs_reveal_their_leading_edge_at_double_text() {
+    i_slint_backend_testing::init_no_event_loop();
+    for scale in [1., 2.] {
+        let window = TabsIndicatorFixture::new().unwrap();
+        let mut theme = window.get_theme_probe();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        window.set_available_width(100.);
+        window.set_final_label("A tab with a deliberately very long title".into());
+        window.show().unwrap();
+        crate::settle_scroll(&window);
+        let mut state = window.get_state();
+        state.active = SelectionRef {
+            present: true,
+            token: 3,
+        };
+        state.active_index = 2;
+        window.set_state(state);
+        crate::settle_scroll(&window);
+        let target = ElementQuery::from_root(&window)
+            .match_inherits("KitNavigationAction")
+            .match_predicate(|element| {
+                element.accessible_label().as_deref()
+                    == Some("A tab with a deliberately very long title")
+            })
+            .find_first()
+            .expect("oversized active tab is revealed");
+        let viewport = ElementQuery::from_root(&window)
+            .match_type_name("Flickable")
+            .find_first()
+            .unwrap();
+        assert!(target.size().width > viewport.size().width);
+        assert!((target.absolute_position().x - viewport.absolute_position().x).abs() < 0.1);
     }
 }

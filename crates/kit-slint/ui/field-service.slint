@@ -7,7 +7,11 @@ import { KitFieldMessages } from "strings.slint";
 import { KitInputConstraints } from "validation.slint";
 // Logical window coordinates. Placement is shared with kit-core geometry.
 export struct PopupViewport { width: length, height: length }
-export struct PopupRequest { x: length, y: length, anchor-width: length, anchor-height: length, width: length, height: length, gap: length }
+// Which side of the trigger a dropdown opens on. `auto` is below and flips above
+// when above has more room; `below` and `above` keep their side and shorten the
+// list to the room that side has.
+export enum DropdownPlacement { auto, below, above }
+export struct PopupRequest { x: length, y: length, anchor-width: length, anchor-height: length, width: length, height: length, gap: length, placement: DropdownPlacement }
 export struct PopupGeometry { x: length, y: length, width: length, height: length }
 export struct FieldValue { present: bool, text: string }
 export struct FieldState {
@@ -15,7 +19,15 @@ export struct FieldState {
     error: string, committed: bool, value: FieldValue,
 }
 export struct FieldCommit { value: FieldValue, constraints: KitInputConstraints, spec: string }
-export struct SliderSpec { minimum: string, maximum: string, step: string }
+// `page-steps` is how many steps Page Up and Page Down move; zero keeps the
+// default of ten. `min-steps` is the least number of steps between the two
+// thumbs of a range slider; a plain slider ignores it.
+export struct SliderSpec { minimum: string, maximum: string, step: string, page-steps: int, min-steps: int }
+// A tick on a slider track and its optional label. The value is decimal text.
+export struct SliderMark { value: string, label: string }
+// Where a mark lies on the travel, 0 at the minimum. `valid` is false for a
+// value that is not a number or lies outside the range.
+export struct SliderMarkPosition { valid: bool, position: float }
 export struct DecimalRangeView { lower: string, upper: string }
 export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
@@ -57,6 +69,10 @@ export global KitFieldService {
     callback slider-invalid-spec(SliderSpec);
     pure callback range-valid(DecimalRangeView, SliderSpec) -> bool;
     pure callback slider-position(string, SliderSpec) -> float;
+    pure callback slider-mark(SliderMark, SliderSpec) -> SliderMarkPosition;
+    pure callback slider-mark-label(string, [SliderMark], SliderSpec) -> string;
+    // The minimum distance between range thumbs as a fraction of the travel.
+    pure callback range-gap-position(SliderSpec) -> float;
     pure callback slider-pointer(string, float, SliderSpec) -> string;
     pure callback slider-navigate(string, NavigationStep, SliderSpec) -> string;
     pure callback range-pointer(DecimalRangeView, RangeThumb, float, SliderSpec) -> DecimalRangeView;

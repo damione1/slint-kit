@@ -9,9 +9,33 @@ from doc_inputs import generated_identity, key_for, write_changed, digest, compi
 from doc_inputs import archived_runtime_inputs, rendering_runtime
 from presentation import themed_source
 import capture_pipeline as captures
+import doc_inputs
 
 
 class DocumentationIdentityTests(unittest.TestCase):
+    def test_frontend_cache_recompiles_after_build_configuration_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            names = ['xtask/src/docs.rs', 'Cargo.lock', 'crates/kit-build/src/lib.rs',
+                     'crates/kit-slint/build.rs', 'crates/kit-slint/ui/slint-project.json']
+            for name in names:
+                source = root / name
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_text('initial')
+            with patch.object(doc_inputs, 'ROOT', root), patch.object(doc_inputs, 'DOCS', root / 'docs'), \
+                    patch.object(doc_inputs, 'collect_requests', return_value={}), \
+                    patch.object(doc_inputs.subprocess, 'run') as compile_frontend:
+                compile_frontend.return_value.returncode = 0
+                doc_inputs.build_inputs()
+                doc_inputs.build_inputs()
+                self.assertEqual(compile_frontend.call_count, 1)
+                for count, name in enumerate(names[2:], start=2):
+                    (root / name).write_text('changed edition or compiler configuration')
+                    doc_inputs.build_inputs()
+                    self.assertEqual(compile_frontend.call_count, count, name)
+                    doc_inputs.build_inputs()
+                    self.assertEqual(compile_frontend.call_count, count, name)
+
     def test_capture_reuse_ignores_only_build_helpers_and_local_package_versions(self):
         sources = {
             'Cargo.lock': b'[[package]]\nname="external"\nversion="1.0.0"\nsource="registry"\nchecksum="original"\n',
@@ -105,9 +129,9 @@ class DocumentationIdentityTests(unittest.TestCase):
         self.assertNotEqual(radio, key_for('radio', inputs, {'theme': 'kit'}, {'runtime': 'new renderer'}))
 
     def test_single_presentation_uses_public_font_import_and_is_idempotent(self):
-        source = 'import { KitThemes } from "@kit/kit.slint"; export component App inherits Window { background: KitThemes.light.canvas; }'
+        source = 'import { KitThemes } from "@kit"; export component App inherits Window { background: KitThemes.light.canvas; }'
         presented = themed_source(source, 'tailwind')
-        self.assertIn('@kit/fonts/inter.slint', presented)
+        self.assertIn('@kit-fonts/inter.slint', presented)
         self.assertIn('default-font-family: InterFont.family', presented)
         self.assertIn('KitThemes.light', presented)
         self.assertEqual(presented, themed_source(presented, 'tailwind'))

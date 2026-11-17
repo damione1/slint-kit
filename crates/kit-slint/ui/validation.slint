@@ -1,5 +1,6 @@
 import { FileViewEntry } from "file-contracts.slint";
-import { KitFileMessages, KitStrings } from "strings.slint";
+import { DateDisplay } from "calendar-service.slint";
+import { KitDayPeriods, KitFileMessages, KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { HtmlInputKind, FieldAccess, NumberInputFormat, TextFilterKind, OtpAlphabet } from "shared-contracts.slint";
 export { HtmlInputKind } from "shared-contracts.slint";
@@ -17,9 +18,11 @@ export struct KitValidityState {
     step-mismatch: bool, bad-input: bool, custom-error: bool,
 }
 export struct KitInputConstraints {
-    kind: HtmlInputKind, number-format: NumberInputFormat, twelve-hour: bool, required: bool, multiple: bool, min-length: int, max-length: int,
+    kind: HtmlInputKind, number-format: NumberInputFormat, twelve-hour: bool, day-periods: KitDayPeriods, required: bool, multiple: bool, min-length: int, max-length: int,
     pattern: string, pattern-enabled: bool, min: string, max: string, step: string,
     default-value: string, custom-error: string, disabled: bool, read-only: bool,
+    // Date drafts follow this pattern when it is set; min, max and the value stay ISO.
+    date-entry: DateDisplay,
 }
 export struct KitFileValidation { validity: KitValidityState, message: string }
 export struct KitValidationResult {
@@ -65,6 +68,7 @@ export global KitFormValidation {
 export component FormConstraintState inherits Rectangle {
     width: 0px; height: 0px;
     in property <bool> twelve-hour;
+    in property <DateDisplay> date-entry;
     in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
     in property <HtmlInputKind> kind: HtmlInputKind.text;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -97,12 +101,12 @@ export component FormConstraintState inherits Rectangle {
     in property <string> bad-input-message: KitStrings.bad-input-message;
     out property <bool> validation-ready: KitFormValidation.ready;
     out property <KitInputConstraints> constraints: {
-        kind: root.kind, number-format: root.number-format, twelve-hour: root.twelve-hour, required: root.required, multiple: root.multiple,
+        kind: root.kind, number-format: root.number-format, twelve-hour: root.twelve-hour, day-periods: KitStrings.day-periods, required: root.required, multiple: root.multiple,
         min-length: root.min-length, max-length: root.max-length,
         pattern: root.pattern, pattern-enabled: root.pattern-enabled,
         min: root.min, max: root.max, step: root.step, default-value: root.default-value,
         custom-error: root.custom-validity, disabled: root.access == FieldAccess.disabled,
-        read-only: root.access == FieldAccess.read-only,
+        read-only: root.access == FieldAccess.read-only, date-entry: root.date-entry,
     };
     private property <KitValidationResult> result: KitFormValidation.ready ? KitFormValidation.evaluate(root.constraints, root.text, root.dirty, root.checked, root.selected-count) : {
         validity: {valid: false, bad-input: true}, value: root.text, will-validate: false,

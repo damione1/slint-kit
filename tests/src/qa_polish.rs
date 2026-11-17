@@ -52,7 +52,7 @@ fn checkbox_indicator_and_wrapped_label_share_the_vertical_center() {
                 .unwrap();
             let indicator = checkbox
                 .query_descendants()
-                .match_id("KitCheckbox::indicator")
+                .match_inherits("CheckMark")
                 .find_first()
                 .unwrap();
             let center = |e: &ElementHandle| e.absolute_position().y + e.size().height / 2.;
@@ -146,6 +146,8 @@ fn color_popup_actions_fit_inside_the_popup_at_both_text_scales() {
         theme.text_scale = scale;
         app.set_theme(theme);
         app.invoke_open_color();
+        // Let Slint 1.19 finish revealing the focused popup action.
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_secs(1));
         slint::platform::update_timers_and_animations();
         let bounds = ElementQuery::from_root(&app)
             .match_id("KitColorField::popup-keys")

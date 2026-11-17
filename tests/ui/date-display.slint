@@ -1,0 +1,108 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { CivilDateView, DateDisplay, KitDateField, KitDatePicker, KitDateTimeField, KitIsoWeekField, KitMonthField, KitTheme, KitThemes, KitValidityState, KitZonedDateTimeField } from "@kit";
+export component DateDisplayFixture inherits Window {
+    width: 640px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> pattern;
+    out property <string> shown: field.display-text;
+    out property <string> edited: field.text;
+    public function focus-field() { field.take-focus(); }
+    public function blur-field() { picker.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        field := KitDateField {
+            theme: root.theme; label: "Date";
+            accepted-date: { year: 2026, month: 10, day: 16 };
+            display-format: {
+                pattern: root.pattern,
+                months: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                short-months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+                weekdays: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+                short-weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
+            };
+        }
+        picker := KitDatePicker {
+            theme: root.theme; label: "Picker"; spec-key: "";
+            display-pattern: "%d/%m/%Y";
+            accepted-date: { year: 2026, month: 10, day: 16 };
+        }
+    }
+}
+
+export component DateEntryFixture inherits Window {
+    width: 640px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> pattern: "%d/%m/%Y";
+    in property <string> min: "";
+    in property <string> max: "";
+    in-out property <CivilDateView> accepted <=> field.accepted-date;
+    in-out property <CivilDateView> picked <=> picker.accepted-date;
+    in-out property <string> picker-text <=> picker.text;
+    in-out property <string> typed <=> field.text;
+    out property <bool> active: field.entry-active;
+    out property <bool> picker-active: picker.entry-active;
+    out property <KitValidityState> validity: field.validity;
+    out property <string> message: field.validation-message;
+    out property <string> picker-message: picker.validation-message;
+    public function focus-field() { field.take-focus(); }
+    public function focus-picker() { picker.take-focus(); }
+    public function choose-in-picker(date: CivilDateView) { picker.accept-date(date); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        field := KitDateField {
+            theme: root.theme; label: "Entry"; min: root.min; max: root.max;
+            accepted-date: { year: 2026, month: 10, day: 16 };
+            entry-format: {
+                pattern: root.pattern,
+                months: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                short-months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+                weekdays: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+                short-weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
+            };
+        }
+        picker := KitDatePicker {
+            theme: root.theme; label: "Picker Entry"; spec-key: "";
+            entry-pattern: root.pattern; min: root.min; max: root.max;
+            accepted-date: { year: 2026, month: 10, day: 16 };
+        }
+    }
+}
+
+export component TemporalDisplayFixture inherits Window {
+    width: 640px; height: 900px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> date-pattern;
+    in property <string> month-pattern;
+    in property <string> week-pattern;
+    private property <[string]> months: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+    private property <[string]> short-months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+    private property <[string]> weekdays: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+    private property <[string]> short-weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
+    out property <string> month-shown: month.display-text;
+    out property <string> month-edited: month.text;
+    out property <string> week-shown: week.display-text;
+    out property <string> week-edited: week.text;
+    public function focus-month() { month.take-focus(); }
+    public function blur-month() { week.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        month := KitMonthField {
+            theme: root.theme; label: "Month"; accepted-year: 2026; accepted-month: 10;
+            display-format: { pattern: root.month-pattern, months: root.months, short-months: root.short-months, weekdays: root.weekdays, short-weekdays: root.short-weekdays };
+        }
+        week := KitIsoWeekField {
+            theme: root.theme; label: "Week"; accepted-week-year: 2026; accepted-week: 42;
+            display-format: { pattern: root.week-pattern, months: root.months, short-months: root.short-months, weekdays: root.weekdays, short-weekdays: root.short-weekdays };
+        }
+        KitDateTimeField {
+            theme: root.theme; label: "Stamp";
+            accepted-value: { date: { year: 2026, month: 10, day: 16 }, time: { hour: 9, minute: 30, second: 0 } };
+            display-format: { pattern: root.date-pattern, months: root.months, short-months: root.short-months, weekdays: root.weekdays, short-weekdays: root.short-weekdays };
+        }
+        KitZonedDateTimeField {
+            theme: root.theme; label: "Zoned";
+            date-text: "2026-10-16"; time-text: "09:30"; accepted-local: { date: { year: 2026, month: 10, day: 16 }, time: { hour: 9, minute: 30, second: 0 } }; zone-text: "America/Toronto";
+            display-format: { pattern: root.date-pattern, months: root.months, short-months: root.short-months, weekdays: root.weekdays, short-weekdays: root.short-weekdays };
+        }
+    }
+}

@@ -3,10 +3,12 @@
 use crate::ui;
 use kit_core::{
     DismissReason, NavigationStep, Ownership, SelectEvent, SelectOption, SelectSession,
-    SelectState, SelectionIntent, reduce_selection_with_policy,
+    SelectState, SelectionIntent, ValidatedOptions, reduce_validated_selection,
 };
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashSet;
+use std::rc::Rc;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct ChoiceToken(i32);
@@ -35,6 +37,7 @@ impl From<ui::CloseReason> for DismissReason {
             ui::CloseReason::OutsidePress => Self::OutsidePress,
             ui::CloseReason::SystemBack => Self::SystemBack,
             ui::CloseReason::TriggerToggle => Self::TriggerToggle,
+            ui::CloseReason::CloseButton => Self::CloseButton,
             ui::CloseReason::Programmatic => Self::Programmatic,
             ui::CloseReason::HostClosed => Self::HostClosed,
         }
@@ -67,16 +70,13 @@ fn tracked<T: Clone + 'static>(model: &ModelRc<T>) -> Vec<T> {
         .collect()
 }
 
-fn options(rows: &[ui::OptionRow]) -> Option<Vec<SelectOption<ChoiceToken>>> {
-    let mut keys = HashSet::with_capacity(rows.len());
+fn options(rows: &[ui::OptionRow]) -> Option<ValidatedOptions<ChoiceToken>> {
     let mut generation = None;
-    rows.iter()
+    let options = rows
+        .iter()
         .map(|row| {
             let key = ChoiceToken::new(row.token)?;
-            if row.generation < 0
-                || !keys.insert(key)
-                || generation.is_some_and(|value| value != row.generation)
-            {
+            if row.generation < 0 || generation.is_some_and(|value| value != row.generation) {
                 return None;
             }
             generation = Some(row.generation);
@@ -87,7 +87,92 @@ fn options(rows: &[ui::OptionRow]) -> Option<Vec<SelectOption<ChoiceToken>>> {
                 disabled: row.disabled,
             })
         })
-        .collect()
+        .collect::<Option<Vec<_>>>()?;
+    ValidatedOptions::new(options).ok()
+}
+
+/// What one option model contained the last time an event read it. Events
+/// reuse it while the model still holds the same rows, so a key press does not
+/// rebuild and re-validate the whole option list.
+struct Snapshot {
+    rows: Vec<ui::OptionRow>,
+    /// `None` when the rows are not a valid option model.
+    options: RefCell<Option<ValidatedOptions<ChoiceToken>>>,
+    valid: bool,
+    /// Lowercased label and description of each row, built on the first query.
+    folded: OnceCell<Vec<(String, String)>>,
+}
+
+impl Snapshot {
+    fn new(rows: Vec<ui::OptionRow>) -> Self {
+        let options = options(&rows);
+        Self {
+            valid: options.is_some(),
+            options: RefCell::new(options),
+            rows,
+            folded: OnceCell::new(),
+        }
+    }
+
+    fn folded(&self) -> &[(String, String)] {
+        self.folded.get_or_init(|| {
+            self.rows
+                .iter()
+                .map(|row| (row.label.to_lowercase(), row.description.to_lowercase()))
+                .collect()
+        })
+    }
+}
+
+/// Models beyond this many are rebuilt from scratch on every event.
+const SNAPSHOT_SLOTS: usize = 8;
+
+thread_local! {
+    static SNAPSHOTS: RefCell<Vec<Rc<Snapshot>>> = const { RefCell::new(Vec::new()) };
+}
+
+/// The rows of `model`, registering the model as a dependency of the running
+/// binding. The cache is compared by content, so a changed model is always
+/// read again.
+fn snapshot(model: &ModelRc<ui::OptionRow>) -> Rc<Snapshot> {
+    let tracker = model.model_tracker();
+    tracker.track_row_count_changes();
+    let count = model.row_count();
+    for index in 0..count {
+        tracker.track_row_data_changes(index);
+    }
+    let same = |snapshot: &Snapshot| {
+        snapshot.rows.len() == count
+            && snapshot
+                .rows
+                .iter()
+                .enumerate()
+                .all(|(index, row)| model.row_data(index).as_ref() == Some(row))
+    };
+    let cached = SNAPSHOTS.with(|cache| {
+        let mut cache = cache.try_borrow_mut().ok()?;
+        let position = cache.iter().position(|entry| same(entry))?;
+        let entry = cache.remove(position);
+        cache.push(entry.clone());
+        Some(entry)
+    });
+    if let Some(entry) = cached {
+        return entry;
+    }
+    let entry = Rc::new(Snapshot::new(
+        (0..count)
+            .filter_map(|index| model.row_data(index))
+            .collect(),
+    ));
+    SNAPSHOTS.with(|cache| {
+        if let Ok(mut cache) = cache.try_borrow_mut() {
+            if cache.len() == SNAPSHOT_SLOTS {
+                cache.remove(0);
+            }
+            cache.push(entry.clone());
+        }
+    });
+    entry
 }
 
 fn selection(value: ui::SelectionRef) -> Option<ChoiceToken> {
@@ -172,29 +257,29 @@ fn reduce(
     retention: ui::SelectionRetention,
     event: SelectEvent<ChoiceToken>,
 ) -> ui::SelectionTransition {
-    let rows = tracked(model);
-    let Some(options) = options(&rows) else {
+    let snapshot = snapshot(model);
+    let Some(options) = snapshot.options.take() else {
         return ui::SelectionTransition {
             session: current,
             chosen: ui::SelectionRef::default(),
         };
     };
     let generation = current.state.generation;
-    let result = reduce_selection_with_policy(
+    let (result, options) = reduce_validated_selection(
         options,
         session(current),
         ownership.into(),
         kit_core::SelectionRetention::from(retention).into(),
         event,
-    )
-    .expect("projection keys validated before reduction");
+    );
+    snapshot.options.replace(Some(options));
     let chosen = match result.intent {
         Some(SelectionIntent::Commit(token)) => reference(Some(token)),
         Some(SelectionIntent::Clear) | None => ui::SelectionRef::default(),
     };
     let timestamp = result.session.last_typeahead_ms;
     let mut state = project(
-        &rows,
+        &snapshot.rows,
         result.session.selection.selected,
         result.session.selection.active,
         result.session.selection.open,
@@ -218,6 +303,31 @@ fn reduce(
     }
 }
 
+fn sidebar_nodes(rows: &[ui::SidebarRow]) -> Vec<kit_core::SidebarNode> {
+    rows.iter()
+        .map(|row| kit_core::SidebarNode {
+            key: kit_core::SidebarKey::new(row.item.token),
+            kind: match row.kind {
+                ui::SidebarRowKind::Section => kit_core::SidebarNodeKind::Section,
+                ui::SidebarRowKind::Item => kit_core::SidebarNodeKind::Item,
+            },
+            parent: row
+                .parent
+                .present
+                .then(|| kit_core::SidebarKey::new(row.parent.token))
+                .flatten(),
+        })
+        .collect()
+}
+
+fn sidebar_expanded(refs: &ModelRc<ui::SelectionRef>) -> HashSet<kit_core::SidebarKey> {
+    tracked(refs)
+        .into_iter()
+        .filter(|value| value.present)
+        .filter_map(|value| kit_core::SidebarKey::new(value.token))
+        .collect()
+}
+
 pub(crate) fn install_selection<W>(window: &W)
 where
     W: ComponentHandle,
@@ -237,9 +347,9 @@ where
     });
     service.on_project(
         |source, model, selected, active, open, generation, retention| {
-            let source = tracked(&source);
-            let rows = tracked(&model);
-            if options(&source).is_none() || options(&rows).is_none() {
+            let source = snapshot(&source);
+            let rows = snapshot(&model);
+            if !source.valid || !rows.valid {
                 return ui::SelectState {
                     active_index: -1,
                     generation: -1,
@@ -247,7 +357,7 @@ where
                 };
             }
             let mut state = project(
-                &rows,
+                &rows.rows,
                 selection(selected.clone()),
                 selection(active),
                 open,
@@ -260,7 +370,7 @@ where
                 (
                     Some(key),
                     ui::SelectionRetention::BoundToOptions | ui::SelectionRetention::Retain,
-                ) if source.iter().any(|row| row.token == key.0) => {
+                ) if source.rows.iter().any(|row| row.token == key.0) => {
                     ui::SelectionAvailability::Available
                 }
                 (Some(_), ui::SelectionRetention::Retain) => ui::SelectionAvailability::Available,
@@ -386,21 +496,23 @@ where
         .session
     });
     service.on_rows(|model, query, generation| {
-        let rows = tracked(&model);
-        if options(&rows).is_none() || generation < 0 {
+        let snapshot = snapshot(&model);
+        if !snapshot.valid || generation < 0 {
             return ModelRc::default();
         }
         let query = query.to_lowercase();
+        let matches = |folded: &(String, String)| {
+            query.is_empty() || folded.0.contains(&query) || folded.1.contains(&query)
+        };
         ModelRc::new(VecModel::from(
-            rows.into_iter()
-                .filter(|row| {
-                    query.is_empty()
-                        || row.label.to_lowercase().contains(&query)
-                        || row.description.to_lowercase().contains(&query)
-                })
-                .map(|mut row| {
-                    row.generation = generation;
-                    row
+            snapshot
+                .rows
+                .iter()
+                .zip(snapshot.folded())
+                .filter(|(_, folded)| matches(folded))
+                .map(|(row, _)| ui::OptionRow {
+                    generation,
+                    ..row.clone()
                 })
                 .collect::<Vec<_>>(),
         ))
@@ -477,11 +589,79 @@ where
             .find(|row| row.item.token == token)
             .unwrap_or_default()
     });
-    service.on_disclose(|model, expanded, token, generation, current, open, mode| {
+    service.on_sidebar_rows(|model, expanded, rail| {
         let rows = tracked(&model);
+        let shown =
+            kit_core::visible_rows(&sidebar_nodes(&rows), &sidebar_expanded(&expanded), rail);
+        ModelRc::new(VecModel::from(
+            shown
+                .into_iter()
+                .map(|entry| ui::SidebarVisibleRow {
+                    row: rows[entry.index].clone(),
+                    depth: i32::try_from(entry.depth).unwrap_or(i32::MAX),
+                    expandable: entry.expandable,
+                    expanded: entry.expanded,
+                })
+                .collect::<Vec<_>>(),
+        ))
+    });
+    service.on_sidebar_entry(|rows, token| {
+        tracked(&rows)
+            .into_iter()
+            .find(|visible| visible.row.item.token == token)
+            .unwrap_or_default()
+    });
+    service.on_sidebar_has_icons(|rows| {
+        tracked(&rows).iter().any(|row| match row.kind {
+            ui::SidebarRowKind::Section => false,
+            ui::SidebarRowKind::Item => {
+                !row.leading_icon.stroke.is_empty() || !row.leading_icon.fill.is_empty()
+            }
+        })
+    });
+    service.on_sidebar_options(|rows| {
+        ModelRc::new(VecModel::from(
+            tracked(&rows)
+                .into_iter()
+                .map(|visible| {
+                    let mut item = visible.row.item;
+                    match visible.row.kind {
+                        ui::SidebarRowKind::Section => item.disabled = true,
+                        ui::SidebarRowKind::Item => {}
+                    }
+                    item
+                })
+                .collect::<Vec<_>>(),
+        ))
+    });
+    service.on_sidebar_toggle(|model, expanded, token, open| {
+        let Some(key) = kit_core::SidebarKey::new(token) else {
+            return expanded;
+        };
+        let next = kit_core::toggled_expansion(
+            &sidebar_nodes(&tracked(&model)),
+            &sidebar_expanded(&expanded),
+            key,
+            open,
+        );
+        let mut tokens: Vec<_> = next.into_iter().map(kit_core::SidebarKey::value).collect();
+        tokens.sort_unstable();
+        ModelRc::new(VecModel::from(
+            tokens
+                .into_iter()
+                .map(|token| ui::SelectionRef {
+                    present: true,
+                    token,
+                })
+                .collect::<Vec<_>>(),
+        ))
+    });
+    service.on_disclose(|model, expanded, token, generation, current, open, mode| {
+        let snapshot = snapshot(&model);
+        let rows = &snapshot.rows;
         if generation < 0
             || generation != current
-            || options(&rows).is_none()
+            || !snapshot.valid
             || !rows.iter().any(|row| row.token == token && !row.disabled)
         {
             return expanded;
@@ -519,12 +699,21 @@ where
             .find(|row| row.token == token)
             .unwrap_or_default()
     });
+    service.on_option_item(|items, token| {
+        tracked(&items)
+            .into_iter()
+            .find(|item| item.token == token)
+            .unwrap_or_else(|| ui::OptionItem {
+                token,
+                ..Default::default()
+            })
+    });
     service.on_generation(|model| {
-        let rows = tracked(&model);
-        if options(&rows).is_none() {
+        let snapshot = snapshot(&model);
+        if !snapshot.valid {
             return -1;
         }
-        rows.first().map_or(0, |row| row.generation)
+        snapshot.rows.first().map_or(0, |row| row.generation)
     });
     service.on_next_generation(|current| {
         if current < 0 {
@@ -580,9 +769,16 @@ where
             selected: selected.clone(),
             accepted: false,
             added: false,
+            limit_reached: false,
         };
-        let rows = tracked(&rows);
-        let Some(options) = options(&rows) else {
+        let snapshot = snapshot(&rows);
+        let rows = &snapshot.rows;
+        let Some(options) = snapshot
+            .options
+            .borrow()
+            .as_ref()
+            .map(|options| options.as_slice().to_vec())
+        else {
             return reject();
         };
         if !rows
@@ -599,6 +795,12 @@ where
         let Some(selected_keys) = selected_keys else {
             return reject();
         };
+        // A token whose option was replaced is no longer a selection: it must
+        // neither count against the limit nor survive a new transition.
+        let selected_keys: Vec<_> = selected_keys
+            .into_iter()
+            .filter(|key| rows.iter().any(|row| row.token == key.0))
+            .collect();
         let limit = if limit == 0 {
             None
         } else {
@@ -609,8 +811,17 @@ where
         else {
             return reject();
         };
-        let Ok(intent) = controller.toggle(&ChoiceToken(token)) else {
-            return reject();
+        let intent = match controller.toggle(&ChoiceToken(token)) {
+            Ok(intent) => intent,
+            Err(kit_core::ChoiceFailure::LimitReached) => {
+                return ui::MultipleTransition {
+                    limit_reached: true,
+                    ..reject()
+                };
+            }
+            Err(kit_core::ChoiceFailure::Missing | kit_core::ChoiceFailure::Disabled) => {
+                return reject();
+            }
         };
         let added = match intent {
             kit_core::MultiSelectionIntent::Add(_) => true,
@@ -627,6 +838,7 @@ where
             )),
             accepted: true,
             added,
+            limit_reached: false,
         }
     });
     service.on_rating_options(|steps| {

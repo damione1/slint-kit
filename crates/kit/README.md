@@ -1,6 +1,6 @@
 # Slint Kit
 
-**Slint Kit is a Rust UI component library for Slint, combining 127 native components with shared interaction logic and typed domain values.** It supplies validated forms, exact money and decimals, stable-key choices, virtualized data views and complete light/dark themes. The catalogue includes ready-to-use controls and composition primitives.
+**Slint Kit is a Rust UI component library for Slint, combining 139 native components with shared interaction logic and typed domain values.** It supplies validated forms, exact money and decimals, stable-key choices, virtualized data views and complete light/dark themes. The catalogue includes ready-to-use controls and composition primitives.
 
 Fields retain incomplete native drafts while `FieldSpec` returns checked values to Rust. `Choices` and `KeyedModel` preserve domain identity through filtering and sorting and reject stale gestures. Your application supplies its rules, data and business commands; Slint supplies rendering and native editing (caret, selection, undo, IME).
 
@@ -18,13 +18,15 @@ Build **desktop Rust applications** for macOS, Windows and Linux. Android and iO
 
 ## Install
 
+Use Slint Kit 0.9.0 with Rust 1.95 and Slint 1.19. Keep runtime and build packages aligned; see the [migration notes](https://slint-kit.dev/changelog/) for changed imports and behavior.
+
 ```toml
 [dependencies]
-slint-kit = "0.7"
-slint = { version = "~1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
+slint-kit = { version = "=0.9.0" }
+slint = { version = "~1.19.0", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.7"
+slint-kit-build = { version = "=0.9.0" }
 ```
 
 Compile your UI in `build.rs`:
@@ -65,7 +67,7 @@ No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/sli
 
 ## Requirements
 
-Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android and iOS are not announced kit targets; Slint mobile integration requires separate platform setup and device qualification. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
+Rust 1.95 or later and Slint 1.18 (patch releases from 1.19.0). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android and iOS are not announced kit targets; Slint mobile integration requires separate platform setup and device qualification. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
 
 ## License
 

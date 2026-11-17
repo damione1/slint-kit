@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OptionRow, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason, SelectionRetention } from "contracts.slint";
+import { OptionRow, OptionItem, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason, SelectionRetention } from "contracts.slint";
 import { Ownership } from "shared-contracts.slint";
-import { ExpansionMode, DisclosureRow, ChipRow } from "contracts.slint";
+import { ExpansionMode, DisclosureRow, ChipRow, SidebarRow, SidebarVisibleRow } from "contracts.slint";
 
 export struct SelectionSession {
     state: SelectState,
@@ -17,7 +17,7 @@ export struct SelectionTransition {
 }
 
 export struct RatingView { present: bool, step: int, scale: int }
-export struct MultipleTransition { selected: [SelectionRef], accepted: bool, added: bool }
+export struct MultipleTransition { selected: [SelectionRef], accepted: bool, added: bool, limit-reached: bool }
 
 export global KitSelectionService {
     pure callback chip-labels([ChipRow], string) -> string;
@@ -43,9 +43,15 @@ export global KitSelectionService {
     pure callback disclosure(OptionRow, [SelectionRef]) -> DisclosureRow;
     pure callback disclosure-options([DisclosureRow]) -> [OptionRow];
     pure callback disclosure-source([DisclosureRow], int) -> DisclosureRow;
+    pure callback sidebar-rows([SidebarRow], [SelectionRef], bool) -> [SidebarVisibleRow];
+    pure callback sidebar-options([SidebarVisibleRow]) -> [OptionRow];
+    pure callback sidebar-entry([SidebarVisibleRow], int) -> SidebarVisibleRow;
+    pure callback sidebar-has-icons([SidebarRow]) -> bool;
+    pure callback sidebar-toggle([SidebarRow], [SelectionRef], int, bool) -> [SelectionRef];
     pure callback disclose([OptionRow], [SelectionRef], int, int, int, bool, ExpansionMode) -> [SelectionRef];
     pure callback label([OptionRow], SelectionRef) -> string;
     pure callback source([OptionRow], int) -> OptionRow;
+    pure callback option-item([OptionItem], int) -> OptionItem;
     pure callback generation([OptionRow]) -> int;
     pure callback next-generation(int) -> int;
     callback timestamp() -> int;
@@ -201,6 +207,10 @@ export component KitMultipleSelection inherits Rectangle {
     }
     private property <MultipleTransition> transition;
     callback changed-selection(OptionRow, bool);
+    // An addition was refused because the set already holds `limit` options.
+    callback limit-reached(OptionRow);
+    // True while no further option can be added.
+    out property <bool> at-limit: root.limit > 0 && root.chips.length >= root.limit;
     callback query-reset();
     keyboard := KitSelection {
         options: root.options; ownership: Ownership.controlled; persistent: root.persistent; close-on-select: root.close-on-select;
@@ -217,7 +227,7 @@ export component KitMultipleSelection inherits Rectangle {
         if (root.transition.accepted) {
             if (root.ownership == Ownership.local) { root.selected = root.transition.selected; }
             root.changed-selection(row, root.transition.added);
-        }
+        } else if (root.transition.limit-reached) { root.limit-reached(row); }
     }
     public function remove(token: int) {
         if (KitSelectionService.ready) { root.toggle(token, KitSelectionService.generation(root.options)); }
@@ -232,6 +242,7 @@ export component KitMultipleSelection inherits Rectangle {
         // The keyboard independently fences the visible generation/query.
         root.transition = KitSelectionService.toggle(root.options, root.selected, token, row.generation, root.limit);
         if (root.transition.accepted) { keyboard.activate(token, generation); }
+        else if (root.transition.limit-reached) { root.limit-reached(row); }
     }
     public function dismiss(reason: CloseReason) { keyboard.dismiss(reason); }
     public function typeahead(text: string) { keyboard.typeahead(text); }

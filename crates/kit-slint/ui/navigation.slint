@@ -3,20 +3,32 @@ import { KitKeyResult } from "keyboard.slint";
 import { FocusOutline } from "focus.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
-import { SelectionRef } from "contracts.slint";
+import { SelectionRef, SelectionAvailability } from "contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollFrame } from "scroll.slint";
-import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe, ChoiceFlow } from "theme.slint";
+import { KitStack, LayoutSpace } from "layout.slint";
+import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe, ChoiceFlow, ChoiceDirection } from "theme.slint";
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
-import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
-import { KitDialogSurface, KitDialogPanel } from "dialog.slint";
+import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
+import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
+import { ElevatedSurface } from "elevation.slint";
+import { KitDialogSurface, KitDialogPanel, KitDialogFooter, DialogAction, DialogActionButton, DialogCloseButton } from "dialog.slint";
+import { KitModalContext } from "modal.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
-import { ExpansionMode, DisclosureRow } from "contracts.slint";
-export { ExpansionMode, DisclosureRow } from "contracts.slint";
+import { ExpansionMode, DisclosureRow, SidebarRow, SidebarRowKind, SidebarVisibleRow } from "contracts.slint";
+export { ExpansionMode, DisclosureRow, SidebarRow, SidebarRowKind, SidebarVisibleRow } from "contracts.slint";
 export enum TabActivation { manual, automatic }
 export struct NotificationRow { item: OptionRow, read: bool }
+
+// What a menu row is. Separator and group rows are decoration: they take no
+// pointer, focus or activation, and the model must mark them `disabled` so the
+// shared navigation skips them.
+export enum MenuItemKind { action, checkbox, radio, separator, group }
+// The presentation of the menu row at the same index of `options`. Identity,
+// label and activation stay in the `OptionRow`; a missing entry is a plain action.
+export struct MenuItem { kind: MenuItemKind, leading-icon: IconGlyph, shortcut: string, destructive: bool, checked: bool }
 
 // One row owns activation and snapshots its identity through KitOption, and
 // shares its option recipe: a tint for the active and selected rows and the
@@ -26,26 +38,74 @@ export component KitNavigationAction inherits KitOption {
     min-height: max(KitMetrics.row-height(root.theme, root.control-size), root.recipe.height,
         (root.text-size / root.theme.typography.size-control) * root.theme.typography.line-height-control + 2 * root.padding-block);
     in property <length> trailing-space;
+    in property <TextHorizontalAlignment> label-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
+    // Menu presentation; the default entry is a plain labelled action.
+    in property <MenuItem> item;
+    // Keeps the label of an action, checkbox or radio row aligned with its siblings.
+    in property <bool> reserve-leading;
     private property <OptionRecipe> label-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    private property <bool> decoration: root.item.kind == MenuItemKind.separator || root.item.kind == MenuItemKind.group;
+    private property <bool> marked: root.item.kind == MenuItemKind.checkbox || root.item.kind == MenuItemKind.radio;
+    private property <bool> has-icon: root.item.leading-icon.stroke != "" || root.item.leading-icon.fill != "";
+    private property <length> slot: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <length> leading-space: root.reserve-leading && !root.decoration ? root.slot + root.theme.spacing.unit * 2 : 0px;
+    private property <length> shortcut-space: root.item.shortcut != "" && !root.decoration ? shortcut-label.preferred-width + root.theme.spacing.unit * 3 : 0px;
+    private property <color> ink: root.disabled ? root.label-recipe.disabled-foreground : root.item.destructive ? root.theme.danger
+        : root.item.kind == MenuItemKind.group ? root.theme.text-secondary : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
     accessible-role: list-item;
+    accessible-checkable: root.marked;
+    accessible-checked: root.marked && root.item.checked;
+    accessible-description: root.item.shortcut == "" ? root.option-data.description
+        : root.option-data.description == "" ? root.item.shortcut : root.option-data.description + " " + root.item.shortcut;
     min-width: root.control-width == ControlWidth.fill ? 0px : max(root.preferred-height, label.preferred-width + 2 * root.padding-inline);
     preferred-width: self.min-width;
+    if root.marked && root.item.checked: Rectangle {
+        x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        width: root.slot; height: root.slot;
+        if root.item.kind == MenuItemKind.checkbox: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.ink; }
+        if root.item.kind == MenuItemKind.radio: Rectangle {
+            width: parent.width / 2; height: self.width;
+            border-radius: self.width / 2;
+            background: root.ink;
+        }
+    }
+    if !root.marked && root.has-icon && !root.decoration: KitIcon {
+        x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        theme: root.theme; control-size: root.control-size; glyph: root.item.leading-icon; ink: root.ink;
+    }
+    if root.item.kind == MenuItemKind.separator: Rectangle {
+        x: -root.padding-inline; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        width: root.width; height: root.theme.shape.border-width;
+        background: root.theme.border-subtle;
+    }
     label := Text {
-        x: 0px; y: 0px;
-        width: max(0px,root.width - 2 * root.padding-inline - root.trailing-space);
+        x: root.leading-space; y: 0px;
+        width: max(0px, root.width - 2 * root.padding-inline - root.trailing-space - root.leading-space - root.shortcut-space);
         height: max(0px,root.height - 2 * root.padding-block);
-        horizontal-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
-        text: root.option-data.label;
-        color: root.disabled ? root.label-recipe.disabled-foreground : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
+        horizontal-alignment: root.label-alignment;
+        text: root.item.kind == MenuItemKind.separator ? "" : root.option-data.label;
+        color: root.ink;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         vertical-alignment: center;
         overflow: elide;
+    }
+    shortcut-label := Text {
+        x: root.width - 2 * root.padding-inline - root.trailing-space - self.preferred-width;
+        y: 0px; height: max(0px,root.height - 2 * root.padding-block);
+        text: root.decoration ? "" : root.item.shortcut;
+        color: root.disabled ? root.label-recipe.disabled-foreground : root.theme.text-secondary;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+        vertical-alignment: center;
     }
 }
 
 // Identity, skip-disabled navigation, and typeahead live in SelectController.
 // The composite retains a single tab stop; the model is the source of truth.
 export component KitMenu inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -55,6 +115,12 @@ export component KitMenu inherits Rectangle {
     in property <length> row-height: KitMetrics.row-height(root.theme, root.control-size);
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
+    // Presentation of the rows, one `MenuItem` per option in the same order.
+    in property <[MenuItem]> items;
+    // Reserve a leading slot for icons and check marks so labels line up.
+    in property <bool> reserve-leading: root.items.length > 0;
+    // The tallest natural height before the rows scroll.
+    in property <length> max-natural-height: 320px;
     out property <int> page-rows: list.visible-height > 0px && root.row-height > 0px ? max(1, Math.floor(list.visible-height / root.row-height)) : 0;
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -62,34 +128,27 @@ export component KitMenu inherits Rectangle {
     callback typeahead(string);
     // Includes a row focused on pointer-down, before its activation is committed.
     // Keep that focus in place: transferring it here would cancel the press.
-    out property <bool> has-focus: root.interactive && (keyboard.has-focus || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation));
+    out property <bool> has-focus: root.live && (keyboard.has-focus || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation));
     callback focus-observed(bool);
     private property <int> focused-row-token: -1;
     private property <int> focused-row-generation: -1;
     changed has-focus => { root.focus-observed(root.has-focus); }
-    changed interactive => {
-        if (!root.interactive) { root.focused-row-token = -1; root.focused-row-generation = -1; }
+    changed live => {
+        if (!root.live) { root.focused-row-token = -1; root.focused-row-generation = -1; }
     }
-    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
-    public function ensure-active-visible() {
-        if (root.state.active-index < 0) { return; }
-        let top = root.state.active-index * root.row-height;
-        if (top + list.content-y < 0px) { list.content-y = -top; }
-        else if (top + root.row-height + list.content-y > list.visible-height) {
-            list.content-y = min(0px, list.visible-height - top - root.row-height);
-        }
-    }
+    public function take-focus() { if (root.live) { keyboard.focus(); } }
+    public function ensure-active-visible() { list.ensure-row-visible(root.state.active-index, KitThemes.scroll-behavior(root.theme)); }
     changed state => { root.ensure-active-visible(); }
     changed row-height => { root.ensure-active-visible(); }
     accessible-role: AccessibleRole.list;
     accessible-label: root.accessible-name;
     accessible-item-count: root.rows.length;
     accessible-orientation: Orientation.vertical;
-    preferred-height: min(320px, root.rows.length * root.row-height);
+    preferred-height: min(root.max-natural-height, root.rows.length * root.row-height);
     min-width: 100px;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
-        enabled: root.interactive;
+        enabled: root.live;
         dismiss-on-system-back: false;
         wrap: root.wrap;
         page-rows: root.page-rows;
@@ -105,9 +164,11 @@ export component KitMenu inherits Rectangle {
             theme: root.theme;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
             for row[index] in root.rows: KitNavigationAction {
-                disabled: !root.interactive || row.disabled;
-                theme: root.theme; control-size: root.control-size;
+                private property <MenuItem> entry: root.items[index];
+                disabled: !root.interactive || row.disabled || self.entry.kind == MenuItemKind.separator || self.entry.kind == MenuItemKind.group;
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                 option-data: row;
+                item: self.entry; reserve-leading: root.reserve-leading;
                 accessible-item-index: index; accessible-item-count: root.rows.length;
                 active: root.state.active.present && root.state.active.token == row.token;
                 selected: root.state.selected.present && root.state.selected.token == row.token;
@@ -159,6 +220,10 @@ export component KitMenu inherits Rectangle {
 }
 
 export component KitMenuBar inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -172,21 +237,11 @@ export component KitMenuBar inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    out property <bool> has-focus: root.interactive && keyboard.has-focus;
-    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
-    public function reveal(left: length, right: length) {
-        if (left + viewport.content-x < 0px) { viewport.content-x = -left; }
-        else if (right + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - right); }
-    }
+    out property <bool> has-focus: root.live && keyboard.has-focus;
+    public function take-focus() { if (root.live) { keyboard.focus(); } }
+    public function reveal(left: length, right: length) { viewport.reveal-horizontal(left, right, KitThemes.scroll-behavior(root.theme)); }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
-        if (!root.interactive) { return KitKeyResult.reject; }
-        if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
-            let forward = root.flow == ChoiceFlow.right-to-left
-                ? event.text == Key.LeftArrow
-                : event.text == Key.RightArrow;
-            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
-            return KitKeyResult.accept;
-        }
+        if (!root.live) { return KitKeyResult.reject; }
         return keyboard.handle-key(event);
     }
     accessible-role: navigation;
@@ -203,8 +258,10 @@ export component KitMenuBar inherits Rectangle {
     vertical-stretch: 0;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
-        enabled: root.interactive;
+        enabled: root.live;
         dismiss-on-system-back: false;
+        navigation-direction: ChoiceDirection.horizontal;
+        flow: root.flow;
         wrap: root.wrap;
         typeahead-timeout-ms: root.typeahead-timeout-ms;
         check-typeahead-active => { return selection.is-typeahead-active(); }
@@ -227,7 +284,7 @@ export component KitMenuBar inherits Rectangle {
                 alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
                 for index in root.rows.length: KitNavigationAction {
                     private property <OptionRow> entry: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
-                    theme: root.theme; control-size: root.control-size;
+                    theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                     option-data: self.entry;
                     accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index;
                     accessible-item-count: root.rows.length;
@@ -235,8 +292,16 @@ export component KitMenuBar inherits Rectangle {
                     control-width: ControlWidth.intrinsic;
                     active: root.state.active.present && root.state.active.token == self.entry.token;
                     selected: root.state.selected.present && root.state.selected.token == self.entry.token;
-                    focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
-                    changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
+                    focus-indicated: root.live && self.active && (keyboard.has-focus || self.has-focus);
+                    changed active => {
+                        if (self.active) {
+                            // ensure-visible leaves an existing animation running
+                            // when its new target is already visible.
+                            viewport.scroll-to({x: -viewport.content-x, y: -viewport.content-y}, ScrollBehavior.instant);
+                            if (self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
+                            else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+                        }
+                    }
                     key-event(event) => {
                         if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
                         return KitKeyResult.reject;
@@ -267,6 +332,10 @@ export component KitMenuBar inherits Rectangle {
 }
 
 export component KitTabs inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -274,50 +343,63 @@ export component KitTabs inherits Rectangle {
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Tabs";
     in property <ChoiceFlow> flow: root.theme.direction;
+    // horizontal lays the tabs in a row (Left/Right keys); vertical stacks them in a
+    // column (Up/Down keys), reports a vertical tab list and puts the selection
+    // indicator on the inline-end edge of the tab.
+    in property <Orientation> orientation: Orientation.horizontal;
+    private property <bool> vertical: root.orientation == Orientation.vertical;
+    // Only a horizontal right-to-left strip lists its tabs in reverse.
+    private property <bool> reversed: !root.vertical && root.flow == ChoiceFlow.right-to-left;
     in property <TabActivation> activation: TabActivation.manual;
+    // intrinsic sizes each tab to its label and scrolls on overflow; fill gives
+    // every tab an equal share of the strip and elides labels that do not fit.
+    in property <ControlWidth> tab-width: ControlWidth.intrinsic;
+    in property <bool> typeahead-enabled: false;
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    out property <bool> has-focus: root.interactive && keyboard.has-focus;
-    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
-    public function reveal(left: length, right: length) {
-        if (left + viewport.content-x < 0px) { viewport.content-x = -left; }
-        else if (right + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - right); }
+    out property <bool> has-focus: root.live && keyboard.has-focus;
+    public function take-focus() { if (root.live) { keyboard.focus(); } }
+    // Scrolls the strip along its axis so the span from `start` to `end` is visible.
+    public function reveal(start: length, end: length) {
+        if (root.vertical) { viewport.reveal-vertical(start, end, KitThemes.scroll-behavior(root.theme)); }
+        else { viewport.reveal-horizontal(start, end, KitThemes.scroll-behavior(root.theme)); }
     }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
-        if (!root.interactive) { return KitKeyResult.reject; }
-        if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
-            let forward = root.flow == ChoiceFlow.right-to-left
-                ? event.text == Key.LeftArrow
-                : event.text == Key.RightArrow;
-            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
-            return KitKeyResult.accept;
-        }
+        if (!root.live) { return KitKeyResult.reject; }
         return keyboard.handle-key(event);
     }
     private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: tab-list;
     accessible-label: root.accessible-name;
-    accessible-orientation: Orientation.horizontal;
+    accessible-orientation: root.orientation;
     accessible-item-count: root.rows.length;
     // The single nonvirtualized strip is the entire direct accessible-child
     // sequence. ScrollFrame and its bars are roleless; RTL reverses this loop.
     accessible-delegate-focus: root.state.active-index >= 0 && root.state.active-index < root.rows.length
-        ? (root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - root.state.active-index : root.state.active-index) : -1;
-    // Reserve the horizontal gutter without clipping the tab row.
-    min-height: KitMetrics.row-height(root.theme, root.control-size) + KitThemes.scroll-bar-recipe(root.theme).thickness;
-    preferred-height: self.min-height;
+        ? (root.reversed ? root.rows.length - 1 - root.state.active-index : root.state.active-index) : -1;
+    // Reserve the scrollbar gutter on the cross axis without clipping the tabs.
+    min-height: KitMetrics.row-height(root.theme, root.control-size) + (root.vertical ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness);
+    preferred-height: root.vertical ? max(self.min-height, strip.preferred-height) : self.min-height;
+    min-width: root.vertical ? strip.min-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
+    preferred-width: root.vertical ? strip.preferred-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
+    horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: 0;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
-        enabled: root.interactive;
+        enabled: root.live;
         dismiss-on-system-back: false;
+        dismiss-on-escape: false;
+        typeahead-enabled: root.typeahead-enabled;
+        navigation-direction: root.vertical ? ChoiceDirection.vertical : ChoiceDirection.horizontal;
+        flow: root.flow;
         wrap: root.wrap;
         typeahead-timeout-ms: root.typeahead-timeout-ms;
-        check-typeahead-active => { return selection.is-typeahead-active(); }
+        // Space always activates a tab, including after optional typeahead.
+        check-typeahead-active => { return false; }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
         key-pressed(event) => { return root.handle-key(event) == KitKeyResult.accept ? accept : reject; }
@@ -327,40 +409,57 @@ export component KitTabs inherits Rectangle {
         typeahead(text) => { root.handle-typeahead(text); }
         viewport := ScrollFrame {
             theme: root.theme;
-            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-            content-width: max(self.visible-width, strip.preferred-width);
-            content-height: self.visible-height;
-            strip := HorizontalLayout {
+            vertical-scrollbar-policy: root.vertical ? ScrollBarPolicy.as-needed : ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: root.vertical ? ScrollBarPolicy.always-off : ScrollBarPolicy.as-needed;
+            content-width: root.vertical ? self.visible-width : max(self.visible-width, strip.preferred-width);
+            content-height: root.vertical ? max(self.visible-height, strip.preferred-height) : self.visible-height;
+            strip := FlexboxLayout {
                 width: viewport.content-width;
-                height: viewport.visible-height;
+                height: root.vertical ? viewport.content-height : viewport.visible-height;
                 spacing: root.theme.spacing.unit;
-                alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
+                flex-direction: root.vertical ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
+                flex-wrap: FlexboxLayoutWrap.no-wrap;
+                cross-axis-alignment: CrossAxisAlignment.stretch;
+                alignment: root.tab-width == ControlWidth.fill ? LayoutAlignment.stretch
+                    : root.reversed ? LayoutAlignment.end : LayoutAlignment.start;
                 for index in root.rows.length: tab-action := KitNavigationAction {
-                    private property <OptionRow> entry: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
-                    theme: root.theme; control-size: root.control-size;
+                    private property <OptionRow> entry: root.rows[root.reversed ? root.rows.length - 1 - index : index];
+                    theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                     option-data: self.entry;
-                    accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index;
+                    accessible-item-index: root.reversed ? root.rows.length - 1 - index : index;
                     accessible-item-count: root.rows.length;
                     disabled: !root.interactive || self.entry.disabled;
                     accessible-role: tab;
-                    control-width: ControlWidth.intrinsic;
+                    control-width: root.vertical ? ControlWidth.fill : root.tab-width;
+                    label-alignment: root.vertical ? (root.flow == ChoiceFlow.right-to-left ? TextHorizontalAlignment.right : TextHorizontalAlignment.left) : TextHorizontalAlignment.center;
                     active: root.state.active.present && root.state.active.token == self.entry.token;
                     selected: root.state.selected.present && root.state.selected.token == self.entry.token;
-                    focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
+                    focus-indicated: root.live && self.active && (keyboard.has-focus || self.has-focus);
                     // The selected tab carries an underline instead of a tint;
                     // the ring is left to the active (keyboard) tab only.
                     background: self.pressed ? root.tab-recipe.pressed-fill : self.active ? root.tab-recipe.active-fill
                         : self.hovered ? root.tab-recipe.hover-fill : root.tab-recipe.fill;
                     indicator := Rectangle {
-                        x: -tab-action.recipe.padding-inline; y: tab-action.height - tab-action.recipe.padding-block - self.height;
-                        width: tab-action.width; height: root.theme.shape.border-width-strong;
+                        x: root.vertical && root.flow != ChoiceFlow.right-to-left ? tab-action.width - tab-action.recipe.padding-inline - self.width : -tab-action.recipe.padding-inline;
+                        y: root.vertical ? -tab-action.recipe.padding-block : tab-action.height - tab-action.recipe.padding-block - self.height;
+                        width: root.vertical ? root.theme.shape.border-width-strong : tab-action.width;
+                        height: root.vertical ? tab-action.height : root.theme.shape.border-width-strong;
                         background: root.theme.accent;
                         opacity: tab-action.selected ? 1 : 0;
-                        animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+                        animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
                     }
-                    changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
+                    changed active => {
+                        if (self.active) {
+                            // ensure-visible leaves an existing animation running
+                            // when its new target is already visible.
+                            viewport.scroll-to({x: -viewport.content-x, y: -viewport.content-y}, ScrollBehavior.instant);
+                            if (root.vertical && self.height > viewport.visible-height) { root.reveal(self.y, self.y + self.height); }
+                            else if (!root.vertical && self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
+                            else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+                        }
+                    }
                     key-event(event) => {
-                        if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
+                        if (event.text == (root.vertical ? Key.DownArrow : Key.RightArrow) || event.text == (root.vertical ? Key.UpArrow : Key.LeftArrow) || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
                         return KitKeyResult.reject;
                     }
                     activate(token, generation) => { root.take-focus(); root.handle-activate(token, generation); }
@@ -382,46 +481,106 @@ export component KitTabs inherits Rectangle {
     }
     function handle-navigate(step: NavigationStep) {
         selection.navigate(step);
-        if (root.activation == TabActivation.automatic && root.interactive && selection.state.active.present) {
-            selection.activate(selection.state.active.token, selection.state.generation);
-            root.activate(selection.state.active.token, selection.state.generation);
-        }
+        root.activate-on-navigation();
         root.navigate(step);
     }
     function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
     function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
-    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
+    function activate-on-navigation() {
+        if (root.activation == TabActivation.automatic && root.live && selection.state.active.present) {
+            root.handle-activate(selection.state.active.token, selection.state.generation);
+        }
+    }
+    function handle-typeahead(text: string) { selection.typeahead(text); root.activate-on-navigation(); root.typeahead(text); }
 
     out property <string> selected-label: selection.selected-label;
 }
 
+// Keep native child editors mounted while collapsing the inactive panel's
+// layout contribution. The tab reference comes from the same Choices model as
+// the tab strip state; view positions never identify a panel.
+export component KitTabPanel inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <LayoutSpace> gap: LayoutSpace.regular;
+    in property <LayoutSpace> inset: LayoutSpace.none;
+    in property <SelectState> state;
+    in property <SelectionRef> tab;
+    in property <string> accessible-name;
+    in property <bool> tab-stop: false;
+    out property <bool> active: root.tab.present && root.tab.token >= 0 && root.state.generation > 0
+        && root.state.selection-availability == SelectionAvailability.available
+        && root.state.selected.present && root.state.selected.token == root.tab.token;
+    visible: root.active;
+    min-width: root.active ? content.min-width : 0px;
+    preferred-width: root.active ? content.preferred-width : 0px;
+    max-width: root.active ? content.max-width : 0px;
+    min-height: root.active ? content.min-height : 0px;
+    preferred-height: root.active ? content.preferred-height : 0px;
+    max-height: root.active ? content.max-height : 0px;
+    vertical-stretch: 0;
+    accessible-role: tab-panel;
+    accessible-label: root.accessible-name;
+    forward-focus: scope;
+    public function take-focus() { if (root.active) { scope.focus(); } }
+    scope := FocusScope {
+        enabled: root.active;
+        focus-on-tab-navigation: root.active && root.tab-stop;
+        content := KitStack {
+            theme: root.theme; gap: root.gap; inset: root.inset;
+            x: 0px; y: 0px; width: parent.width; height: parent.height;
+            @children
+        }
+    }
+    if root.active && scope.has-focus: FocusOutline {
+        ring: root.theme.focus;
+        radius: root.border-radius; host-width: root.width; host-height: root.height;
+    }
+}
+
 export component KitCollapse inherits VerticalLayout {
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> title;
     in-out property <bool> expanded;
+    // Group membership. A section with `value >= 0` is open when `group-value` equals
+    // its `value`; bind `group-value <=> shared` on every sibling so one section opens
+    // at a time. `-1` leaves the section standalone, driven by `expanded`.
+    in property <int> value: -1;
+    in-out property <int> group-value: -1;
+    // In a group, whether the open section can be closed by activating it again.
+    in property <bool> collapsible: true;
+    out property <bool> open: root.value >= 0 ? root.group-value == root.value : root.expanded;
     in property <Ownership> ownership: Ownership.local;
     in property <bool> disabled;
     callback expansion-requested(bool);
     public function take-focus() { trigger.take-focus(); }
+    function request(next: bool) {
+        if (root.disabled || KitModalContext.inert(root.modal-layer)) { return; }
+        if (!next && root.value >= 0 && !root.collapsible) { return; }
+        if (root.ownership == Ownership.local) {
+            if (root.value >= 0) { root.group-value = next ? root.value : -1; } else { root.expanded = next; }
+        }
+        root.expansion-requested(next);
+    }
     alignment: start;
     spacing: 0px;
     vertical-stretch: 0;
     trigger := KitPressable {
-        theme: root.theme; control-size: root.control-size;
+        theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
         intent: ButtonIntent.quiet;
         disabled: root.disabled;
         control-width: ControlWidth.fill;
         accessible-name: root.title;
         accessible-expandable: true;
-        accessible-expanded: root.expanded;
-        accessible-action-expand => { if (!root.disabled && !root.expanded) { if (root.ownership == Ownership.local) { root.expanded = true; } root.expansion-requested(true); } }
-        activated => { let next = !root.expanded; if (root.ownership == Ownership.local) { root.expanded = next; } root.expansion-requested(next); }
+        accessible-expanded: root.open;
+        accessible-action-expand => { if (!root.open) { root.request(true); } }
+        activated => { root.request(!root.open); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
             Text { text: root.title; color: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
             Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; }
+                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.open; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; }
             }
         }
     }
@@ -429,15 +588,19 @@ export component KitCollapse inherits VerticalLayout {
     private property <length> inset-x: root.theme.spacing.unit * 4;
     private property <length> inset-y: root.theme.spacing.unit * 2;
     Rectangle {
-        clip: true; visible: root.expanded || self.height > 0px;
-        height: root.expanded ? body.preferred-height + 2 * root.inset-y : 0px;
-        animate height { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-in-out; }
+        clip: true; visible: root.open || self.height > 0px;
+        height: root.open ? body.preferred-height + 2 * root.inset-y : 0px;
+        animate height { enabled: !root.theme.reduced-motion; duration: root.theme.motion.base; easing: ease-in-out; }
         vertical-stretch: 0;
         body := VerticalLayout { x: root.inset-x; y: root.inset-y; width: max(0px,root.width - 2 * root.inset-x); height: self.preferred-height; spacing: root.theme.spacing.unit * 2; alignment: start; @children }
     }
 }
 
 export component KitAccordion inherits VerticalLayout {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -447,7 +610,7 @@ export component KitAccordion inherits VerticalLayout {
     callback expansion-requested(int, int, bool, ExpansionMode);
     callback navigate(NavigationStep);
     private property <bool> focus-requested;
-    changed interactive => { if (!root.interactive) { root.focus-requested = false; } }
+    changed live => { if (!root.live) { root.focus-requested = false; } }
     private property <length> inset-x: root.theme.spacing.unit * 4;
     private property <length> inset-y: root.theme.spacing.unit * 2;
     spacing: root.theme.spacing.unit * 2;
@@ -465,7 +628,7 @@ export component KitAccordion inherits VerticalLayout {
         alignment: start;
         trigger := KitNavigationAction {
             trailing-space: KitMetrics.icon-size(root.theme, root.control-size) + root.theme.spacing.unit * 2;
-            theme: root.theme; control-size: root.control-size;
+            theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
             option-data: section.disclosure.item;
             disabled: !root.interactive || section.disclosure.item.disabled;
             active: false; selected: false;
@@ -487,7 +650,7 @@ export component KitAccordion inherits VerticalLayout {
                 return KitKeyResult.reject;
             }
             private property <bool> active-row: root.state.active.present && root.state.active.token == section.disclosure.item.token;
-            changed active-row => { if (root.interactive && self.active-row && root.focus-requested) { self.take-focus(); root.focus-requested = false; } }
+            changed active-row => { if (root.live && self.active-row && root.focus-requested) { self.take-focus(); root.focus-requested = false; } }
             activate(token, generation) => { root.handle-expansion(token, generation, !section.disclosure.expanded, root.mode); }
             // Children of a pressable sit in its padded content box, while
             // `parent` names the pressable itself: place from its own metrics.
@@ -496,7 +659,7 @@ export component KitAccordion inherits VerticalLayout {
         Rectangle {
             height: section.disclosure.expanded ? answer.preferred-height + 2 * root.inset-y : 0px;
             clip: true; vertical-stretch: 0;
-            animate height { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-in-out; }
+            animate height { enabled: !root.theme.reduced-motion; duration: root.theme.motion.base; easing: ease-in-out; }
             answer := Text {
                 x: root.inset-x; y: root.inset-y; width: max(0px,parent.width - 2 * root.inset-x);
                 text: section.disclosure.item.description; color: root.theme.text-secondary;
@@ -518,7 +681,7 @@ export component KitAccordion inherits VerticalLayout {
     }
     function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
     function handle-expansion(token: int, generation: int, expanded: bool, mode: ExpansionMode) {
-        if (!root.interactive) { return; }
+        if (!root.live) { return; }
         if (KitSelectionService.ready) {
             if (root.ownership == Ownership.local) { root.expanded = KitSelectionService.disclose(root.options, root.expanded, token, generation, selection.state.generation, expanded, mode); }
             root.requested-expanded = expanded;
@@ -532,6 +695,10 @@ export component KitAccordion inherits VerticalLayout {
 
 // Manual carousel: application chooses the active slide through stable identity.
 export component KitCarousel inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <string> label: "Carousel";
     accessible-role: groupbox; accessible-label: root.label;
@@ -546,16 +713,22 @@ export component KitCarousel inherits Rectangle {
     in property <string> previous-label: "Previous slide";
     in property <string> next-label: "Next slide";
     in property <string> empty-label: "No slides";
+    // Draws one dot per slide under the controls; the active slide's dot is filled.
+    // The dots are a visual cue only: assistive technology reads the position text.
+    in property <bool> show-indicators: false;
+    // Zero-based active slide, or -1 when there is none. Content placed in the carousel
+    // reads it to show one view per slide, for example `if carousel.current-index == 0: ...`.
+    out property <int> current-index: root.display-index >= 0 && root.display-index < root.rows.length ? root.display-index : -1;
     in property <string> position-label: KitStrings.carousel-position-template
         .replace-all("{current}", "" + (root.rows.length == 0 ? 0 : root.display-index + 1))
         .replace-all("{total}", "" + root.rows.length);
     callback navigate(NavigationStep);
     callback activate(int, int);
     in property <string> action-label;
-    out property <bool> has-focus: root.interactive && keyboard.has-focus;
-    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
+    out property <bool> has-focus: root.live && keyboard.has-focus;
+    public function take-focus() { if (root.live) { keyboard.focus(); } }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
-        if (!root.interactive) { return KitKeyResult.reject; }
+        if (!root.live) { return KitKeyResult.reject; }
         if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
             let forward = root.flow == ChoiceFlow.right-to-left
                 ? event.text == Key.LeftArrow
@@ -584,7 +757,7 @@ export component KitCarousel inherits Rectangle {
     drop-shadow-color: root.surface.shadow.color;
     keyboard := FocusScope {
         x: 0px; y: 0px; width: root.width; height: root.height;
-        enabled: root.interactive;
+        enabled: root.live;
         focus-on-tab-navigation: true;
         key-pressed(event) => {
             // Keys rejected by an editor or control in @children belong to
@@ -605,7 +778,7 @@ export component KitCarousel inherits Rectangle {
             }
             @children
             if root.action-label != "" && root.display-index >= 0 && root.display-index < root.rows.length: KitNavigationAction {
-                theme: root.theme; control-size: root.control-size; tab-stop: true; accessible-role: button;
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; tab-stop: true; accessible-role: button;
                 option-data: {token: root.rows[root.display-index].token, generation: root.rows[root.display-index].generation, label: root.action-label, description: "", disabled: !root.interactive || root.rows[root.display-index].disabled};
                 key-event(event) => {
                     if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End) { root.take-focus(); return root.handle-key(event); }
@@ -616,7 +789,7 @@ export component KitCarousel inherits Rectangle {
             HorizontalLayout {
                 spacing: root.theme.spacing.unit * 2; alignment: space-between;
                 KitButton {
-                    theme: root.theme; control-size: root.control-size; text: root.previous-label;
+                    theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.previous-label;
                     disabled: !root.interactive || root.rows.length == 0 || (!root.wrap && root.display-index <= 0);
                     key-event(event) => {
                         if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End) { root.take-focus(); return root.handle-key(event); }
@@ -624,15 +797,23 @@ export component KitCarousel inherits Rectangle {
                     }
                     activated => { root.handle-navigate(NavigationStep.previous); }
                 }
-                Text { text: root.position-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+                Text { text: root.position-label; accessible-live-region: polite; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
                 KitButton {
-                    theme: root.theme; control-size: root.control-size; text: root.next-label;
+                    theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.next-label;
                     disabled: !root.interactive || root.rows.length == 0 || (!root.wrap && root.display-index >= root.rows.length - 1);
                     key-event(event) => {
                         if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End) { root.take-focus(); return root.handle-key(event); }
                         return KitKeyResult.reject;
                     }
                     activated => { root.handle-navigate(NavigationStep.next); }
+                }
+            }
+            if root.show-indicators && root.rows.length > 0: HorizontalLayout {
+                alignment: center; spacing: root.theme.spacing.unit * 2;
+                for slide[slide-index] in root.rows: Rectangle {
+                    width: root.theme.spacing.unit * 2; height: root.theme.spacing.unit * 2;
+                    border-radius: self.width / 2;
+                    background: slide-index == root.current-index ? root.theme.accent : root.theme.border-strong;
                 }
             }
         }
@@ -661,12 +842,32 @@ export component KitCarousel inherits Rectangle {
 }
 
 export component KitBreadcrumbs inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> accessible-name: KitStrings.breadcrumbs-label;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
+    // Longest trail shown before the middle collapses into an ellipsis button; the first
+    // crumb and the last `max-items - 1` crumbs stay visible. Zero shows every crumb;
+    // values below 2 behave as 2.
+    in property <int> max-items: 0;
+    // True once the ellipsis button was pressed and the whole trail is shown. Bind or set
+    // it to restore the collapsed trail.
+    in-out property <bool> expanded: false;
+    // Glyph drawn between two crumbs.
+    in property <IconGlyph> separator-glyph: root.theme.icons.chevron-right;
+    // Accessible name of the ellipsis button that reveals the collapsed crumbs.
+    in property <string> ellipsis-label: "Show hidden items";
+    // Accessible description of the last crumb, which is the current location.
+    in property <string> current-label: "Current page";
     callback activate(int, int);
+    private property <int> limit: max(2, root.max-items);
+    private property <bool> collapsed: root.max-items > 0 && !root.expanded && root.rows.length > root.limit;
+    // First crumb after the collapsed run; the ellipsis stands just before it.
+    private property <int> tail-start: root.rows.length - (root.limit - 1);
     // The horizontal scrollbar keeps a stable gutter below the full row.
     min-height: KitMetrics.row-height(root.theme, root.control-size) + KitThemes.scroll-bar-recipe(root.theme).thickness;
     preferred-height: self.min-height;
@@ -683,22 +884,39 @@ export component KitBreadcrumbs inherits Rectangle {
             spacing: root.theme.spacing.unit; alignment: start;
             for row[index] in root.rows: HorizontalLayout {
                 spacing: root.theme.spacing.unit;
-                if index > 0: Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                    KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.theme.icons.chevron-right; ink: root.theme.text-secondary; }
+                if root.collapsed && index == root.tail-start: HorizontalLayout {
+                    spacing: root.theme.spacing.unit;
+                    Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
+                        KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.separator-glyph; ink: root.theme.text-secondary; }
+                    }
+                    KitButton {
+                        theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                        text: "…"; accessible-name: root.ellipsis-label;
+                        intent: ButtonIntent.quiet;
+                        disabled: !root.interactive;
+                        activated => { root.expanded = true; }
+                    }
                 }
-                if index < root.rows.length - 1: KitNavigationAction {
-                    theme: root.theme; control-size: root.control-size;
-                    option-data: row;
-                    disabled: !root.interactive || row.disabled;
-                    control-width: ControlWidth.intrinsic;
-                    tab-stop: true;
-                    accessible-role: button;
-                    activate(token, generation) => { root.handle-activate(token, generation); }
-                }
-                if index == root.rows.length - 1: Text {
-                    text: row.label; color: root.theme.text-primary;
-                    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-                    vertical-alignment: center; overflow: elide;
+                if !root.collapsed || index == 0 || index >= root.tail-start: HorizontalLayout {
+                    spacing: root.theme.spacing.unit;
+                    if index > 0: Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
+                        KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.separator-glyph; ink: root.theme.text-secondary; }
+                    }
+                    if index < root.rows.length - 1: KitNavigationAction {
+                        theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                        option-data: row;
+                        disabled: !root.interactive || row.disabled;
+                        control-width: ControlWidth.intrinsic;
+                        tab-stop: true;
+                        accessible-role: button;
+                        activate(token, generation) => { root.handle-activate(token, generation); }
+                    }
+                    if index == root.rows.length - 1: Text {
+                        text: row.label; color: root.theme.text-primary;
+                        accessible-description: root.current-label;
+                        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                        vertical-alignment: center; overflow: elide;
+                    }
                 }
             }
         }
@@ -719,9 +937,17 @@ export component KitBreadcrumbs inherits Rectangle {
     out property <string> selected-label: selection.selected-label;
 }
 
+// How KitPagination presents its pages: previous/next with the position text,
+// or numbered page buttons with boundary and sibling pages and ellipses.
+export enum PaginationDisplay { position, numbered }
+
 // Integers are a projection boundary; a Rust pagination controller validates
 // the page index/count. This view never mutates a remote collection itself.
 export component KitPagination inherits HorizontalLayout {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> accessible-name: KitStrings.pagination-label;
@@ -730,7 +956,7 @@ export component KitPagination inherits HorizontalLayout {
     in property <Ownership> ownership: Ownership.local;
     callback page-changed(int);
     function change-page(value: int) {
-        if (!root.interactive || root.page-count <= 0) { return; }
+        if (!root.live || root.page-count <= 0) { return; }
         let next = min(max(0, value), root.page-count - 1);
         if (next == root.page-index) { return; }
         if (root.ownership == Ownership.local) { root.page-index = next; }
@@ -742,15 +968,70 @@ export component KitPagination inherits HorizontalLayout {
         .replace-all("{total}", "" + max(0, root.page-count));
     in property <string> previous-label: "Previous";
     in property <string> next-label: "Next";
+    in property <string> first-label: "First";
+    in property <string> last-label: "Last";
+    // Accessible name of a numbered page button; `{page}` is replaced by the one-based page.
+    in property <string> page-label-template: "Page {page}";
+    // `position` keeps Previous, the position text and Next. `numbered` adds page buttons.
+    in property <PaginationDisplay> display: PaginationDisplay.position;
+    // Numbered display: pages kept at each end and on each side of the current page.
+    in property <int> boundary-count: 1;
+    in property <int> sibling-count: 1;
+    // Numbered display: adds buttons that jump to the first and the last page.
+    in property <bool> show-first-last;
     callback navigate(NavigationStep);
+
+    private property <int> boundaries: max(0, root.boundary-count);
+    private property <int> siblings: max(0, root.sibling-count);
+    // One-based current page, bounded; 0 for an empty collection.
+    private property <int> current: root.page-count <= 0 ? 0 : min(max(0, root.page-index), root.page-count - 1) + 1;
+    // Fixed slot count: the row keeps its width while the current page moves.
+    private property <int> slot-count: min(max(0, root.page-count), 2 * root.boundaries + 2 * root.siblings + 3);
+    private property <bool> collapsed: root.page-count > root.slot-count;
+    // First page of the sibling window, clamped between the two boundary blocks.
+    private property <int> window-start: min(max(root.current - root.siblings, root.boundaries + 2), root.page-count - root.boundaries - 2 * root.siblings - 1);
+    private property <int> window-end: root.window-start + 2 * root.siblings;
+    // The page shown in a slot: a positive one-based page, or 0 for an ellipsis.
+    function slot-page(slot: int) -> int {
+        if (!root.collapsed) { return slot + 1; }
+        if (slot < root.boundaries) { return slot + 1; }
+        if (slot >= root.slot-count - root.boundaries) { return root.page-count - (root.slot-count - 1 - slot); }
+        if (slot == root.boundaries) { return root.window-start > root.boundaries + 2 ? 0 : root.window-start - 1; }
+        if (slot == root.slot-count - root.boundaries - 1) { return root.window-end < root.page-count - root.boundaries - 1 ? 0 : root.window-end + 1; }
+        return root.window-start + (slot - root.boundaries - 1);
+    }
     spacing: root.theme.spacing.unit * 2;
     alignment: start;
     vertical-stretch: 0;
     accessible-role: navigation;
     accessible-label: root.accessible-name;
-    KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.page-index <= 0 || root.page-count <= 0; activated => { root.change-page(root.page-index - 1); root.navigate(NavigationStep.previous); } }
-    Text { text: root.position-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
-    KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.change-page(root.page-index + 1); root.navigate(NavigationStep.next); } }
+    if root.display == PaginationDisplay.numbered && root.show-first-last: KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.first-label; disabled: !root.interactive || root.current <= 1; activated => { root.change-page(0); root.navigate(NavigationStep.first); } }
+    KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.previous-label; disabled: !root.interactive || root.page-index <= 0 || root.page-count <= 0; activated => { root.change-page(root.page-index - 1); root.navigate(NavigationStep.previous); } }
+    if root.display == PaginationDisplay.numbered: HorizontalLayout {
+        spacing: root.theme.spacing.unit;
+        horizontal-stretch: 0;
+        for slot in root.slot-count: HorizontalLayout {
+            property <int> page: root.slot-page(slot);
+            if self.page > 0: KitButton {
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                text: "" + parent.page;
+                accessible-name: root.page-label-template.replace-all("{page}", "" + parent.page);
+                accessible-checkable: true;
+                accessible-checked: parent.page == root.current;
+                intent: parent.page == root.current ? ButtonIntent.primary : ButtonIntent.secondary;
+                disabled: !root.interactive;
+                activated => { root.change-page(parent.page - 1); }
+            }
+            if self.page == 0: Text {
+                text: "…"; accessible-role: none;
+                color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                vertical-alignment: center; horizontal-alignment: center;
+            }
+        }
+    }
+    Text { text: root.position-label; accessible-live-region: polite; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+    KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.next-label; disabled: !root.interactive || root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.change-page(root.page-index + 1); root.navigate(NavigationStep.next); } }
+    if root.display == PaginationDisplay.numbered && root.show-first-last: KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.last-label; disabled: !root.interactive || root.current == 0 || root.current >= root.page-count; activated => { root.change-page(root.page-count - 1); root.navigate(NavigationStep.last); } }
 }
 
 export component KitNotificationButton inherits KitPressable {
@@ -800,13 +1081,22 @@ component NotificationAction inherits KitOption {
 }
 enum NotificationItemPhase { visible, dismissing }
 component NotificationItem inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     accessible-role: list-item;
-    accessible-label: root.notice.item.label;
+    accessible-label: root.notice.read ? root.notice.item.label : root.notice.item.label + ", " + root.unread-label;
+    accessible-description: root.notice.item.description;
     in property <KitTheme> theme;
     in property <ControlSize> control-size;
     in property <NotificationRow> notice;
     in property <int> focus-token;
     in property <int> focus-request;
+    // The center holds a reveal pending until the row owning the token mounts
+    // and takes focus; a row mounted by the scroll applies it from `init`.
+    in property <bool> focus-pending;
+    in property <string> unread-label;
+    callback focus-taken();
     in property <string> open-label;
     in property <string> mark-read-label;
     in property <string> read-label;
@@ -816,6 +1106,12 @@ component NotificationItem inherits Rectangle {
     callback mark-read(int,int);
     callback dismiss-row(int,int);
     preferred-height: notice-content.preferred-height + root.theme.shape.border-width;
+    function apply-focus() {
+        if (root.focus-pending && root.focus-token == root.notice.item.token) {
+            open-preview.take-focus();
+            root.focus-taken();
+        }
+    }
     private property <NotificationItemPhase> phase;
     private property <int> dismiss-token;
     private property <int> dismiss-generation;
@@ -825,7 +1121,7 @@ component NotificationItem inherits Rectangle {
     changed identity-token => { root.phase = NotificationItemPhase.visible; }
     changed identity-generation => { root.phase = NotificationItemPhase.visible; }
     opacity: root.phase == NotificationItemPhase.dismissing ? 0 : 1;
-    animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+    animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
     Timer {
         running: root.phase == NotificationItemPhase.dismissing;
         interval: root.theme.reduced-motion ? 0ms : root.theme.motion.fast;
@@ -836,7 +1132,14 @@ component NotificationItem inherits Rectangle {
     }
 
             private property <int> request: root.focus-request;
-            changed request => { if (root.focus-token == root.notice.item.token) { open-preview.take-focus(); } }
+            changed request => { root.apply-focus(); }
+            // A row mounted by the reveal is not placed yet at init; focusing then would
+            // reveal a stale position, so take focus on the first tick after placement.
+            Timer {
+                running: root.focus-pending && root.focus-token == root.notice.item.token;
+                interval: 0ms;
+                triggered => { root.apply-focus(); }
+            }
             height: notice-content.preferred-height + root.theme.shape.border-width;
             background: root.theme.surface-raised;
             notice-content := VerticalLayout {
@@ -849,9 +1152,9 @@ component NotificationItem inherits Rectangle {
                 Text { text: root.notice.item.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                 FlexboxLayout {
                     spacing: root.theme.spacing.unit * 2; alignment: start;
-                    open-preview := NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled || root.inactive}; activate(token,generation) => {root.activate(token,generation);} }
-                    NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; alternate-label: root.notice.read ? root.mark-read-label : root.read-label; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.notice.read ? root.read-label : root.mark-read-label,description:"",disabled:root.notice.read || root.inactive}; activate(token,generation) => {root.mark-read(token,generation);} }
-                    NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.dismiss-label,description:"",disabled:root.inactive}; activate(token,generation) => {root.dismiss-token = token; root.dismiss-generation = generation; root.phase = NotificationItemPhase.dismissing;} }
+                    open-preview := NotificationAction { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled || root.inactive}; activate(token,generation) => {root.activate(token,generation);} }
+                    NotificationAction { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; alternate-label: root.notice.read ? root.mark-read-label : root.read-label; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.notice.read ? root.read-label : root.mark-read-label,description:"",disabled:root.notice.read || root.inactive}; activate(token,generation) => {root.mark-read(token,generation);} }
+                    NotificationAction { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.dismiss-label,description:"",disabled:root.inactive}; activate(token,generation) => {root.dismiss-token = token; root.dismiss-generation = generation; root.phase = NotificationItemPhase.dismissing;} }
                 }
             }
             Rectangle { x: root.theme.spacing.unit * 4; y: parent.height - self.height; width: max(0px,parent.width - 2 * self.x); height: root.theme.shape.border-width; background: root.theme.border-subtle; }
@@ -859,12 +1162,20 @@ component NotificationItem inherits Rectangle {
 }
 
 export component KitNotificationCenter inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> accessible-name: KitStrings.notifications-label;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[NotificationRow]> rows;
     in property <int> focus-token: -1;
     in property <int> focus-request;
+    // Position of `focus-token` in `rows`, published with it by the host (for
+    // example from KeyedModel::index_of). A virtual list scrolls this row into
+    // view so it mounts and takes focus; -1 means the row is already mounted.
+    in property <int> focus-index: -1;
+    in property <string> unread-label: "Unread";
     in property <string> empty-label: "No notifications";
     in property <string> empty-description: "You are all caught up.";
     in property <string> open-label: "Open preview";
@@ -878,6 +1189,20 @@ export component KitNotificationCenter inherits Rectangle {
     accessible-role: AccessibleRole.list;
     accessible-label: root.accessible-name;
     min-height: 100px;
+    private property <bool> focus-pending;
+    private property <int> reveal-serial;
+    private property <int> request: root.focus-request;
+    // Restore a programmatic focus target before its native button takes focus.
+    function scroll-to-focus() {
+        if (root.rows.length > 32 && root.focus-index >= 0 && root.focus-index < root.rows.length) {
+            virtual-list.ensure-row-visible(root.focus-index, ScrollBehavior.instant);
+        }
+    }
+    changed request => {
+        root.focus-pending = root.focus-token >= 0;
+        root.scroll-to-focus();
+        root.reveal-serial += 1;
+    }
     // Measure a bounded inbox exactly. Unbounded message collections retain a
     // finite virtual viewport and never create every native action delegate.
     out property <length> content-height: root.rows.length <= 32 ? bounded-content.preferred-height : virtual-list.content-height;
@@ -896,9 +1221,10 @@ export component KitNotificationCenter inherits Rectangle {
         content-height: max(self.visible-height,bounded-content.preferred-height);
         bounded-content := VerticalLayout {
             x: 0px; y: 0px; width: parent.visible-width; height: self.preferred-height; alignment: start; spacing: 0px;
-            for row in root.rows.length <= 32 ? root.rows : []: NotificationItem {
+            for row in root.rows.length <= 32 ? root.rows : []: NotificationItem { modal-layer: root.modal-layer;
                 theme: root.theme; control-size: root.control-size; notice: row;
-                focus-token: root.focus-token; focus-request: root.focus-request;
+                focus-token: root.focus-token; focus-request: root.reveal-serial; focus-pending: root.focus-pending; unread-label: root.unread-label;
+                focus-taken => { root.focus-pending = false; }
                 open-label: root.open-label; mark-read-label: root.mark-read-label; read-label: root.read-label; dismiss-label: root.dismiss-label; disabled: root.disabled;
                 activate(token,generation) => { root.activate(token,generation); }
                 mark-read(token,generation) => { root.mark-read(token,generation); }
@@ -911,9 +1237,10 @@ export component KitNotificationCenter inherits Rectangle {
         visible: root.rows.length > 32;
         horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
         vertical-scrollbar-policy: ScrollBarPolicy.always-on;
-        for row in root.rows.length > 32 ? root.rows : []: NotificationItem {
+        for row in root.rows.length > 32 ? root.rows : []: NotificationItem { modal-layer: root.modal-layer;
             theme: root.theme; control-size: root.control-size; notice: row;
-                focus-token: root.focus-token; focus-request: root.focus-request;
+                focus-token: root.focus-token; focus-request: root.reveal-serial; focus-pending: root.focus-pending; unread-label: root.unread-label;
+                focus-taken => { root.focus-pending = false; }
                 open-label: root.open-label; mark-read-label: root.mark-read-label; read-label: root.read-label; dismiss-label: root.dismiss-label; disabled: root.disabled;
                 activate(token,generation) => { root.activate(token,generation); }
                 mark-read(token,generation) => { root.mark-read(token,generation); }
@@ -924,26 +1251,43 @@ export component KitNotificationCenter inherits Rectangle {
 
 // OverlayStack and the focus registry remain the authority for modal ownership.
 // Render last; host connects dismiss, focus-next and restore-focus callbacks.
+export enum DrawerSide { start, end, top, bottom }
+// Which control takes focus when a drawer opens. `first-action` falls back to
+// the close button while `actions` is empty.
+export enum DrawerInitialFocus { close-button, first-action }
 export component KitDrawer inherits KitDialogSurface {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> title;
     in property <string> close-label: "Close panel";
+    // Edge the panel attaches to. `start` and `end` follow the theme direction,
+    // so `end` is the right edge in left-to-right and the left edge in right-to-left.
+    in property <DrawerSide> side: DrawerSide.end;
+    // Panel extent across `start` and `end`; ignored for `top` and `bottom`.
     in property <length> panel-width: 380px;
+    // Panel extent for `top` and `bottom`; ignored for `start` and `end`.
+    in property <length> panel-height: 320px;
+    // Where focus lands on open. The default keeps the close button.
+    in property <DrawerInitialFocus> initial-focus: DrawerInitialFocus.close-button;
+    // Footer buttons in reading order, pinned under the content; the last one is
+    // the primary action. An empty model shows no footer.
+    in property <[DialogAction]> actions;
+    callback action-activated(int);
+    private property <bool> focus-first-action: root.initial-focus == DrawerInitialFocus.first-action && root.actions.length > 0;
+    private property <bool> horizontal-edge: root.side == DrawerSide.top || root.side == DrawerSide.bottom;
+    private property <bool> at-right: (root.side == DrawerSide.end) != (root.theme.direction == ChoiceFlow.right-to-left);
     callback restore-focus();
     callback close-focus-observed(bool);
+    // Focuses the close button, wherever `initial-focus` sends focus on open.
     public function take-focus() { close-button.take-focus(); }
     private property <bool> opened: root.state.open;
-    init => { if (root.state.open) { close-button.take-focus(); } }
-    changed opened => {
-        if (root.opened) { close-button.take-focus(); }
-        else { root.restore-focus(); }
-    }
+    changed opened => { if (!root.opened) { root.restore-focus(); } }
     KitDialogPanel {
         theme: root.theme;
         accessible-name: root.title;
-        x: root.width - self.width; y: 0px;
-        width: min(root.width, max(0px, root.panel-width));
-        height: root.height;
+        x: root.horizontal-edge || !root.at-right ? 0px : root.width - self.width;
+        y: root.side == DrawerSide.bottom ? root.height - self.height : 0px;
+        width: root.horizontal-edge ? root.width : min(root.width, max(0px, root.panel-width));
+        height: root.horizontal-edge ? min(root.height, max(0px, root.panel-height)) : root.height;
         border-radius: 0px;
         VerticalLayout {
             padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 4;
@@ -951,15 +1295,534 @@ export component KitDrawer inherits KitDialogSurface {
                 vertical-stretch: 0;
                 spacing: root.theme.spacing.unit * 3;
                 Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
-                close-button := KitIconButton {
+                close-button := DialogCloseButton {
                     theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.close;
                     accessible-name: root.close-label;
+                    modal-layer: root.modal-layer;
+                    claim-focus: root.state.open && !root.focus-first-action;
                     disabled: root.state.busy || !root.state.topmost;
                     focus-observed(focused) => { root.close-focus-observed(focused); }
-                    activated => { root.dismiss(CloseReason.programmatic); }
+                    activated => { root.dismiss(CloseReason.close-button); }
                 }
             }
+            VerticalLayout {
+                vertical-stretch: 1;
+                spacing: root.theme.spacing.unit * 4;
+                @children
+            }
+            if root.actions.length > 0: KitDialogFooter {
+                theme: root.theme;
+                for action[index] in root.actions: DialogActionButton {
+                    theme: root.theme; control-size: root.control-size;
+                    text: action.text; intent: action.intent;
+                    modal-layer: root.modal-layer;
+                    claim-focus: index == 0 && root.focus-first-action && root.state.open;
+                    disabled: action.disabled || root.state.busy || !root.state.topmost;
+                    activated => { root.action-activated(action.token); }
+                }
+            }
+        }
+    }
+}
+
+// The panel of a popover: the popover surface, a keyboard scope that turns
+// Escape into `escape` and takes focus when the panel is presented, and the
+// padded body that carries the panel's children.
+component PopoverPanel inherits Rectangle {
+    in property <SurfaceRecipe> recipe;
+    in property <length> inset;
+    in property <bool> presented;
+    callback escape();
+    preferred-height: body.preferred-height;
+    // The panel may be created after `presented` turned true: focus on both.
+    init => { if (root.presented) { scope.focus(); } }
+    changed presented => { if (root.presented) { scope.focus(); } }
+    ElevatedSurface { recipe: root.recipe; }
+    scope := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) { root.escape(); return accept; }
+            return reject;
+        }
+        body := VerticalLayout {
+            padding: root.inset;
             @children
         }
     }
+}
+
+// A trigger button that opens an anchored panel holding its children. The
+// panel sits below the trigger, or above it when there is more room, shifts to
+// stay inside the window and closes on an outside press or Escape. Escape
+// and `dismiss` return focus to the trigger; an outside press, which includes
+// a press on the trigger itself, closes the panel as `host-closed` and does not
+// move focus. `dismissed` names why the panel closed. Slint forbids reading or calling an element of the panel from
+// outside it: drive panel content through its callbacks and `changed` handlers.
+export component KitPopover inherits Rectangle {
+    in property <int> modal-layer;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ButtonIntent> intent: ButtonIntent.secondary;
+    in property <string> text;
+    in property <IconGlyph> leading-icon;
+    in property <IconGlyph> trailing-icon;
+    in property <string> accessible-name;
+    in property <bool> disabled;
+    in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
+    in property <length> popup-height: 320px;
+    out property <bool> open: popup.is-open;
+    out property <bool> has-focus: trigger.has-focus;
+    callback opened();
+    callback dismissed(CloseReason);
+    private property <PopupViewport> popup-viewport;
+    private property <bool> reported;
+    public function take-focus() { trigger.take-focus(); }
+    public function show() {
+        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) {
+            root.reported = false;
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.opened();
+        }
+    }
+    // Closes the panel, names the reason in `dismissed` and returns focus to the trigger.
+    public function dismiss(reason: CloseReason) {
+        if (!root.open) { return; }
+        popup.close();
+        trigger.take-focus();
+        root.report(reason);
+    }
+    function report(reason: CloseReason) {
+        if (!root.reported) { root.reported = true; root.dismissed(reason); }
+    }
+    changed open => {
+        if (!root.open) {
+            // Slint closes the panel on an outside press and consumes that press,
+            // so a press on the trigger closes the panel without reopening it.
+            root.report(CloseReason.host-closed);
+            root.reported = false;
+        }
+    }
+    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    min-width: layout.min-width;
+    preferred-width: layout.preferred-width;
+    min-height: layout.min-height;
+    preferred-height: layout.preferred-height;
+    vertical-stretch: 0;
+    layout := VerticalLayout {
+        trigger := KitButton {
+            theme: root.theme; control-size: root.control-size; intent: root.intent; modal-layer: root.modal-layer;
+            text: root.text; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
+            accessible-name: root.accessible-name;
+            disabled: root.disabled;
+            accessible-expandable: true; accessible-expanded: root.open;
+            activated => { if (root.open) { root.dismiss(CloseReason.trigger-toggle); } else { root.show(); } }
+            key-event(event) => {
+                if (event.text == Key.DownArrow && !root.open) { root.show(); return KitKeyResult.accept; }
+                return KitKeyResult.reject;
+            }
+        }
+    }
+    popup := PopupWindow {
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: min(root.popup-height, panel.preferred-height);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
+        close-policy: close-on-click-outside;
+        panel := PopoverPanel {
+            recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+            inset: KitMetrics.popover-inset(root.theme);
+            presented: root.open;
+            escape => { root.dismiss(CloseReason.escape); }
+            @children
+        }
+    }
+}
+
+// A trigger button that opens a menu of actions. Choosing a row closes the
+// menu, reports the row through `chosen` and returns focus to the trigger.
+// Placement, dismissal and `dismissed` reasons match KitPopover.
+export component KitDropdownMenu inherits Rectangle {
+    in property <int> modal-layer;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ButtonIntent> intent: ButtonIntent.secondary;
+    in property <string> text;
+    in property <IconGlyph> leading-icon;
+    in property <IconGlyph> trailing-icon: root.theme.icons.chevron-down;
+    in property <string> accessible-name;
+    in property <bool> disabled;
+    in property <[OptionRow]> options;
+    in property <[MenuItem]> items;
+    in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
+    out property <bool> open: popup.is-open;
+    out property <bool> has-focus: trigger.has-focus;
+    callback opened();
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    private property <PopupViewport> popup-viewport;
+    private property <bool> reported;
+    public function take-focus() { trigger.take-focus(); }
+    public function show() {
+        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) {
+            root.reported = false;
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.opened();
+        }
+    }
+    public function dismiss(reason: CloseReason) {
+        if (!root.open) { return; }
+        popup.close();
+        trigger.take-focus();
+        root.report(reason);
+    }
+    function report(reason: CloseReason) {
+        if (!root.reported) { root.reported = true; root.dismissed(reason); }
+    }
+    changed open => {
+        if (!root.open) {
+            // Slint closes the panel on an outside press and consumes that press,
+            // so a press on the trigger closes the panel without reopening it.
+            root.report(CloseReason.host-closed);
+            root.reported = false;
+        }
+    }
+    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    min-width: layout.min-width;
+    preferred-width: layout.preferred-width;
+    min-height: layout.min-height;
+    preferred-height: layout.preferred-height;
+    vertical-stretch: 0;
+    layout := VerticalLayout {
+        trigger := KitButton {
+            theme: root.theme; control-size: root.control-size; intent: root.intent; modal-layer: root.modal-layer;
+            text: root.text; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
+            accessible-name: root.accessible-name;
+            disabled: root.disabled;
+            accessible-expandable: true; accessible-expanded: root.open;
+            activated => { if (root.open) { root.dismiss(CloseReason.trigger-toggle); } else { root.show(); } }
+            key-event(event) => {
+                if (event.text == Key.DownArrow && !root.open) { root.show(); return KitKeyResult.accept; }
+                return KitKeyResult.reject;
+            }
+        }
+    }
+    popup := PopupWindow {
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: panel.preferred-height;
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
+        close-policy: close-on-click-outside;
+        panel := PopoverPanel {
+            recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+            inset: KitMetrics.popover-inset(root.theme);
+            escape => { root.dismiss(CloseReason.escape); }
+            menu := KitMenu {
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                accessible-name: root.accessible-name != "" ? root.accessible-name : root.text;
+                options: root.options; items: root.items;
+                // A popup takes native focus after its init code: focus the rows on both paths.
+                private property <bool> presented: root.open;
+                init => { if (root.open) { self.take-focus(); } }
+                changed presented => { if (self.presented) { self.take-focus(); } }
+                chosen(row) => { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                dismiss(reason) => { if (reason != CloseReason.programmatic) { root.dismiss(reason); } }
+            }
+        }
+    }
+}
+
+// A content area with a menu of actions opened at the pointer by the right
+// button, or by the menu key (or Shift+F10) from the content or from a
+// focusable child that does not use the key itself. The menu is the panel and
+// rows of KitDropdownMenu, anchored at the pointer point instead of a trigger:
+// it sits below the point, or above it when there is more room, and shifts to
+// stay inside the window. Choosing a row closes the menu, reports the row
+// through `chosen` and returns focus to the content area. Dismissal and
+// `dismissed` reasons match KitPopover. The content takes one tab stop.
+export component KitContextMenu inherits Rectangle {
+    in property <int> modal-layer;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <string> accessible-name: "Context menu";
+    in property <bool> disabled;
+    in property <[OptionRow]> options;
+    in property <[MenuItem]> items;
+    in property <length> popup-width: KitMetrics.select-popup-min-width(root.theme);
+    // Where the menu key opens the menu, in the content's coordinates.
+    in property <length> keyboard-anchor-x: root.theme.spacing.unit * 2;
+    in property <length> keyboard-anchor-y: root.theme.spacing.unit * 2;
+    out property <bool> open: popup.is-open;
+    out property <bool> has-focus: scope.has-focus;
+    callback opened();
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    private property <PopupViewport> popup-viewport;
+    private property <length> anchor-x;
+    private property <length> anchor-y;
+    private property <bool> reported;
+    public function take-focus() { scope.focus(); }
+    // Opens the menu at a point of the content area.
+    public function show-at(x: length, y: length) {
+        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open && root.options.length > 0) {
+            root.reported = false;
+            root.anchor-x = x;
+            root.anchor-y = y;
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.opened();
+        }
+    }
+    // Opens the menu where the menu key does.
+    public function show() { root.show-at(root.keyboard-anchor-x, root.keyboard-anchor-y); }
+    public function dismiss(reason: CloseReason) {
+        if (!root.open) { return; }
+        popup.close();
+        scope.focus();
+        root.report(reason);
+    }
+    function report(reason: CloseReason) {
+        if (!root.reported) { root.reported = true; root.dismissed(reason); }
+    }
+    changed open => {
+        if (!root.open) {
+            // Slint closes the panel on an outside press and consumes that press.
+            root.report(CloseReason.host-closed);
+            root.reported = false;
+        }
+    }
+    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    min-width: layout.min-width;
+    preferred-width: layout.preferred-width;
+    min-height: layout.min-height;
+    preferred-height: layout.preferred-height;
+    scope := FocusScope {
+        enabled: !root.disabled;
+        key-pressed(event) => {
+            if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
+                root.show();
+                return accept;
+            }
+            return reject;
+        }
+        touch := TouchArea {
+            enabled: !root.disabled;
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.show-at(self.mouse-x, self.mouse-y); }
+            }
+            layout := VerticalLayout { @children }
+        }
+    }
+    popup := PopupWindow {
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: panel.preferred-height;
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x + root.anchor-x, y: root.absolute-position.y + root.anchor-y, anchor-width: 0px, anchor-height: 0px, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
+        x: root.anchor-x + self.placement.x; y: root.anchor-y + self.placement.y;
+        height: self.placement.height;
+        close-policy: close-on-click-outside;
+        panel := PopoverPanel {
+            recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+            inset: KitMetrics.popover-inset(root.theme);
+            escape => { root.dismiss(CloseReason.escape); }
+            menu := KitMenu {
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                accessible-name: root.accessible-name;
+                options: root.options; items: root.items;
+                // A popup takes native focus after its init code: focus the rows on both paths.
+                private property <bool> presented: root.open;
+                init => { if (root.open) { self.take-focus(); } }
+                changed presented => { if (self.presented) { self.take-focus(); } }
+                chosen(row) => { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                dismiss(reason) => { if (reason != CloseReason.programmatic) { root.dismiss(reason); } }
+            }
+        }
+    }
+}
+
+// One destination of a sidebar. Expanded it shows an optional icon, the label, a
+// badge and, on a parent, a turning chevron; nested rows step in by one icon
+// slot per level. In the icon rail only the icon remains, centred.
+component SidebarItem inherits KitOption {
+    in property <SidebarVisibleRow> entry;
+    in property <bool> rail;
+    // Keeps the labels of rows with and without an icon aligned.
+    in property <bool> reserve-icon;
+    private property <OptionRecipe> label-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    private property <length> slot: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <length> content-width: max(0px, root.width - 2 * root.padding-inline);
+    private property <length> indent: root.rail ? 0px : root.entry.depth * (root.slot + root.theme.spacing.unit * 2);
+    private property <bool> has-icon: root.entry.row.leading-icon.stroke != "" || root.entry.row.leading-icon.fill != "";
+    private property <bool> chevron: root.entry.expandable && !root.rail;
+    private property <length> label-start: root.indent + (root.reserve-icon || root.has-icon ? root.slot + root.theme.spacing.unit * 2 : 0px);
+    private property <length> label-end: (root.chevron ? root.slot + root.theme.spacing.unit * 2 : 0px) + (root.entry.row.badge != "" ? badge.preferred-width + root.theme.spacing.unit * 2 : 0px);
+    private property <color> ink: root.disabled ? root.label-recipe.disabled-foreground : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
+    accessible-expandable: root.chevron;
+    accessible-expanded: root.chevron && root.entry.expanded;
+    if root.has-icon: KitIcon {
+        x: root.rail ? (root.content-width - self.width) / 2 : root.indent;
+        y: (root.height - 2 * root.padding-block - self.height) / 2;
+        theme: root.theme; control-size: root.control-size; glyph: root.entry.row.leading-icon; ink: root.ink;
+    }
+    if !root.rail || !root.has-icon: Text {
+        x: root.rail ? 0px : root.label-start; y: 0px;
+        width: root.rail ? root.content-width : max(0px, root.content-width - root.label-start - root.label-end);
+        height: max(0px, root.height - 2 * root.padding-block);
+        horizontal-alignment: root.rail ? TextHorizontalAlignment.center : TextHorizontalAlignment.left;
+        text: root.entry.row.item.label; color: root.ink;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+        vertical-alignment: center; overflow: elide;
+    }
+    badge := Text {
+        visible: !root.rail && root.entry.row.badge != "";
+        x: root.content-width - self.preferred-width - (root.chevron ? root.slot + root.theme.spacing.unit * 2 : 0px); y: 0px;
+        height: max(0px, root.height - 2 * root.padding-block);
+        text: root.rail ? "" : root.entry.row.badge; color: root.disabled ? root.label-recipe.disabled-foreground : root.theme.text-secondary;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+        vertical-alignment: center;
+    }
+    if root.chevron: TurningIcon {
+        theme: root.theme; control-size: root.control-size;
+        x: root.content-width - self.width; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        turned: root.entry.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg;
+        ink: root.theme.text-secondary;
+    }
+}
+
+// An application sidebar: section headings, items, items nested under a parent
+// item, a current item and a collapsed icon rail. `rows` is a flat model in
+// reading order; `SidebarRow.parent` nests an item under another by token.
+// Activating an item makes it current and emits `chosen`; activating a parent
+// opens or closes it and emits `expansion-requested`. Collapsed to the rail the
+// sections and nested items are hidden and a parent emits `rail-parent-activated`
+// instead, so the host can expand the sidebar. One tab stop; Up, Down, Home, End,
+// PageUp, PageDown and typeahead move the active row, Enter or Space activates
+// it, Right opens a parent and moves into it, Left closes it.
+export component KitSidebar inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert and its rows ignore pointer and keys.
+    in property <int> modal-layer;
+    private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
+    in property <bool> interactive: true;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <[SidebarRow]> rows;
+    in property <bool> collapsed;
+    in property <string> accessible-name: "Sidebar";
+    in property <length> row-height: KitMetrics.row-height(root.theme, root.control-size);
+    in property <Ownership> ownership: Ownership.local;
+    // The current page. Local ownership sets it when an item is activated.
+    in-out property <SelectionRef> current;
+    // Tokens of the open parents. Local ownership updates it when a parent is activated.
+    in-out property <[SelectionRef]> expanded;
+    out property <[SidebarVisibleRow]> shown-rows: KitSelectionService.ready ? KitSelectionService.sidebar-rows(root.rows, root.expanded, root.collapsed) : [];
+    out property <SelectState> state: selection.state;
+    out property <bool> has-focus: root.live && keyboard.has-focus;
+    callback chosen(OptionRow);
+    callback expansion-requested(OptionRow, bool);
+    callback rail-parent-activated(OptionRow);
+    callback focus-observed(bool);
+    changed has-focus => { root.focus-observed(root.has-focus); }
+    public function take-focus() { if (root.live) { keyboard.focus(); } }
+    private property <[OptionRow]> options: KitSelectionService.ready ? KitSelectionService.sidebar-options(root.shown-rows) : [];
+    private property <bool> reserve-icon: !root.collapsed && KitSelectionService.ready && KitSelectionService.sidebar-has-icons(root.rows);
+    private property <length> list-width: root.collapsed ? KitMetrics.sidebar-rail-width(root.theme, root.control-size) : KitMetrics.sidebar-width(root.theme);
+    out property <int> page-rows: list.visible-height > 0px && root.row-height > 0px ? max(1, Math.floor(list.visible-height / root.row-height)) : 0;
+    public function ensure-active-visible() { list.ensure-row-visible(root.state.active-index, KitThemes.scroll-behavior(root.theme)); }
+    changed state => { root.ensure-active-visible(); }
+    function request-expansion(entry: SidebarVisibleRow, open: bool) {
+        if (!root.live || entry.row.item.disabled || !entry.expandable || root.collapsed) { return; }
+        if (root.ownership == Ownership.local && KitSelectionService.ready) { root.expanded = KitSelectionService.sidebar-toggle(root.rows, root.expanded, entry.row.item.token, open); }
+        root.expansion-requested(entry.row.item, open);
+    }
+    function activate-entry(entry: SidebarVisibleRow) {
+        if (!root.live || entry.row.kind != SidebarRowKind.item) { return; }
+        if (entry.expandable) {
+            if (root.collapsed) { root.rail-parent-activated(entry.row.item); }
+            else { root.request-expansion(entry, !entry.expanded); }
+            return;
+        }
+        if (root.ownership == Ownership.local) { root.current = { present: true, token: entry.row.item.token }; }
+        root.chosen(entry.row.item);
+    }
+    function active-entry() -> SidebarVisibleRow {
+        return KitSelectionService.ready && root.state.active.present ? KitSelectionService.sidebar-entry(root.shown-rows, root.state.active.token) : { };
+    }
+    accessible-role: AccessibleRole.list;
+    accessible-label: root.accessible-name;
+    accessible-item-count: root.shown-rows.length;
+    accessible-orientation: Orientation.vertical;
+    background: root.theme.surface;
+    min-width: root.list-width; preferred-width: root.list-width; max-width: root.list-width;
+    horizontal-stretch: 0;
+    forward-focus: keyboard;
+    // The trailing edge rule.
+    Rectangle { x: parent.width - self.width; width: root.theme.shape.border-width; height: parent.height; background: root.theme.border-subtle; }
+    arrows := FocusScope {
+        enabled: root.live;
+        focus-on-tab-navigation: false;
+        key-pressed(event) => {
+            let entry = root.active-entry();
+            if (event.text == Key.RightArrow && entry.expandable && !root.collapsed) {
+                if (!entry.expanded) { root.request-expansion(entry, true); } else { root.handle-navigate(NavigationStep.next); }
+                return accept;
+            }
+            if (event.text == Key.LeftArrow && entry.expandable && entry.expanded && !root.collapsed) {
+                root.request-expansion(entry, false);
+                return accept;
+            }
+            return reject;
+        }
+        keyboard := KitSelectKeyboard {
+            enabled: root.live;
+            dismiss-on-system-back: false;
+            dismiss-on-escape: false;
+            page-rows: root.page-rows;
+            check-typeahead-active => { return selection.is-typeahead-active(); }
+            state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
+            focus-on-tab-navigation: true;
+            navigate(step) => { root.handle-navigate(step); }
+            activate(token, generation) => { selection.activate(token, generation); }
+            typeahead(text) => { selection.typeahead(text); }
+            list := ListView {
+                theme: root.theme;
+                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                for entry[index] in root.shown-rows: Rectangle {
+                    height: root.row-height;
+                    if entry.row.kind == SidebarRowKind.section: Text {
+                        x: root.theme.spacing.unit * 2; width: max(0px, parent.width - 2 * self.x);
+                        text: entry.row.item.label; color: root.theme.text-secondary;
+                        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+                        vertical-alignment: center; overflow: elide;
+                        accessible-role: text;
+                    }
+                    if entry.row.kind == SidebarRowKind.item: SidebarItem {
+                        entry: entry; rail: root.collapsed; reserve-icon: root.reserve-icon;
+                        theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                        // The selection stamps its rows with the generation its gestures are fenced by.
+                        option-data: selection.rows[index];
+                        disabled: !root.interactive || entry.row.item.disabled;
+                        accessible-item-index: index; accessible-item-count: root.shown-rows.length;
+                        active: root.state.active.present && root.state.active.token == entry.row.item.token;
+                        selected: root.current.present && root.current.token == entry.row.item.token;
+                        focus-indicated: root.has-focus && self.active;
+                        accessible-action-expand => { if (entry.expandable && !entry.expanded) { root.request-expansion(entry, true); } }
+                        key-event(event) => {
+                            if (event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.PageDown || event.text == Key.PageUp || event.text == Key.LeftArrow || event.text == Key.RightArrow) { root.take-focus(); return keyboard.handle-key(event); }
+                            return KitKeyResult.reject;
+                        }
+                        activate(token, generation) => { root.take-focus(); selection.activate(token, generation); }
+                    }
+                }
+            }
+        }
+    }
+
+    selection := KitSelection {
+        options: root.options; persistent: true;
+        page-rows: root.page-rows;
+        chosen(row) => { root.activate-entry(KitSelectionService.sidebar-entry(root.shown-rows, row.token)); }
+    }
+    function handle-navigate(step: NavigationStep) { selection.navigate(step); }
 }

@@ -209,6 +209,7 @@ impl HtmlValidationEngine {
                 }
             },
             twelve_hour: c.twelve_hour,
+            day_periods: crate::datetime::day_periods(&c.day_periods),
             required: c.required,
             multiple: c.multiple,
             min_length: usize::try_from(c.min_length).ok(),
@@ -221,6 +222,7 @@ impl HtmlValidationEngine {
             custom_error: c.custom_error.to_string(),
             disabled: c.disabled,
             read_only: c.read_only,
+            date_entry: crate::calendar::date_entry(&c.date_entry),
         };
         (rules, pattern_error)
     }

@@ -5,21 +5,27 @@ export { FocusRequest } from "contracts.slint";
 
 // The host registers logical targets after window creation. A recycled target
 // must have a new generation. No registration callback is emitted from init.
-export component KitFocusTarget inherits FocusScope {
+// The target is not a focus stop: it paints nothing and takes no focus itself.
+// It forwards a matching request to the real control through `focus-requested`
+// (call `take-focus()` there) and the real control reports its own focus through
+// `observe-focus`, so the host sees one true/false pair per real focus change.
+export component KitFocusTarget inherits Rectangle {
     in property <int> token;
     in property <int> generation;
     in property <bool> eligible: true;
     in property <FocusRequest> request;
     callback focus-requested();
     callback focus-applied(int, int, int);
-    callback focus-observed(int, bool);
+    callback focus-observed(int, int, bool);
     private property <int> applied-request: -1;
-    enabled: root.eligible;
-    focus-on-tab-navigation: false;
+    // Call from the real control's focus callback. The generation lets the host
+    // ignore a report that comes from a recycled target.
+    public function observe-focus(focused: bool) {
+        root.focus-observed(root.token, root.generation, focused);
+    }
     function apply-request() {
         if (root.eligible && root.request.present && root.request.token == root.token && root.request.generation == root.generation && root.request.request != root.applied-request) {
             root.applied-request = root.request.request;
-            root.focus();
             root.focus-requested();
             root.focus-applied(root.token, root.generation, root.request.request);
         }
@@ -27,8 +33,6 @@ export component KitFocusTarget inherits FocusScope {
     changed request => { root.apply-request(); }
     changed eligible => { root.apply-request(); }
     init => { root.apply-request(); }
-    focus-gained(reason) => { root.focus-observed(root.token, true); }
-    focus-lost(reason) => { root.focus-observed(root.token, false); }
     @children
 }
 

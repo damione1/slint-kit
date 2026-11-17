@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ScrollFrame, ScrollPanPolicy } from "scroll.slint";
+import { NavigationStep } from "contracts.slint";
+import { FocusOutline } from "focus.slint";
+import { KitModalContext } from "modal.slint";
 import { ElevationLevel, KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
 export { SurfaceLevel } from "theme.slint";
 
@@ -7,6 +10,10 @@ export { SurfaceLevel } from "theme.slint";
 export enum LayoutSpace { none, tight, compact, regular, roomy, section }
 export enum ContentWidth { reading, standard, wide, fluid }
 export enum SurfaceBorder { none, subtle }
+// Which axes a KitScrollArea scrolls. `both` treats the vertical axis as primary.
+export enum ScrollAxes { vertical, horizontal, both }
+// The edge of the primary axis that a scrolled viewport has reached.
+export enum ScrollEdge { start, end }
 export global KitLayoutMetrics {
     // Multiples of the theme's spacing unit: 0, 1, 2, 4, 6 and 8.
     public pure function space(theme: KitTheme, value: LayoutSpace) -> length {
@@ -143,16 +150,33 @@ export component KitSurface inherits Rectangle {
     }
 }
 
-// Finite viewport allocated by the parent. One width-bound column reflows its
-// children and grows vertically; no horizontal scrolling or hidden focus scope.
-// The vertical bar is a themed KitScrollBar.
+// Finite viewport allocated by the parent. By default one width-bound column
+// reflows its children and grows vertically. `axes` adds horizontal or
+// two-axis scrolling, where the column takes the width of its widest child.
+// `focusable` makes the viewport a tab stop with a focus ring: arrows, Page
+// Up/Down, Space (Shift+Space reverses), Home and End scroll it. Scrollbars are
+// themed KitScrollBar parts; the primary axis is vertical unless `axes` is
+// horizontal, and drives `scroll-to-start`, `scroll-to-end`, `at-start`, `at-end`
+// and `edge-reached`.
 export component KitScrollArea inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <LayoutSpace> inset: LayoutSpace.none;
+    in property <ScrollAxes> axes: ScrollAxes.vertical;
+    // Opt-in keyboard scrolling: the viewport joins the tab order and keeps
+    // accepting keys bubbled from focusable content.
+    in property <bool> focusable: false;
+    // Accessible name of the viewport group; name it whenever it is focusable.
+    in property <string> label;
+    // Distance of one arrow-key step; Page keys move a page minus one step.
+    in property <length> line-step: root.theme.spacing.unit * 10;
     in property <bool> enabled <=> frame.enabled;
     in property <bool> overlay-scrollbars <=> frame.overlay-scrollbars;
-    in property <ScrollBarPolicy> vertical-scrollbar-policy <=> frame.vertical-scrollbar-policy;
+    in property <ScrollBarPolicy> vertical-scrollbar-policy;
+    in property <ScrollBarPolicy> horizontal-scrollbar-policy;
     in property <bool> mouse-drag-pan-enabled <=> frame.mouse-drag-pan-enabled;
     in property <ScrollPanPolicy> pan-policy <=> frame.pan-policy;
     out property <length> visible-width: frame.visible-width;
@@ -160,20 +184,60 @@ export component KitScrollArea inherits Rectangle {
     out property <length> content-width: frame.content-width;
     out property <length> content-height: frame.content-height;
     in-out property <length> content-y <=> frame.content-y;
+    in-out property <length> content-x <=> frame.content-x;
+    // Whether the primary axis overflows, and where its offset sits. A viewport
+    // whose content fits is at both its start and its end.
+    out property <bool> scrollable: root.range > 0px;
+    out property <bool> at-start: root.offset >= 0px;
+    out property <bool> at-end: root.offset <= -root.range;
+    out property <bool> keyboard-focus;
     callback scrolled <=> frame.scrolled;
-    public function scroll-to-start() { root.content-y = 0px; }
-    public function reveal(top: length, bottom: length) {
-        // An oversized target cannot expose both edges. Reveal its leading edge
-        // only when hidden, preserving a saved position that already shows it.
-        if (bottom - top > root.visible-height) {
-            if (top < -root.content-y || top >= -root.content-y + root.visible-height) {
-                root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, top));
-            }
-        }
-        else if (top < -root.content-y) { root.content-y = -max(0px, top); }
-        else if (bottom > -root.content-y + root.visible-height) {
-            root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, bottom - root.visible-height));
-        }
+    // Emitted once when the primary axis arrives at an edge of overflowing
+    // content, whether by pointer, keyboard or a programmatic move.
+    callback edge-reached(ScrollEdge);
+    private property <bool> horizontal-primary: root.axes == ScrollAxes.horizontal;
+    private property <length> range: max(0px, root.horizontal-primary ? frame.content-width - frame.visible-width : frame.content-height - frame.visible-height);
+    private property <length> offset: root.horizontal-primary ? frame.content-x : frame.content-y;
+    // The column width while a horizontal axis scrolls: the content width,
+    // copied when it changes rather than bound. The frame content width follows
+    // the column's own width constraints, so a bound column width is a binding
+    // loop for every child whose minimum width depends on its width (a wrapped
+    // text or a layout sized from the child's width), even on a vertical-only
+    // area. A vertical-only column binds to the viewport width alone.
+    private property <length> frame-content-width: frame.content-width;
+    private property <length> column-width;
+    init => { root.column-width = root.frame-content-width; }
+    changed frame-content-width => { root.column-width = self.frame-content-width; }
+    changed at-start => { if (root.at-start && root.scrollable) { root.edge-reached(ScrollEdge.start); } }
+    changed at-end => { if (root.at-end && root.scrollable) { root.edge-reached(ScrollEdge.end); } }
+    public function take-focus() { keys.focus(); }
+    public function scroll-to-start() {
+        frame.scroll-to({x: root.horizontal-primary ? 0px : -frame.content-x, y: root.horizontal-primary ? -frame.content-y : 0px}, KitThemes.scroll-behavior(root.theme));
+    }
+    public function scroll-to-end() {
+        frame.scroll-to({x: root.horizontal-primary ? frame.content-width : -frame.content-x, y: root.horizontal-primary ? -frame.content-y : frame.content-height}, KitThemes.scroll-behavior(root.theme));
+    }
+    public function reveal(top: length, bottom: length) { frame.reveal-vertical(top, bottom, KitThemes.scroll-behavior(root.theme)); }
+    // Moves one axis by a navigation step. False when the axis cannot move, so
+    // the key stays available to an outer scrolled ancestor.
+    function move(step: NavigationStep, horizontal: bool) -> bool {
+        let visible = horizontal ? frame.visible-width : frame.visible-height;
+        let span = max(0px, (horizontal ? frame.content-width : frame.content-height) - visible);
+        let current = horizontal ? frame.content-x : frame.content-y;
+        let page = max(root.line-step, visible - root.line-step);
+        let target = step == NavigationStep.next ? current - root.line-step
+            : step == NavigationStep.previous ? current + root.line-step
+            : step == NavigationStep.page-next ? current - page
+            : step == NavigationStep.page-previous ? current + page
+            : step == NavigationStep.first ? 0px : -span;
+        let bounded = clamp(target, -span, 0px);
+        // Keyboard steps are direct: every repeat starts from the preceding
+        // destination, and native pointer/restoration changes stay authoritative.
+        // Even a no-op Home/End must cancel an older smooth reveal.
+        frame.scroll-to({x: horizontal ? -bounded : -frame.content-x, y: horizontal ? -frame.content-y : -bounded}, ScrollBehavior.instant);
+        if (bounded == current) { return false; }
+        root.scrolled();
+        return true;
     }
     min-width: frame.min-width;
     min-height: frame.min-height;
@@ -181,21 +245,55 @@ export component KitScrollArea inherits Rectangle {
     preferred-height: 100%;
     horizontal-stretch: 1;
     vertical-stretch: 1;
-    frame := ScrollFrame {
-        theme: root.theme;
-        width: root.width;
-        height: root.height;
-        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-        content-width: self.visible-width;
-        content-height: max(self.visible-height, body.preferred-height);
-        body := VerticalLayout {
-            y: 0px;
-            width: frame.visible-width;
-            height: self.preferred-height;
-            padding: KitLayoutMetrics.space(root.theme, root.inset);
-            spacing: KitLayoutMetrics.space(root.theme, root.gap);
-            alignment: start;
-            @children
+    keys := FocusScope {
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        enabled: root.enabled && !KitModalContext.inert(root.modal-layer);
+        accessible-enabled: root.enabled && !KitModalContext.inert(root.modal-layer);
+        focus-on-tab-navigation: root.focusable;
+        focus-on-click: root.focusable;
+        accessible-role: groupbox;
+        accessible-label: root.label;
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation || reason == FocusReason.programmatic;
+        }
+        focus-lost(reason) => { root.keyboard-focus = false; }
+        key-pressed(event) => {
+            if (!root.focusable || event.modifiers.control || event.modifiers.alt || event.modifiers.meta) { return reject; }
+            root.keyboard-focus = true;
+            let vertical = root.axes != ScrollAxes.horizontal;
+            let sideways = root.axes != ScrollAxes.vertical;
+            if (event.text == Key.Space) { return root.move(event.modifiers.shift ? NavigationStep.page-previous : NavigationStep.page-next, root.horizontal-primary) ? accept : reject; }
+            if (event.text == Key.PageDown) { return root.move(NavigationStep.page-next, root.horizontal-primary) ? accept : reject; }
+            if (event.text == Key.PageUp) { return root.move(NavigationStep.page-previous, root.horizontal-primary) ? accept : reject; }
+            if (event.text == Key.Home) { return root.move(NavigationStep.first, root.horizontal-primary) ? accept : reject; }
+            if (event.text == Key.End) { return root.move(NavigationStep.last, root.horizontal-primary) ? accept : reject; }
+            if (vertical && event.text == Key.DownArrow) { return root.move(NavigationStep.next, false) ? accept : reject; }
+            if (vertical && event.text == Key.UpArrow) { return root.move(NavigationStep.previous, false) ? accept : reject; }
+            // Offsets are physical: the Left key reveals content on the left.
+            if (sideways && event.text == Key.RightArrow) { return root.move(NavigationStep.next, true) ? accept : reject; }
+            if (sideways && event.text == Key.LeftArrow) { return root.move(NavigationStep.previous, true) ? accept : reject; }
+            return reject;
+        }
+        frame := ScrollFrame {
+            theme: root.theme;
+            width: root.width;
+            height: root.height;
+            vertical-scrollbar-policy: root.axes == ScrollAxes.horizontal ? ScrollBarPolicy.always-off : root.vertical-scrollbar-policy;
+            horizontal-scrollbar-policy: root.axes == ScrollAxes.vertical ? ScrollBarPolicy.always-off : root.horizontal-scrollbar-policy;
+            content-width: root.axes == ScrollAxes.vertical ? self.visible-width : max(self.visible-width, body.preferred-width);
+            content-height: root.axes == ScrollAxes.horizontal ? self.visible-height : max(self.visible-height, body.preferred-height);
+            body := VerticalLayout {
+                y: 0px;
+                width: root.axes == ScrollAxes.vertical ? frame.visible-width : root.column-width;
+                height: root.axes == ScrollAxes.horizontal ? frame.visible-height : self.preferred-height;
+                padding: KitLayoutMetrics.space(root.theme, root.inset);
+                spacing: KitLayoutMetrics.space(root.theme, root.gap);
+                alignment: start;
+                @children
+            }
+        }
+        if root.focusable && root.keyboard-focus && keys.has-focus: FocusOutline {
+            ring: KitThemes.inset-focus(root.theme); radius: 0px; host-width: root.width; host-height: root.height;
         }
     }
 }

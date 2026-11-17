@@ -5,32 +5,59 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+// Metadata belongs to the field; pointer geometry and retention target its native editor.
+fn native_editor(
+    field: &i_slint_backend_testing::ElementHandle,
+) -> i_slint_backend_testing::ElementHandle {
+    field
+        .query_descendants()
+        .match_id("KitTextField::editor")
+        .find_first()
+        .expect("retained native editor")
+}
+
 mod accessible_expansion;
 mod avatar_group;
+mod calendar_marks;
 mod calendar_outside;
+mod calendar_period;
+mod calendar_preview;
 mod code_feedback;
+mod collapse_group;
 mod column_widths;
+mod context_menu;
+mod day_periods;
 mod dialog_composition;
+mod dialog_high_level;
 mod direction;
 mod document_guards;
 mod dropdown_collision;
 mod file_constraints;
+mod focus_target;
 mod foundation_render;
 mod foundations;
 mod journeys;
 mod keyboard_scope;
 mod localized_labels;
+mod modal_context;
 mod multi_popup;
+mod notification_center;
+mod option_items;
+mod popover;
 mod preview;
+mod scroll_keys;
 mod select_search;
 mod selection_names;
 mod selection_search_session;
 mod selection_service;
 mod slider_recovery;
+mod table_actions;
 mod table_cells;
 mod table_editing;
+mod table_rich_cells;
 mod window_callback;
 mod wrapped_field;
+mod zoned_zone_picker;
 
 #[cfg(test)]
 mod tests {
@@ -557,6 +584,7 @@ mod tests {
             CloseReason::OutsidePress => kit_core::DismissReason::OutsidePress,
             CloseReason::SystemBack => kit_core::DismissReason::SystemBack,
             CloseReason::TriggerToggle => kit_core::DismissReason::TriggerToggle,
+            CloseReason::CloseButton => kit_core::DismissReason::CloseButton,
             CloseReason::Programmatic => kit_core::DismissReason::Programmatic,
             CloseReason::HostClosed => kit_core::DismissReason::HostClosed,
         }
@@ -814,27 +842,39 @@ mod base_data;
 mod button_group;
 mod button_sizing;
 mod control_states;
+mod data_states;
 mod icons;
 mod menu_focus;
+mod menu_items;
 mod native_dialog;
+mod navigation_interaction;
+mod row_gestures;
+mod sidebar;
+mod table_selection;
 mod theme_tokens;
 mod variants;
 
 #[cfg(test)]
 mod base_feedback;
 
+mod date_display;
+mod date_entry;
 mod datetime_localization;
+mod datetime_strings;
 mod duration_unit;
+mod money_currency;
 mod number_stepping;
 mod numeric_input;
 mod numeric_locale;
 mod optional_temporal;
 mod scroll_bar;
 mod select_geometry;
+mod wrapper_field_api;
 
 mod html_validation;
 
 mod phone;
+mod picker_field_contract;
 
 mod product_style;
 
@@ -847,8 +887,12 @@ mod otp_field;
 mod qa_polish;
 
 mod autonomous;
+mod event_loop;
 mod form_binding;
 mod keyed_model;
+mod router;
+mod store;
+mod task;
 mod text_field_behavior;
 
 mod direct_validation;
@@ -864,6 +908,7 @@ mod field_direction;
 
 mod slider_escape;
 
+mod color_labels;
 mod color_lifecycle;
 mod color_popup;
 mod range_coincident;
@@ -873,12 +918,18 @@ mod toast_lifecycle;
 mod toast_timer;
 
 mod slider_accessibility;
+mod slider_flow;
+mod slider_marks;
 
+mod choice_description;
 mod choice_validity;
 
 mod menu_active_focus;
 
+mod calendar_accessibility;
 mod composite_accessibility;
+mod date_popup_keyboard;
+mod tabs_panels;
 mod temporal_accepted;
 mod time_adjust;
 
@@ -888,3 +939,21 @@ mod qa_feedback;
 
 #[cfg(test)]
 mod qa_layout;
+
+mod translations;
+
+// Native virtual-list reveals accelerate, jump during layout, then decelerate.
+// Render-equivalent layout frames must run between animation ticks.
+fn settle_scroll(window: &impl slint::ComponentHandle) {
+    use i_slint_backend_testing::ElementQuery;
+    for _ in 0..80 {
+        slint::platform::update_timers_and_animations();
+        for element in ElementQuery::from_root(window).find_all() {
+            let _ = element.size();
+        }
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(16));
+    }
+    slint::platform::update_timers_and_animations();
+}
+mod reduced_motion;
+mod scroll_transactions;

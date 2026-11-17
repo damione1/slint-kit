@@ -255,7 +255,7 @@ fn field_actions_and_busy_invalid_states_render_with_intrinsic_adornment_geometr
             theme.text_scale = scale;
             app.set_theme(theme);
             let frame = app.window().take_snapshot().unwrap();
-            let native = editor(&app);
+            let native = crate::native_editor(&editor(&app));
             let leading = button(&app, "Unit selector").unwrap();
             let trailing = button(&app, "Copy value").unwrap();
             assert!(

@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDatePicker, KitTimeField, KitTheme, KitThemes, CivilDateView, LocalTimeValue, TimePrecision, FieldAccess } from "@kit";
+export component DatePopupKeyboardFixture inherits Window {
+    width: 720px; height: 720px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <TimePrecision> precision: TimePrecision.minute;
+    in property <bool> escape-cancels: true;
+    in-out property <CivilDateView> accepted <=> picker.accepted-date;
+    in-out property <string> text <=> picker.text;
+    in-out property <bool> open <=> picker.open;
+    out property <CivilDateView> picker-focused <=> picker.focused;
+    out property <string> picker-title: picker.title;
+    in-out property <LocalTimeValue> time <=> clock.accepted-time;
+    in-out property <string> time-text <=> clock.text;
+    in-out property <int> cancels;
+    in-out property <CivilDateView> selected: {year: 2026, month: 10, day: 2};
+    public function focus-editor() { picker.take-focus(); }
+    public function focus-time() { clock.take-focus(); }
+    public function focus-calendar() { calendar.take-focus(); }
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        picker := KitDatePicker {
+            theme: root.theme; access: root.access; label: "Stay date"; calendar-accessible-name: "Open stay calendar";
+            today: {year: 2026, month: 10, day: 2}; min: "2026-01-01"; max: "2026-12-31";
+            accepted-date: {year: 2026, month: 10, day: 2};
+        }
+        clock := KitTimeField {
+            theme: root.theme; access: root.access; precision: root.precision; accessible-name: "Check-in time";
+        }
+        calendar := KitCalendar {
+            theme: root.theme; label: "Standalone"; today: {year: 2026, month: 10, day: 2};
+            selected <=> root.selected; escape-cancels: root.escape-cancels;
+            cancelled => { root.cancels += 1; }
+        }
+    }
+}

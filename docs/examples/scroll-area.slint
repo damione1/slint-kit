@@ -1,4 +1,4 @@
-import { InterFont } from "@kit/fonts/inter.slint";
+import { InterFont } from "@kit-fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitButton, KitScrollArea, KitTextArea, KitTextField, KitTheme, KitThemes, LayoutSpace } from "@kit";
 
@@ -15,13 +15,26 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Scroll Area"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitScrollArea { pan-policy: children-first; overlay-scrollbars: false; height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } KitTextField { theme: root.theme; label: "Email address"; text: "elliot@example.com"; } KitTextField { theme: root.theme; label: "Website"; text: "https://example.com"; } KitTextField { theme: root.theme; label: "Phone"; text: "+1 514 555 0132"; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } KitButton { theme: root.theme; text: "Save project"; activated => { root.status = "Action requested"; } } }
+        KitScrollArea { focusable: true; label: "Project form"; pan-policy: children-first; overlay-scrollbars: false; height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } KitTextField { theme: root.theme; label: "Email address"; text: "elliot@example.com"; } KitTextField { theme: root.theme; label: "Website"; text: "https://example.com"; } KitTextField { theme: root.theme; label: "Phone"; text: "+1 514 555 0132"; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } KitButton { theme: root.theme; text: "Save project"; activated => { root.status = "Action requested"; } } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }
 
 import { ScrollFrame } from "@kit";
-export component CompositionExample inherits ScrollFrame {
-    width: 360px; height: 220px; content-width: 720px; content-height: 480px;
-    Rectangle { width: 720px; height: 480px; background: root.theme.surface; }
+export component CompositionExample inherits Window {
+    default-font-family: InterFont.family;
+    width: 360px; height: 220px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    public function restore-position() { viewport.scroll-to({x: 0px, y: 100px}, ScrollBehavior.instant); }
+    public function reveal-target() { target.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+    viewport := ScrollFrame {
+        theme: root.theme; content-width: 720px; content-height: 480px;
+        Rectangle {
+            width: 720px; height: 480px; background: root.theme.surface;
+            target := KitButton { x: 500px; y: 360px; width: 180px; theme: root.theme; text: "Target"; }
+        }
+    }
 }
+
+// Keyboard steps are immediate; explicit start/end/reveal helpers animate unless motion is reduced.
+// For ScrollFrame, keep content-translation-y bound to content-y; ListView supplies zero for its native virtual rows.

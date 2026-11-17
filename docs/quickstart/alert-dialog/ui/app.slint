@@ -1,0 +1,17 @@
+import { KitThemeContext } from "@kit";
+import { InterFont } from "@kit-fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ButtonIntent, DialogTabPolicy, KitAlertDialog, KitTheme, KitThemes } from "@kit";
+
+export component App inherits Window {
+    default-font-family: InterFont.family;
+    title: "KitAlertDialog example";
+    preferred-width: 560px;
+    preferred-height: 360px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemeContext.current;
+    in-out property <string> status;
+    KitAlertDialog { tab-policy: DialogTabPolicy.native; theme: root.theme; width: parent.width; height: parent.height; title: "Delete this project?"; description: "The project and its notes are removed for everyone."; confirm-text: "Delete project"; cancel-text: "Keep project"; confirm-intent: ButtonIntent.destructive; state: { open: true, topmost: true, busy: false }; confirmed => { root.status = "Deletion requested"; } cancelled => { root.status = "Deletion cancelled"; } if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; } }
+}
