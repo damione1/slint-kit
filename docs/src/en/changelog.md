@@ -38,4 +38,6 @@ Custom theme literals must include the added control/choice colors, inset surfac
 
 The [getting-started guide](/guides/getting-started/) explains the Slint UI/Rust application split. [Project setup](/guides/project-setup/#desktop-and-mobile-targets) now links to official desktop packaging, Android, iOS, WebAssembly and embedded deployment guides. Slint's microcontroller support does not imply a `no_std` port of Slint Kit.
 
+All 139 public components now have a complete runnable starter and browser preview, including screen navigation, the sidebar, popovers, menus and dialogs.
+
 For all kit API and behavior changes, including changes beyond the Slint upgrade and earlier versions, read the [complete changelog](https://github.com/damione1/slint-kit/blob/v0.9.0/CHANGELOG.md).

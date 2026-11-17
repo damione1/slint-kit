@@ -129,7 +129,7 @@ for (const component of components) {
       if (darkCapture?.image) check(sha(fs.readFileSync(path.join(docs, 'quickstart', slug, darkCapture.image.file))) === darkCapture.image.sha256, `${name}: dark starter screenshot differs from its capture proof`);
       const blocks = [...html.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
       for (const file of ['Cargo.toml', 'build.rs', 'ui/app.slint', 'src/main.rs']) {
-        const source = fs.readFileSync(path.join(docs, 'quickstart', slug, file), 'utf8');
+        const source = fs.readFileSync(path.join(starter, file), 'utf8');
         if (['ui/app.slint', 'src/main.rs'].includes(file)) {
           check(blocks.includes(source.trim()), `${name}/${locale}: working example must display the complete ${file}`);
         }

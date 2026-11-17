@@ -6,6 +6,9 @@ Slint Kit 0.9.0 integrates Slint 1.19 with Rust 1.95+, edition-aware library imp
 
 Slint Kit 0.9.0 intègre Slint 1.19 avec Rust 1.95+, les imports de bibliothèque par édition, les révélations natives et la réduction des animations. Consultez la [synthèse de migration](https://slint-kit.dev/fr/changelog/) et les [notes officielles de Slint 1.19](https://github.com/slint-ui/slint/releases/tag/v1.19.0). Les guides de démarrage et de configuration expliquent désormais la structure Rust/Slint et renvoient vers la documentation officielle de déploiement Android, WebAssembly et embarqué ; Slint Kit ne fournit pas de portage `no_std` pour microcontrôleur.
 
+- Provide runnable starters and browser previews for all 139 public components, including router/screen composition, sidebar, popover, dropdown/context menus and dialogs.
+- Fournit des starters exécutables et aperçus navigateur pour les 139 composants publics, dont les compositions de routes/écrans, la barre latérale, les popovers, menus déroulants/contextuels et dialogues.
+
 - Complete the bilingual platform and Slint 1.19 migration guides, add the public changelog page, and fix missing catalogue illustrations and inherited date-entry validation documentation. Registry starter guidance now reflects released components.
 - Complète les guides bilingues de plateformes et de migration Slint 1.19, ajoute la page publique du changelog et corrige les illustrations de catalogue manquantes ainsi que la documentation héritée de validation des dates. Les indications des starters reflètent désormais les composants publiés.
 

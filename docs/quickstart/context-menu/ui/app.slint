@@ -1,0 +1,33 @@
+import { KitThemeContext } from "@kit";
+import { InterFont } from "@kit-fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitContextMenu, KitTheme, KitThemes } from "@kit";
+
+export component App inherits Window {
+    default-font-family: InterFont.family;
+    title: "KitContextMenu example";
+    preferred-width: 480px;
+    preferred-height: 320px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemeContext.current;
+    in-out property <string> status: "No action yet";
+    VerticalLayout {
+        padding: 24px;
+        spacing: 12px;
+        alignment: start;
+        KitContextMenu {
+            theme: root.theme;
+            options: [{ token: 11, generation: 1, label: "Rename", description: "Change the project name", disabled: false }, { token: 23, generation: 1, label: "Duplicate", description: "Copy the project", disabled: false }, { token: 38, generation: 1, label: "Archive", description: "Move out of the list", disabled: false }];
+            chosen(row) => { root.status = "Chosen: " + row.label; }
+            Rectangle {
+                height: 160px;
+                background: root.theme.surface-raised;
+                border-radius: root.theme.shape.radius-container;
+                Text { text: "Right-click here, or press the menu key"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; }
+            }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+    }
+}
