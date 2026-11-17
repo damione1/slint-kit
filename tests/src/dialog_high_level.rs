@@ -204,6 +204,41 @@ fn without_a_close_button_opening_focuses_the_first_action() {
 }
 
 #[test]
+fn alert_dialog_keeps_a_single_line_body_fully_visible_after_an_action() {
+    let window = alert(true);
+    click(&one(&window, "Keep"));
+    for dark in [false, true] {
+        for scale in [1., 2.] {
+            let themes = window.global::<crate::KitThemes>();
+            let mut theme = if dark {
+                themes.get_dark()
+            } else {
+                themes.get_light()
+            };
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            slint::platform::update_timers_and_animations();
+            let text = ElementQuery::from_root(&window)
+                .match_accessible_label("Project kept")
+                .find_first()
+                .expect("the action mounted its status line");
+            let viewport = ElementQuery::from_root(&window)
+                .match_id("ScrollFrame::flickable")
+                .find_first()
+                .expect("dialog body viewport");
+            let top = viewport.absolute_position().y;
+            let bottom = top + viewport.size().height;
+            let text_top = text.absolute_position().y;
+            let text_bottom = text_top + text.size().height;
+            assert!(
+                text.size().height > 0. && text_top >= top - 0.01 && text_bottom <= bottom + 0.01,
+                "dark={dark} scale={scale}: text {text_top}..{text_bottom}, viewport {top}..{bottom}"
+            );
+        }
+    }
+}
+
+#[test]
 fn alert_dialog_answers_explicitly_and_focuses_cancel() {
     let window = alert(false);
     let (confirmed, confirm_sink) = recorder();

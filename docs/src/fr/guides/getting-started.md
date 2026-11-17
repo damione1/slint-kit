@@ -11,21 +11,40 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 Slint Kit associe composants visuels et comportements partagés : validation des brouillons, valeurs Rust typées et identités stables. Le [guide Pourquoi Slint Kit](/fr/guides/why-slint-kit/) présente les responsabilités du kit et de votre application, avec des exemples à essayer.
 
 
-Installez Slint Kit depuis crates.io avec **Rust {{ project.rust }}+** et **Slint {{ project.slint }}**. Aucun clonage du kit n’est nécessaire.
+Installez Slint Kit avec **Rust {{ project.rust }}+** et **Slint {{ project.slint }}**, en utilisant des paquets runtime et build correspondants. Consultez le [changelog et la migration 0.9.0](/fr/changelog/).
 
 Les applications utilisent l’édition Rust 2024. Le compilateur et le runtime Slint doivent correspondre aux versions du kit.
+
+## Comprendre une application Slint
+
+Slint décrit l’interface dans des fichiers `.slint` : fenêtres, layouts, composants, propriétés et callbacks. Rust possède les données de l’application, les règles métier et les tâches comme le stockage ou le réseau. Slint Kit ajoute à cette application Rust/Slint des composants réutilisables, des contrôleurs typés et des comportements d’interaction partagés.
+
+Pour le langage, commencez par le [guide de démarrage officiel de Slint](https://docs.slint.dev/latest/docs/slint/guide/getting-started/) et le [tutoriel pas à pas](https://docs.slint.dev/latest/docs/slint/tutorial/quickstart/). L’[API Rust](https://docs.rs/slint/1.19.0/slint/) explique les types de fenêtres générés et la boucle d’événements. Slint possède aussi d’autres intégrations de langages ; les contrôleurs et le helper build de ce kit utilisent Rust.
+
+Les éléments d’une application utilisant le kit s’articulent ainsi :
+
+1. `Cargo.toml` choisit les dépendances correspondantes, un backend adapté à la plateforme et un moteur de rendu.
+2. `build.rs` compile `ui/app.slint` avec `slint_kit_build::compile`, qui enregistre `@kit` et génère les bindings Rust.
+3. Les propriétés `.slint` présentent l’état ; les callbacks transmettent les actions à Rust. Conservez les valeurs métier acceptées dans Rust et projetez leur présentation dans la fenêtre.
+4. Rust inclut le module généré, crée la fenêtre, appelle `slint_kit::install(&app)` une fois, connecte les callbacks et lance la boucle d’événements avec `app.run()` sur desktop.
+
+Suivez [Configurer le projet](/fr/guides/project-setup/) pour les fichiers complets, [Configurer l’éditeur](/fr/guides/editor/) pour la complétion et les aperçus, puis la [boucle de développement](/fr/guides/development-loop/) pour distinguer un aperçu statique d’une application Rust en cours d’exécution.
+
+## Choisir la plateforme cible
+
+Slint peut cibler le bureau, Android, iOS, le web via WebAssembly, Linux embarqué et les microcontrôleurs. Le backend, le point d’entrée et le packaging dépendent de la cible. Le [tableau des plateformes](/fr/guides/project-setup/#desktop-and-mobile-targets) renvoie vers les guides officiels de compilation et de déploiement de Slint, notamment Android et l’embarqué, et précise les limites actuelles du kit sur les cibles bare metal.
 
 ## Créer une application de bureau
 
 Suivez une fois la [configuration du projet](/fr/guides/project-setup/) pour Cargo et `build.rs`. Utilisez l’import public racine `@kit` et appelez `slint_kit::install(&app)` avant d’afficher chaque fenêtre. Le kit fournit le comportement, le thème et les conversions des contrats typés ; les callbacks de l’application traitent les actions métier.
 
-Cette documentation cible Slint Kit **{{ project.version }}**. Utilisez des versions correspondantes des paquets runtime et build. Configurer le projet décrit aussi les dépendances sources locales. Une application utilisant une ancienne version suit la documentation correspondante.
+Utilisez des paquets runtime et build correspondants. Configurer le projet décrit les dépendances de registre et les alternatives depuis les sources. Une application utilisant une ancienne version suit la documentation correspondante.
 
 ## Utiliser un exemple documenté
 
 Pour une application fonctionnelle, commencez par le [bouton](/fr/components/button/) ou la [liste avec recherche](/fr/components/combobox/) : chaque fiche montre le composant Slint et ses callbacks métier, avec un lien vers la configuration commune.
 
-Chaque fiche propose un projet complet téléchargeable avec `Cargo.lock`, Rust, Slint et `build.rs`. Décompressez le ZIP, puis lancez `cargo run --locked`. La capture et la preview interactive utilisent ce même exemple. Pour les règles communes des champs, consultez les [formulaires et validations](/fr/guides/forms/).
+Chaque fiche propose un projet complet avec `Cargo.lock`, Rust, Slint et `build.rs`. Suivez ses indications sources/version publiée avant de le lancer ; une API non publiée peut exiger les dépendances sources. Un projet publié inchangé se lance avec `cargo run --locked`. La capture et la preview interactive utilisent le même exemple. Pour les règles communes des champs, consultez les [formulaires et validations](/fr/guides/forms/).
 
 Les captures montrent l’état déclaré dans l’exemple. Les actions système comme l’ouverture d’un sélecteur de fichiers nécessitent l’[adaptateur natif](/fr/guides/native/). Pour une édition validée et une sélection interactive, consultez l’[application avec contrôleurs typés](/fr/guides/typed-example/).
 
@@ -42,7 +61,7 @@ Le showcase est une application fonctionnelle qui présente les composants publi
 Préparez les dépendances de bureau de votre système : outils de ligne de commande Xcode sur macOS, chaîne Rust MSVC et outils de compilation Visual Studio sur Windows, ou bibliothèques de développement requises sur Linux. Le [guide de compilation de Slint {{ project.slint }}](https://github.com/slint-ui/slint/blob/v{{ project.slint }}/docs/building.md#prerequisites) détaille la configuration par plateforme.
 
 ```sh
-git clone https://github.com/damione1/slint-kit.git
+git clone --branch {% if project.registryExamples %}v{{ project.version }}{% else %}develop{% endif %} https://github.com/damione1/slint-kit.git
 cd slint-kit
 cargo build --release --locked -p kit-showcase
 cargo run --release --locked -p kit-showcase
@@ -50,7 +69,7 @@ cargo run --release --locked -p kit-showcase
 
 ## Cibles annoncées et cibles qualifiées
 
-Slint Kit annonce les plateformes de bureau macOS, Windows et Linux, avec le backend winit et le moteur de rendu Skia de Slint comme pile documentée. Les sélecteurs natifs de fichiers et de répertoires compilent sur macOS, Windows, Linux et FreeBSD et signalent `Unsupported` ailleurs. Android, iOS, le web et les autres backends et moteurs de rendu de Slint ne sont pas des cibles annoncées ; les previews navigateur de ce site compilent le kit en WebAssembly à titre d’illustration seulement.
+La pile desktop documentée de Slint Kit couvre macOS, Windows et Linux avec le backend winit et le moteur Skia de Slint. Slint fournit aussi des backends mobiles, web et embarqués ; suivez [la configuration des plateformes et les guides officiels](/fr/guides/project-setup/#desktop-and-mobile-targets) pour adapter une application. Les previews navigateur de ce site exécutent les exemples Rust/Slint via WebAssembly. Ces capacités et compilations ne qualifient pas un appareil natif. Les sélecteurs natifs de fichiers et de répertoires compilent sur macOS, Windows, Linux et FreeBSD et signalent `Unsupported` ailleurs.
 
 Une cible annoncée est une cible pour laquelle le kit est construit. Une cible qualifiée est une cible qui a une preuve nommée : une vérification exécutée sur un système, un backend et un moteur de rendu nommés, dont le résultat se lit. Le tableau liste chaque preuve que le kit publie. Les preuves d’intégration continue s’exécutent à chaque push sur `main` et à chaque pull request ; leur résultat courant est la dernière exécution du [workflow Check](https://github.com/damione1/slint-kit/actions/workflows/check.yml), pas une affirmation de cette page. Chaque résultat ci-dessous est une exécution passée enregistrée, pas l’état courant.
 

@@ -21,7 +21,7 @@
   <a href="https://docs.rs/slint-kit"><img alt="docs.rs" src="https://img.shields.io/docsrs/slint-kit"></a>
 </p>
 
-<p><strong>127 native components</strong> · typed forms and validation · virtualized tables and lists · dates, times and exact decimals · light/dark themes</p>
+<p><strong>139 native components</strong> · typed forms and validation · virtualized tables and lists · dates, times and exact decimals · light/dark themes</p>
 
 </div>
 
@@ -91,15 +91,15 @@ Every change passes `cargo run -p xtask -- check` in CI:
 
 ## Try it
 
-The next release, 0.9.0, requires Rust 1.95 and Slint 1.19. Until it is published, use the matching `develop` sources below and install Slint’s native dependencies. For released packages on [crates.io](https://crates.io/crates/slint-kit), follow the documentation for that release:
+Slint Kit 0.9.0 requires Rust 1.95 and Slint 1.19. Install matching packages from [crates.io](https://crates.io/crates/slint-kit) and Slint’s native dependencies. See the [changelog and migration notes](https://slint-kit.dev/changelog/) for the edition, import and scrolling changes:
 
 ```toml
 [dependencies]
-slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint-kit = "=0.9.0"
 slint = "~1.19.0"
 
 [build-dependencies]
-slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint-kit-build = "=0.9.0"
 ```
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
@@ -122,7 +122,7 @@ cargo run --release --locked -p kit-showcase
 
 ## En français
 
-Slint Kit associe **127 composants UI Rust et Slint** à une couche de comportements partagés : validation de formulaires, valeurs exactes, clés stables et thèmes personnalisables. Votre application fournit ses règles métier et ses données ; le kit fournit les mécanismes d’interaction réutilisables. Consultez [Pourquoi Slint Kit](https://slint-kit.dev/fr/guides/why-slint-kit/), les [formulaires typés](https://slint-kit.dev/fr/guides/forms/) et l’[installation](https://slint-kit.dev/fr/guides/getting-started/).
+Slint Kit associe **139 composants UI Rust et Slint** à une couche de comportements partagés : validation de formulaires, valeurs exactes, clés stables et thèmes personnalisables. Votre application fournit ses règles métier et ses données ; le kit fournit les mécanismes d’interaction réutilisables. Consultez [Pourquoi Slint Kit](https://slint-kit.dev/fr/guides/why-slint-kit/), les [formulaires typés](https://slint-kit.dev/fr/guides/forms/) et l’[installation](https://slint-kit.dev/fr/guides/getting-started/).
 
 ## Contribute
 

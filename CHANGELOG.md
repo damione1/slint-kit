@@ -1,6 +1,45 @@
 # Changelog
 
-## Unreleased — 0.9.0
+## 0.9.0
+
+<!-- release-summary:start -->
+### Highlights
+
+Slint Kit 0.9.0 upgrades to **Slint 1.19 and Rust 1.95+**. Read the [migration guide](https://slint-kit.dev/changelog/) before upgrading.
+
+- The kit uses Slint language edition 1.19; applications retain edition 1.18 by default. Replace component sub-imports with `@kit`, Lucide imports with `@kit-icons/...` and Inter with `@kit-fonts/inter.slint`. Update editor library aliases to the project file and resource directories.
+- Native list, menu, tab and field reveals replace manual scrolling. **Behavior change:** `scroll-to-index` reveals the nearest edge instead of aligning every row at the top. Saved offsets restore immediately, rapid reversals stay visible, and keyboard scroll steps preserve repeated input.
+- Reduced-motion handling keeps the application override and uses `animate.enabled`. Text and numeric fields retain native editing with a single accessible owner; physical IME and screen-reader qualification remains platform-specific.
+- All **139 public components** have runnable projects and browser previews, including screen navigation, sidebar, popovers, menus and dialogs. Updated English/French guides explain application structure and link to official Android, WebAssembly and embedded deployment documentation. Slint Kit still requires Rust `std`.
+- The full changelog lists the remaining component, typed-controller and theme changes. In particular, custom theme literals need the added control/choice colors, inset surface and display typography tokens; review every breaking API entry before migrating a custom integration.
+
+### Points forts
+
+Slint Kit 0.9.0 passe à **Slint 1.19 et Rust 1.95+**. Consultez le [guide de migration](https://slint-kit.dev/fr/changelog/) avant de mettre à jour.
+
+- Le kit utilise l’édition Slint 1.19 ; les applications conservent la 1.18 par défaut. Remplacez les sous-imports de composants par `@kit`, les imports Lucide par `@kit-icons/...` et Inter par `@kit-fonts/inter.slint`. Adaptez les alias de l’éditeur au fichier projet et aux répertoires de ressources.
+- Les révélations natives des listes, menus, onglets et champs remplacent le défilement manuel. **Rupture de comportement :** `scroll-to-index` révèle le bord le plus proche plutôt que d’aligner chaque ligne en haut. Les positions sauvegardées sont restaurées immédiatement ; inversions rapides et répétitions clavier restent cohérentes.
+- La réduction des animations garde le réglage applicatif et utilise `animate.enabled`. Les champs texte et numériques conservent l’édition native avec un seul propriétaire accessible ; la qualification physique IME/lecteur d’écran reste propre à chaque plateforme.
+- Les **139 composants publics** disposent de projets exécutables et d’aperçus navigateur, dont navigation entre écrans, barre latérale, popovers, menus et dialogues. Les guides EN/FR expliquent la structure applicative et renvoient vers les documents officiels Android, WebAssembly et embarqués. Slint Kit requiert toujours Rust `std`.
+- Le changelog intégral détaille les autres changements de composants, contrôleurs typés et thèmes. Les littéraux de thèmes personnalisés doivent notamment ajouter couleurs de contrôles/sélection, surface en retrait et typographie display ; consultez toutes les ruptures d’API avant de migrer une intégration personnalisée.
+<!-- release-summary:end -->
+
+### Detailed changes / Détail des changements
+
+- Standalone dialog examples explicitly select native Tab/Shift+Tab traversal rather than delegating keyboard navigation to an absent application host.
+- Les exemples autonomes de dialogue choisissent explicitement le parcours natif Tab/Maj+Tab au lieu de déléguer la navigation clavier à un hôte applicatif absent.
+
+- Align the remaining release and preview locks with `async-executor` 1.14.1 and `clipboard-win` 5.4.3, avoiding withdrawn versions and including the upstream Linux executor lifetime fix. No kit API change.
+- Aligne les derniers verrous de release et d’aperçu sur `async-executor` 1.14.1 et `clipboard-win` 5.4.3, pour éviter les versions retirées et inclure le correctif amont de durée de vie de l’exécuteur Linux. Aucune modification d’API du kit.
+
+- `KitDialog` and `KitAlertDialog` now show a short body at its full height, including a one-line action result. Tall bodies still scroll vertically while the footer stays in view.
+- `KitDialog` et `KitAlertDialog` affichent désormais les corps courts sur toute leur hauteur, y compris un résultat d’action d’une ligne. Les corps longs défilent verticalement et les boutons du pied de dialogue restent visibles.
+
+- Provide runnable starters and browser previews for all 139 public components, including router/screen composition, sidebar, popover, dropdown/context menus and dialogs.
+- Fournit des starters exécutables et aperçus navigateur pour les 139 composants publics, dont les compositions de routes/écrans, la barre latérale, les popovers, menus déroulants/contextuels et dialogues.
+
+- Complete the bilingual platform and Slint 1.19 migration guides, add the public changelog page, and fix missing catalogue illustrations and inherited date-entry validation documentation. Registry starter guidance now reflects released components.
+- Complète les guides bilingues de plateformes et de migration Slint 1.19, ajoute la page publique du changelog et corrige les illustrations de catalogue manquantes ainsi que la documentation héritée de validation des dates. Les indications des starters reflètent désormais les composants publiés.
 
 - Restore collection scroll positions before their first layout and keep the active tab/menu item visible after rapid navigation reversals. `KitScrollArea` keyboard steps are immediate again so every repeat is preserved and pointer/restoration changes supersede them without a pending destination; explicit reveal/start/end helpers remain animated unless motion is reduced.
 - Restaure les positions des collections avant leur premier placement et garde l’onglet ou l’élément de menu actif visible après une inversion rapide. Les pas clavier de `KitScrollArea` redeviennent immédiats : chaque répétition est conservée et le pointeur ou une restauration les remplace sans destination en attente ; les fonctions explicites de révélation/début/fin restent animées sauf avec réduction des animations.

@@ -181,6 +181,9 @@ def compiler_flags(environment):
 def bundle_key(inputs, rustc, bindgen, environment, packaging_hash=None):
     # A binary contains every route, so any reachable fixture or host change
     # invalidates the bundle. Each screenshot still has its own scene identity.
+    # The target is always wasm32-unknown-unknown; the compiler's build host
+    # must not prevent a Mac-built bundle from being restored on Linux.
+    rustc = '\n'.join(line for line in rustc.splitlines() if not line.startswith('host:'))
     hosts = {str(path.relative_to(ROOT)): digest(path.read_bytes())
              for path in corresponding_sources()
              if path.suffix in ('.rs', '.slint', '.toml', '.lock')

@@ -20,6 +20,8 @@ test('fuzzy search finds typos, accents, camel case APIs and multiple terms acro
     {url:'/fr/components/text-field/',title:'Champ de texte pour Slint',api:'KitTextField',summary:'Éditeur de texte',text:'Édition de texte, sélection et propriété leading-icon.'},
     {url:'/fr/components/button/',title:'Bouton pour Slint',api:'KitButton',summary:'KitButton',text:'Action principale et taille.'},
     {url:'/fr/guides/themes/',title:'Thèmes de Slint Kit',summary:'Personnaliser les contrôles',text:'KitThemeContext.current est le défaut des contrôles. KitTextField, KitButton et KitTheme sont personnalisables.'},
+    {url:'/fr/components/context-menu/',title:'Menu contextuel',api:'KitContextMenu',summary:'Menu contextuel pour un contrôle.',text:'Le menu hérite du thème KitThemeContext.current.'},
+    {url:'/fr/components/form/',title:'Formulaire pour Slint',api:'KitForm',summary:'Validation des formulaires',text:'Conteneur du formulaire.'},
     {url:'/fr/components/form-button/',title:'Bouton de formulaire pour Slint',api:'KitFormButton',summary:'Bouton de soumission',text:'KitButton pour les formulaires. Demander la validation avant de soumettre.',symbols:['KitFormValidation']},
   ]);
   assert.equal(normalizeSearch('KitTextField Édition'),'kit text field edition');
@@ -28,5 +30,7 @@ test('fuzzy search finds typos, accents, camel case APIs and multiple terms acro
   for(const query of ['KitButton','kitbutton','button'])assert.equal(searchDocuments(entries,query)[0]?.url,'/fr/components/button/',query);
   for(const query of ['KitFormValidation','kitformvalidation'])assert.equal(searchDocuments(entries,query)[0]?.url,'/fr/guides/forms/',query);
   for(const query of ['KitThemeContext','kitthemecontext'])assert.equal(searchDocuments(entries,query)[0]?.url,'/fr/guides/themes/',query);
+  for(const query of ['KitContextMenu','kitcontextmenu'])assert.equal(searchDocuments(entries,query)[0]?.url,'/fr/components/context-menu/',query);
+  for(const query of ['KitForm','kitform'])assert.equal(searchDocuments(entries,query)[0]?.url,'/fr/components/form/',query);
   assert.deepEqual(searchDocuments(entries,'zzzzzzzzzz'),[]);assert.deepEqual(searchDocuments(entries,'   '),[]);
 });

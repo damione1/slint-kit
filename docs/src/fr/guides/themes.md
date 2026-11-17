@@ -260,7 +260,8 @@ fn parse_mode(name: &str) -> Option<ThemeMode> {
 
 Utilisez `ThemeMode::System` quand rien n’est stocké ou que `parse_mode` renvoie `None`. Dans ce flux, le kit n’observe pas le système après le démarrage : un changement en direct de l’apparence du système n’atteint l’application que si son backend Slint le signale par `Palette.color-scheme`, et seulement tant que l’application n’a pas écrit cette propriété.
 
-## Agrandissement du texte et mouvement
+<span id="text-scaling-and-motion"></span>
+<h2 id="agrandissement-du-texte-et-mouvement">Agrandissement du texte et mouvement</h2>
 
 Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Laissez grandir le texte et les contrôles plutôt que de les couper dans un contenu de hauteur fixe.
 

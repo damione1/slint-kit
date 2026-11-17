@@ -260,7 +260,7 @@ fn parse_mode(name: &str) -> Option<ThemeMode> {
 
 Fall back to `ThemeMode::System` when nothing is stored or `parse_mode` returns `None`. The kit does not observe the operating system after startup in this flow: a live change of the system appearance reaches an application only when its Slint backend reports it through `Palette.color-scheme`, and only while the application has not written that property.
 
-## Text scaling and motion
+<h2 id="text-scaling-and-motion">Text scaling and motion</h2>
 
 For 200% text, copy a theme value and set its `text-scale` to `2`. Let text and control heights grow instead of clipping them inside fixed-height content.
 

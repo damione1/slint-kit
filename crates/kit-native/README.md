@@ -6,11 +6,11 @@ The facade's weak-window bindings reject stale request results. File dialogs are
 
 Applications normally enable these services through the facade:
 
-These sources prepare the unpublished 0.9.0 release. Use matching `develop` packages until publication; use the corresponding release documentation for published packages.
+Use matching Slint Kit 0.9.0 packages with Rust 1.95 and Slint 1.19. See the [migration notes](https://slint-kit.dev/changelog/) before upgrading from an earlier release.
 
 ```toml
 [dependencies]
-slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop", features = ["native"] }
+slint-kit = { version = "=0.9.0", features = ["native"] }
 ```
 
 Access the adapter through `slint_kit::native`. Preserve the UI event loop while awaiting a dialog and reject stale results with typed host-request tickets. Native capabilities depend on the actual platform and backend. Rust 1.95 or later is required.
