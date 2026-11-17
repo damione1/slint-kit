@@ -205,6 +205,7 @@ fn large_collections_virtualize_and_end_reveals_the_last_record() {
     });
     window.invoke_focus_table();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitDataTable");
     assert!(visible.len() < 40);
     assert!(
@@ -215,6 +216,7 @@ fn large_collections_virtualize_and_end_reveals_the_last_record() {
     assert!(window.get_table_scroll() < -400_000.);
     window.invoke_focus_content();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitContentList");
     assert!(visible.len() < 40);
     assert!(visible.iter().any(|row| {
@@ -224,6 +226,7 @@ fn large_collections_virtualize_and_end_reveals_the_last_record() {
     assert!(window.get_content_scroll() < -1_000_000.);
     window.invoke_focus_document();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitVirtualTextView");
     assert!(visible.len() < 40);
     assert!(
@@ -1509,6 +1512,8 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
     ];
     let frame = || {
         slint::platform::update_timers_and_animations();
+        window.window().take_snapshot().unwrap();
+        crate::settle_scroll(&window);
         let snapshot = window.window().take_snapshot().unwrap();
         slint::platform::update_timers_and_animations();
         snapshot
@@ -1531,7 +1536,8 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
                 let snapshot = frame();
                 let offset = (probe.y)(&window);
                 assert!(offset < 0.);
-                assert_eq!((probe.first)(&window), 500);
+                assert!((probe.first)(&window) <= 500);
+                assert!((probe.first)(&window) + (probe.count)(&window) > 500);
                 assert!((probe.count)(&window) >= (probe.page)(&window));
                 assert!((probe.count)(&window) <= (probe.page)(&window) + 1);
                 assert_eq!((probe.active)(&window), 0);
@@ -1544,7 +1550,8 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
                 assert_eq!((probe.first)(&window), 0);
                 (probe.restore)(&window, -1_000_000., offset);
                 frame();
-                assert_eq!((probe.first)(&window), 500);
+                assert!((probe.first)(&window) <= 500);
+                assert!((probe.first)(&window) + (probe.count)(&window) > 500);
                 assert!(((probe.y)(&window) - offset).abs() < 0.01);
                 let horizontal = (probe.x)(&window);
                 assert!(horizontal <= 0.);

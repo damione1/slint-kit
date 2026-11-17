@@ -217,3 +217,5 @@ DateTimeField vérifie les parties natives date/heure et les contraintes de pair
 ## Composition de validation personnalisée
 
 Importez `FormConstraintState` depuis `@kit` pour créer une apparence de contrôle personnalisée. C’est une primitive de composition invisible, pas un éditeur ni une classe de base offrant des propriétés de champ héritées. Liez `kind`, `access`, `text` ou `checked` et les contraintes intrinsèques ; relayez `check-validity()`, `report-validity()` et les résultats de validation que vous exposez. Initialisez le service partagé une fois par fenêtre via `install` et conservez la garde de soumission Rust typée. Préférez les contrôles existants du kit lorsque leur comportement convient.
+
+Les éditeurs utilisent le suivi natif du curseur de Slint 1.19 dans les ancêtres défilants, y compris en multiligne et avec un retrait horizontal. Conservez l’éditeur natif et son historique de sélection/annulation lorsque vous révélez un champ ; appelez `field.ensure-visible(KitThemes.scroll-behavior(theme))` pour une action utilisateur plutôt que de réécrire les décalages du viewport.

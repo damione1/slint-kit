@@ -670,13 +670,6 @@ export component KitTextField inherits KitField {
                             // Do not intercept Enter/Escape before the native IME engine.
                             cursor-position-changed(position) => {
                                 root.menu-caret = position;
-                                if (root.multiline) {
-                                    if (position.y + viewport.content-y < 0px) { viewport.content-y = -position.y; }
-                                    else if (position.y + root.line-height + viewport.content-y > viewport.height) { viewport.content-y = viewport.height - position.y - root.line-height; }
-                                } else {
-                                    if (position.x + root.text-inset + viewport.content-x < 0px) { viewport.content-x = -position.x - root.text-inset; }
-                                    else if (position.x + root.text-inset + 2px + viewport.content-x > viewport.width) { viewport.content-x = viewport.width - position.x - root.text-inset - 2px; }
-                                }
                             }
                         }
                     }

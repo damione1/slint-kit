@@ -212,24 +212,12 @@ export component KitScrollArea inherits Rectangle {
     changed at-end => { if (root.at-end && root.scrollable) { root.edge-reached(ScrollEdge.end); } }
     public function take-focus() { keys.focus(); }
     public function scroll-to-start() {
-        if (root.horizontal-primary) { root.content-x = 0px; } else { root.content-y = 0px; }
+        frame.scroll-to({x: root.horizontal-primary ? 0px : -frame.content-x, y: root.horizontal-primary ? -frame.content-y : 0px}, KitThemes.scroll-behavior(root.theme));
     }
     public function scroll-to-end() {
-        if (root.horizontal-primary) { root.content-x = -root.range; } else { root.content-y = -root.range; }
+        frame.scroll-to({x: root.horizontal-primary ? frame.content-width : -frame.content-x, y: root.horizontal-primary ? -frame.content-y : frame.content-height}, KitThemes.scroll-behavior(root.theme));
     }
-    public function reveal(top: length, bottom: length) {
-        // An oversized target cannot expose both edges. Reveal its leading edge
-        // only when hidden, preserving a saved position that already shows it.
-        if (bottom - top > root.visible-height) {
-            if (top < -root.content-y || top >= -root.content-y + root.visible-height) {
-                root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, top));
-            }
-        }
-        else if (top < -root.content-y) { root.content-y = -max(0px, top); }
-        else if (bottom > -root.content-y + root.visible-height) {
-            root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, bottom - root.visible-height));
-        }
-    }
+    public function reveal(top: length, bottom: length) { frame.reveal-vertical(top, bottom, KitThemes.scroll-behavior(root.theme)); }
     // Moves one axis by a navigation step. False when the axis cannot move, so
     // the key stays available to an outer scrolled ancestor.
     function move(step: NavigationStep, horizontal: bool) -> bool {
@@ -244,7 +232,7 @@ export component KitScrollArea inherits Rectangle {
             : step == NavigationStep.first ? 0px : -span;
         let bounded = clamp(target, -span, 0px);
         if (bounded == current) { return false; }
-        if (horizontal) { frame.content-x = bounded; } else { frame.content-y = bounded; }
+        frame.scroll-to({x: horizontal ? -bounded : -frame.content-x, y: horizontal ? -frame.content-y : -bounded}, KitThemes.scroll-behavior(root.theme));
         root.scrolled();
         return true;
     }

@@ -285,6 +285,7 @@ fn typed_rows_stay_virtualized() {
     });
     window.invoke_focus_table();
     key(&window, Key::End);
+    crate::settle_scroll(&window);
     let visible = delegates(&window, "KitDataTable");
     assert!(visible.len() < 40);
     assert!(

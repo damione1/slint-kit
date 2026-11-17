@@ -1832,6 +1832,7 @@ fn tabs_keep_the_whole_row_visible_with_overflow_and_large_text() {
                 };
                 state.active_index = 2;
                 window.set_state(state);
+                crate::settle_scroll(&window);
                 slint::platform::update_timers_and_animations();
                 let last = ElementQuery::from_root(&window)
                     .match_inherits("KitNavigationAction")
@@ -1928,5 +1929,42 @@ fn the_inset_surface_reads_its_own_token() {
                 assert_ne!(surface.fill.color(), theme.surface_inset, "{level:?}");
             }
         }
+    }
+}
+
+#[test]
+fn oversized_tabs_reveal_their_leading_edge_at_double_text() {
+    i_slint_backend_testing::init_no_event_loop();
+    for scale in [1., 2.] {
+        let window = TabsIndicatorFixture::new().unwrap();
+        let mut theme = window.get_theme_probe();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        window.set_available_width(100.);
+        window.set_final_label("A tab with a deliberately very long title".into());
+        window.show().unwrap();
+        crate::settle_scroll(&window);
+        let mut state = window.get_state();
+        state.active = SelectionRef {
+            present: true,
+            token: 3,
+        };
+        state.active_index = 2;
+        window.set_state(state);
+        crate::settle_scroll(&window);
+        let target = ElementQuery::from_root(&window)
+            .match_inherits("KitNavigationAction")
+            .match_predicate(|element| {
+                element.accessible_label().as_deref()
+                    == Some("A tab with a deliberately very long title")
+            })
+            .find_first()
+            .expect("oversized active tab is revealed");
+        let viewport = ElementQuery::from_root(&window)
+            .match_type_name("Flickable")
+            .find_first()
+            .unwrap();
+        assert!(target.size().width > viewport.size().width);
+        assert!((target.absolute_position().x - viewport.absolute_position().x).abs() < 0.1);
     }
 }

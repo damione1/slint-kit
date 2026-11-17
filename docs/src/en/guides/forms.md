@@ -217,3 +217,5 @@ DateTimeField checks its native date/time parts as well as whole-pair constraint
 ## Custom validation composition
 
 Import `FormConstraintState` from `@kit` when building a custom control skin. It is an invisible composition primitive, not an editor or a base class with inherited field properties. Bind its `kind`, `access`, `text` or `checked`, and intrinsic constraints; forward `check-validity()`, `report-validity()` and the validation outputs you expose. Initialize the shared validation service once per window through `install`, and retain the typed Rust submission guard. Prefer the kit’s existing controls when their behavior fits.
+
+Text editors use Slint 1.19 caret following through scrollable ancestors, including multiline editors and horizontal insets. Keep the native editor and selection/undo history when revealing a field; call `field.ensure-visible(KitThemes.scroll-behavior(theme))` for a user action instead of rewriting viewport offsets.

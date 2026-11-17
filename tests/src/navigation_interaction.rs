@@ -438,7 +438,7 @@ fn menu_bar_reveals_an_off_screen_active_row() {
         token: 15,
     };
     window.set_state(state);
-    slint::platform::update_timers_and_animations();
+    crate::settle_scroll(&window);
     assert!(
         right(&one(&window, "Menu item 6")) <= window_width + 1.0,
         "the active row is scrolled into view"
@@ -450,7 +450,7 @@ fn menu_bar_reveals_an_off_screen_active_row() {
         token: 10,
     };
     window.set_state(state);
-    slint::platform::update_timers_and_animations();
+    crate::settle_scroll(&window);
     assert!(one(&window, "Menu item 1").absolute_position().x >= -1.0);
 }
 
@@ -461,7 +461,7 @@ fn collapse(expanded: bool, ownership: Ownership) -> CollapseKeysFixture {
     window.set_expanded(expanded);
     window.set_ownership(ownership);
     window.show().unwrap();
-    slint::platform::update_timers_and_animations();
+    crate::settle_scroll(&window);
     window.invoke_focus_trigger();
     window
 }
@@ -864,4 +864,31 @@ fn a_capacity_of_one_replaces_the_toast_with_a_fresh_identity() {
     );
     assert_eq!(binding.dismiss_id(first), None, "the evicted id is stale");
     assert_eq!(binding.dismiss_id(second), Some("second"));
+}
+
+#[test]
+fn oversized_menu_bar_items_reveal_their_leading_edge_at_double_text() {
+    for scale in [1., 2.] {
+        let window = menu_bar(0);
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        let mut rows: Vec<_> = (0..6)
+            .map(|i| row(10 + i, &format!("Menu item {}", i + 1), false))
+            .collect();
+        rows[5].label = "A menu item with a deliberately very long title".into();
+        window.set_rows(ModelRc::new(VecModel::from(rows)));
+        crate::settle_scroll(&window);
+        let mut state = window.get_state();
+        state.active_index = 5;
+        state.active = slint_kit::ui::SelectionRef {
+            present: true,
+            token: 15,
+        };
+        window.set_state(state);
+        crate::settle_scroll(&window);
+        let target = one(&window, "A menu item with a deliberately very long title");
+        assert!(target.size().width > 220.);
+        assert!((target.absolute_position().x).abs() < 0.1);
+    }
 }

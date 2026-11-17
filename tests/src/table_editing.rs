@@ -184,6 +184,11 @@ fn shift_tab(window: &BaseDataFixture) {
 fn open(window: &BaseDataFixture, column: i32) {
     window.set_table_active_column(column);
     key(window, Key::Return);
+    assert!(
+        window.get_table_editing(),
+        "the edit request survives pending reveal"
+    );
+    crate::settle_scroll(window);
     flush();
     assert!(window.get_table_editing(), "Enter opens the editor");
     assert_eq!(editors(window).len(), 1, "one editor mounts");
@@ -979,6 +984,7 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
     for cell in cells {
         assert!((cell.size().width - 500.).abs() < 1.);
     }
+    crate::settle_scroll(&window);
     flush();
     assert!(
         window.get_table_scroll_x() < 0.,
@@ -1947,6 +1953,7 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
     let error = window.get_table_edit_error();
     assert!(!error.is_empty());
     window.invoke_scroll_table_to(500);
+    crate::settle_scroll(&window);
     flush();
     window.window().take_snapshot().unwrap();
     flush();
@@ -2065,6 +2072,11 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
             // Keep the keyboard owner from before the wheel; do not refocus or call
             // edit-active here, since either would mask an offscreen-start regression.
             key(&window, Key::Return);
+            assert!(
+                window.get_table_editing(),
+                "offscreen request must not cancel before arrival"
+            );
+            crate::settle_scroll(&window);
             let editing = frame();
             assert!(window.get_table_editing());
             assert_eq!(window.get_table_scroll(), 0.);
@@ -2737,6 +2749,7 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
                 // Establish the far column, then move the actual native viewport
                 // with a horizontal wheel event before each keyboard action.
                 window.set_table_active_column(2);
+                crate::settle_scroll(&window);
                 frame();
                 let right_scroll = window.get_table_scroll_x();
                 assert!(
@@ -2782,6 +2795,7 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
                     assert!(editors(&window).is_empty());
                     // Do not refocus or reveal the table between wheel and key.
                     key(&window, direction);
+                    crate::settle_scroll(&window);
                     let snapshot = frame();
                     assert_eq!(window.get_table_active(), 0);
                     assert_eq!(window.get_table_active_column(), expected);
@@ -3171,4 +3185,86 @@ fn typing_in_a_cell_editor_does_not_search_the_rows() {
     open(&window, QUANTITY_COLUMN);
     text(&window, "b");
     assert!(requested.borrow().is_empty());
+}
+
+#[test]
+fn a_distant_active_cell_reveals_both_axes_before_editing() {
+    let rows = (1..=10_000)
+        .map(|index| {
+            record(
+                index,
+                &format!("Record {index}"),
+                i64::from(index),
+                "Owner",
+                FieldAccess::Editable,
+            )
+        })
+        .collect();
+    let Editing { window, .. } = editing(rows);
+    let wide = columns()
+        .iter()
+        .map(|mut column| {
+            column.width = ColumnWidth {
+                sizing: ColumnSizing::Fixed,
+                basis: 500.,
+                ..Default::default()
+            };
+            column
+        })
+        .collect::<Vec<_>>();
+    window.set_columns(ModelRc::new(VecModel::from(wide)));
+    assert!(delegates(&window, "KitDataTable").len() < 40);
+    window.set_table_active_column(2);
+    modified_key(&window, Key::Control, Key::End);
+    // A newer keyboard destination wins before the first layout barrier.
+    modified_key(&window, Key::Control, Key::Home);
+    crate::settle_scroll(&window);
+    assert_eq!(window.get_table_active(), 0);
+    assert_eq!(window.get_table_first_visible(), 0);
+    modified_key(&window, Key::Control, Key::End);
+    crate::settle_scroll(&window);
+    assert_eq!(window.get_table_active(), 9_999);
+    assert!(!window.get_table_editing());
+    assert!(editors(&window).is_empty());
+    let rows = delegates(&window, "KitDataTable");
+    assert!(rows.len() < 40);
+    let last = rows
+        .iter()
+        .find(|row| row.accessible_label().as_deref() == Some("Record 10000"))
+        .unwrap_or_else(|| {
+            panic!(
+                "the distant row is materialized: y={}, x={}, first={}",
+                window.get_table_scroll(),
+                window.get_table_scroll_x(),
+                window.get_table_first_visible()
+            )
+        });
+    let cells = last
+        .query_descendants()
+        .match_inherits("TableCellView")
+        .find_all();
+    let viewport = table(&window)
+        .query_descendants()
+        .match_type_name("Flickable")
+        .find_first()
+        .unwrap();
+    let cell = cells
+        .iter()
+        .find(|cell| {
+            cell.query_descendants()
+                .match_predicate(|element| element.accessible_label().as_deref() == Some("Owner"))
+                .find_first()
+                .is_some()
+        })
+        .expect("the Owner column is visible inside the destination row");
+    assert!(cell.absolute_position().x >= viewport.absolute_position().x - 0.1);
+    assert!(
+        cell.absolute_position().x + cell.size().width
+            <= viewport.absolute_position().x + viewport.size().width + 0.1
+    );
+    assert!(cell.absolute_position().y >= viewport.absolute_position().y - 0.1);
+    assert!(
+        cell.absolute_position().y + cell.size().height
+            <= viewport.absolute_position().y + viewport.size().height + 0.1
+    );
 }

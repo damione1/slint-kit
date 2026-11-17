@@ -68,6 +68,7 @@ fn focus_request_scrolls_an_unmounted_row_into_view_and_focuses_it() {
     window.set_focus_token(BASE_TOKEN + target);
     window.set_focus_index(target);
     window.set_focus_request(1);
+    crate::settle_scroll(&window);
     for _ in 0..3 {
         i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(5));
     }

@@ -477,6 +477,7 @@ fn children_first_background_pan_crossing_control_keeps_original_scroll_owner() 
     assert_eq!(window.get_commits(), 0);
     assert!(!window.get_adjusting());
     window.invoke_reveal_end();
+    crate::settle_scroll(&window);
     assert!(window.get_offset() <= -500.);
     window.invoke_reset_scroll();
     assert_eq!(window.get_offset(), 0.);

@@ -2,6 +2,15 @@
 
 ## Unreleased — 0.9.0
 
+- Add `ScrollFrame.scroll-to`, `reveal-horizontal` and `reveal-vertical`, native `ListView.ensure-row-visible`, and `KitThemes.scroll-behavior(theme)` for custom compositions and application reduced motion.
+- Ajoute `ScrollFrame.scroll-to`, `reveal-horizontal` et `reveal-vertical`, `ListView.ensure-row-visible` natif et `KitThemes.scroll-behavior(theme)` pour les compositions personnalisées et la réduction des animations applicative.
+
+- **Breaking behavior:** `scroll-to-index` now reveals the nearest row edge instead of always aligning it to the top; already visible rows remain in place. User reveal helpers complete asynchronously unless reduced motion is enabled. `set-scroll` keeps immediate signed-offset restoration.
+- **Rupture de comportement :** `scroll-to-index` révèle le bord le plus proche au lieu de toujours aligner la ligne en haut ; une ligne déjà visible reste en place. Les fonctions de révélation terminent de façon asynchrone sauf avec réduction des animations. `set-scroll` conserve la restauration immédiate des décalages signés.
+
+- Use Slint 1.19 native scrolling for list, tab, menu and field reveals. Public scroll helpers remain available; user reveals animate with the system motion preference and position restoration remains immediate.
+- Utilise le défilement natif de Slint 1.19 pour révéler les éléments des listes, onglets, menus et champs. Les fonctions publiques de défilement restent disponibles ; les révélations suivent la préférence système de mouvement et la restauration de position reste immédiate.
+
 - Let edition 1.19 measure checkbox/switch captions and wrapping chip content directly. Remove duplicate hidden label/description measurements and redundant chip height forwarding while preserving control minimums, wrapped-text heights, native editor retention and stable navigation scrollbar gutters.
 - Laisse l’édition 1.19 mesurer directement les légendes des cases/interrupteurs et le contenu des chips à retour à la ligne. Supprime les doubles mesures cachées de libellé/description et le relais redondant de hauteur des chips, tout en conservant les minimums des contrôles, les hauteurs du texte à retour, l’éditeur natif et les gouttières stables de navigation.
 

@@ -213,6 +213,10 @@ export global KitMetrics {
 }
 
 export global KitThemes {
+    // The system preference is also honored by Slint's native smooth scroll.
+    public pure function scroll-behavior(theme: KitTheme) -> ScrollBehavior {
+        return theme.reduced-motion ? ScrollBehavior.instant : ScrollBehavior.smooth;
+    }
     public pure function color-popup-recipe(theme: KitTheme) -> ColorPopupRecipe {
         return { width: 340px * theme.text-scale, inset: theme.spacing.unit * 4, gap: theme.spacing.unit, preview-height: theme.spacing.unit * 12 };
     }

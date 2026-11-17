@@ -941,3 +941,17 @@ mod qa_feedback;
 mod qa_layout;
 
 mod translations;
+
+// Native virtual-list reveals accelerate, jump during layout, then decelerate.
+// Render-equivalent layout frames must run between animation ticks.
+fn settle_scroll(window: &impl slint::ComponentHandle) {
+    use i_slint_backend_testing::ElementQuery;
+    for _ in 0..80 {
+        slint::platform::update_timers_and_animations();
+        for element in ElementQuery::from_root(window).find_all() {
+            let _ = element.size();
+        }
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(16));
+    }
+    slint::platform::update_timers_and_animations();
+}
