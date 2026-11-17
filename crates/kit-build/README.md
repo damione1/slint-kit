@@ -4,11 +4,11 @@ The build-time companion to [Slint Kit](https://slint-kit.dev/guides/why-slint-k
 
 Use it with the same-release `slint-kit` runtime. It supplies the shared window service exports used by `slint_kit::install(&window)`, so ordinary applications import components and connect business callbacks without per-component global wiring. See [project setup](https://slint-kit.dev/guides/project-setup/) ([français](https://slint-kit.dev/fr/guides/project-setup/)).
 
-These sources prepare the unpublished 0.9.0 release. Use matching `develop` packages until publication; use the corresponding release documentation for published packages.
+Use matching Slint Kit 0.9.0 packages with Rust 1.95 and Slint 1.19. See the [migration notes](https://slint-kit.dev/changelog/) before upgrading from an earlier release.
 
 ```toml
 [build-dependencies]
-slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint-kit-build = { version = "=0.9.0" }
 ```
 
 In `build.rs`:

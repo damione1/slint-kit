@@ -10,14 +10,15 @@ permalink: "{{ 'guides/project-setup/' | localeUrl(locale) }}index.html"
 
 ## Créer un projet en une commande
 
-Le CLI `slint-kit` crée un projet Cargo indépendant avec les dépendances du kit correspondantes, le build helper public, une fenêtre thémée, un bouton connecté et `install` par fenêtre. Le CLI est disponible depuis la branche source `develop` ; aucune publication de son paquet n’est supposée :
+Le CLI `slint-kit` crée un projet Cargo indépendant avec les dépendances du kit correspondantes, le build helper public, une fenêtre thémée, un bouton connecté et `install` par fenêtre. Installez le CLI depuis la révision source correspondante ; ce n’est pas un paquet crates.io :
 
 ```sh
-cargo install --git https://github.com/damione1/slint-kit --branch develop slint-kit-cli --locked
+cargo install --git https://github.com/damione1/slint-kit --{% if project.registryExamples %}tag v{{ project.version }}{% else %}branch develop{% endif %} slint-kit-cli --locked
 slint-kit new my-app
 cd my-app
 ```
 
+{% if not project.registryExamples %}
 Les sources `develop` préparent la version 0.9.0 non encore publiée. Avant de compiler, remplacez les entrées du kit générées dans `Cargo.toml` par les sources correspondantes, en conservant la dépendance Slint et les fonctionnalités choisies :
 
 ```toml
@@ -28,6 +29,8 @@ slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" 
 slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
 ```
 
+{% endif %}
+
 ```sh
 cargo run
 ```
@@ -36,9 +39,9 @@ cargo run
 
 Le `src/main.rs` généré appelle la petite fabrique et le point d’entrée de `src/lib.rs` ; leur total ne dépasse pas 15 lignes Rust. La fabrique utilise l’adaptateur d’action à fenêtre faible du kit. Cliquez sur **Run action** ou focalisez-le et appuyez sur Espace/Entrée : Rust actualise le statut visible. Modifiez `ui/app.slint` pour la présentation et le thème, puis le callback Rust pour le comportement métier. Les sources générées utilisent GPL-3.0-or-later ; consultez [la licence et les limites d’adoption](/fr/guides/why-slint-kit/) avant de distribuer l’application.
 
-### Ajouter un aperçu navigateur
+<h3 id="ajouter-un-apercu-navigateur">Ajouter un aperçu navigateur</h3>
 
-Appliquez les mêmes dépendances source au projet Web généré avant de le compiler.
+{% if not project.registryExamples %}Appliquez les mêmes dépendances source au projet Web généré avant de le compiler.{% endif %}
 
 ```sh
 slint-kit new my-web-app --web
@@ -97,21 +100,30 @@ slint-kit-build = { path = "../slint-kit/crates/kit-build" }
 
 Conservez la dépendance Slint du premier manifeste. Les téléchargements ciblent la version correspondante du registre ; les chemins locaux permettent de développer depuis les sources. Gardez le nom Cargo `slint-kit` : le code de modules généré par Slint référence `slint_kit::ui`.
 
-<h2 id="desktop-and-mobile-targets">Cibles bureau et mobile</h2>
+<h2 id="desktop-and-mobile-targets">Cibles bureau, mobile, web et embarquées</h2>
 
-Les composants Slint Kit peuvent servir dans des applications Rust de bureau et mobiles. Choisissez le backend et le moteur de rendu Slint de l’application pour chaque cible ; conservez les imports `@kit`, le helper de compilation et l’initialisation `slint_kit::install(&window)`.
+Slint fournit les backends de plateforme, les moteurs de rendu et les outils de déploiement. Slint Kit fournit des composants et contrôleurs Rust/Slint. Réutilisez les imports `@kit`, le helper build et `slint_kit::install(&window)` par fenêtre sur les cibles compatibles ; adaptez le backend, le moteur, le point d’entrée et le packaging de l’application à chaque plateforme.
 
-| Cible | Configuration de l’application |
+| Cible | Par où commencer |
 | --- | --- |
-| macOS, Windows, Linux | Le manifeste winit/Skia ci-dessus constitue un point de départ pour le bureau. Installez les [prérequis système](/fr/guides/getting-started/). |
-| Android | Activez la feature Slint `backend-android-activity-06`, compilez l’application en `cdylib` et appelez `slint::android::init(app)` dans `android_main` avant de créer la fenêtre. Installez les SDK/NDK Android et une cible Rust Android ; suivez le [guide Android de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/android/) pour créer l’APK. |
-| iOS | Utilisez winit et Skia avec les cibles Rust pour appareil et simulateur iOS. La compilation et l’empaquetage nécessitent macOS et Xcode ; le [guide iOS de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/ios/) détaille le point d’entrée, le projet Xcode et la signature. |
+| macOS, Windows, Linux | Le manifeste winit/Skia ci-dessus est un point de départ desktop. Installez les [prérequis système](/fr/guides/getting-started/), puis suivez le [guide de packaging desktop de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/desktop/packaging/general/). |
+| Android | Suivez le [guide Android de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/android/) : SDK/NDK, cibles Rust, `cdylib`, `android_main`, initialisation du backend et outils de compilation/déploiement APK. |
+| iOS | Le [guide iOS de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/ios/) couvre Xcode sur macOS, les cibles appareil/simulateur, le point d’entrée et la signature. |
+| WebAssembly | L’option `--web` du CLI crée un aperçu navigateur. Consultez les [étapes locales ci-dessus](#ajouter-un-apercu-navigateur) et le [guide Web de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/web/) pour la compilation et le déploiement web. |
+| Linux embarqué | Le [guide embarqué de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/embedded/#embedded-linux) couvre notamment Yocto, Buildroot et Torizon. Choisissez la cible Rust de la carte, la chaîne de compilation croisée et le moteur ; voir [LinuxKMS](https://docs.slint.dev/latest/docs/slint/guide/backends-and-renderers/backend_linuxkms/) pour l’accès direct à l’affichage sans compositeur desktop. |
+| Microcontrôleurs / bare metal | Slint prend en charge des microcontrôleurs via le support de carte, l’intégration des entrées et un moteur logiciel. Suivez les [instructions officielles pour microcontrôleurs](https://docs.slint.dev/latest/docs/slint/guide/platforms/embedded/#microcontrollers). Slint Kit utilise actuellement la bibliothèque standard Rust et ne fournit pas de portage `no_std` pour microcontrôleur. |
 
-Les projets téléchargeables utilisent des points d’entrée et manifestes de bureau ; adaptez-les avec le guide de la plateforme avant de compiler pour mobile.
+### Compiler et empaqueter pour la cible choisie
 
-Sur mobile, adaptez la mise en page, les cibles tactiles, le défilement, les zones sûres et le clavier virtuel en suivant les [conseils mobiles de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/general/). Les sélecteurs de fichiers/répertoires de la feature optionnelle `native` renvoient `SelectionOutcome::Failed(HostError::Unsupported)` sur Android et iOS ; prévoyez une intégration de plateforme dans l’application si ces services sont nécessaires.
+`cargo build --release --locked` compile un binaire desktop après la première résolution des dépendances de l’application. La création d’un installateur, d’un bundle d’application ou d’un paquet de distribution est une étape distincte, décrite par le guide desktop de Slint. Changer seulement `--target` ne produit pas un APK Android, une application iOS ou le firmware d’une carte. Suivez le guide officiel de la plateforme pour le point d’entrée, le linker/sysroot, les ressources et les outils de déploiement requis.
 
-La compilation repose sur les backends de Slint. Les captures publiées et les tests headless du kit ne qualifient pas les appareils Android/iOS : vérifiez les interactions tactiles, la saisie native, l’IME et les lecteurs d’écran sur vos appareils cibles.
+Sur Android, activez `backend-android-activity-06` et initialisez le backend avec `slint::android::init(app)` dans `android_main`, avant de créer la fenêtre et d’installer les services du kit. Le guide officiel précise les versions de SDK/NDK et les outils de packaging pour la version Slint choisie. Séparez les dépendances propres à la plateforme du manifeste desktop au lieu de reprendre ses features winit/Skia sans adaptation.
+
+Sur Linux embarqué, vérifiez d’abord les pilotes d’affichage et d’entrée, les polices, le moteur et la mémoire disponible avec les exemples de Slint, puis intégrez le kit par le même helper build Rust. Le support d’une carte par Slint est distinct d’un déploiement testé de ce kit. Pour une carte `no_std`, partez de l’exemple de carte de Slint ; le starter desktop du kit n’est pas un firmware.
+
+Sur mobile, adaptez layouts, cibles tactiles, défilement, zones sûres et clavier virtuel avec les [recommandations mobiles de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/general/). Les dialogues fichiers/dossiers optionnels `native` du kit renvoient `SelectionOutcome::Failed(HostError::Unsupported)` sur Android et iOS ; utilisez au besoin une intégration de plateforme dans l’application.
+
+Les starters téléchargeables utilisent des points d’entrée desktop ou desktop/Web. Les captures du site et les tests headless ne qualifient pas les appareils mobiles ou embarqués : vérifiez le tactile, la saisie, l’IME et l’accessibilité sur la cible réelle.
 
 ## Compiler l’interface
 

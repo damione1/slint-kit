@@ -1,6 +1,6 @@
 # Slint Kit
 
-**Slint Kit is a Rust UI component library for Slint, combining 127 native components with shared interaction logic and typed domain values.** It supplies validated forms, exact money and decimals, stable-key choices, virtualized data views and complete light/dark themes. The catalogue includes ready-to-use controls and composition primitives.
+**Slint Kit is a Rust UI component library for Slint, combining 139 native components with shared interaction logic and typed domain values.** It supplies validated forms, exact money and decimals, stable-key choices, virtualized data views and complete light/dark themes. The catalogue includes ready-to-use controls and composition primitives.
 
 Fields retain incomplete native drafts while `FieldSpec` returns checked values to Rust. `Choices` and `KeyedModel` preserve domain identity through filtering and sorting and reject stale gestures. Your application supplies its rules, data and business commands; Slint supplies rendering and native editing (caret, selection, undo, IME).
 
@@ -18,15 +18,15 @@ Build **desktop Rust applications** for macOS, Windows and Linux. Android and iO
 
 ## Install
 
-These sources prepare 0.9.0 with Rust 1.95 and Slint 1.19. Until that release is published, use matching `develop` dependencies; released packages require their matching Slint version.
+Use Slint Kit 0.9.0 with Rust 1.95 and Slint 1.19. Keep runtime and build packages aligned; see the [migration notes](https://slint-kit.dev/changelog/) for changed imports and behavior.
 
 ```toml
 [dependencies]
-slint-kit = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint-kit = { version = "=0.9.0" }
 slint = { version = "~1.19.0", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = { git = "https://github.com/damione1/slint-kit", branch = "develop" }
+slint-kit-build = { version = "=0.9.0" }
 ```
 
 Compile your UI in `build.rs`:

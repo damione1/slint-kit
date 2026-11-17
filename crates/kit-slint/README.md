@@ -1,6 +1,6 @@
 # Slint Kit Components
 
-The UI and Rust adapter implementation of [Slint Kit](https://slint-kit.dev/guides/why-slint-kit/): 127 public Slint components, shared interaction services, typed field acceptance and models with stable domain keys. The package includes complete controls, composition primitives, light/dark themes and generated Rust/Slint contracts.
+The UI and Rust adapter implementation of [Slint Kit](https://slint-kit.dev/guides/why-slint-kit/): 139 public Slint components, shared interaction services, typed field acceptance and models with stable domain keys. The package includes complete controls, composition primitives, light/dark themes and generated Rust/Slint contracts.
 
 `FieldSpec`, `Choices` and `KeyedModel` connect native editors and virtualized views to Rust values without assigning business identity to a row index. See [forms](https://slint-kit.dev/guides/forms/), [controllers](https://slint-kit.dev/guides/controllers/) and the [component reference](https://slint-kit.dev/components/) ([français](https://slint-kit.dev/fr/guides/why-slint-kit/)).
 

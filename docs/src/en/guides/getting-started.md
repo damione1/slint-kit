@@ -11,21 +11,40 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 Slint Kit combines visual components with shared behavior: draft validation, typed Rust values and stable identity. [Why Slint Kit](/guides/why-slint-kit/) explains the kit and application responsibilities, with examples you can try.
 
 
-Install Slint Kit from crates.io with **Rust {{ project.rust }}+** and **Slint {{ project.slint }}**. No toolkit checkout is required.
+Install Slint Kit with **Rust {{ project.rust }}+** and **Slint {{ project.slint }}**, using matching runtime and build packages. See the [0.9.0 changelog and migration notes](/changelog/).
 
 Applications use Rust edition 2024. The Slint compiler and runtime must match the kit’s versions.
+
+## Understand a Slint application
+
+Slint defines the interface in `.slint` files: windows, layouts, components, properties and callbacks. Rust owns application data, business rules and work such as storage or networking. Slint Kit adds reusable components, typed controllers and shared interaction behavior to this Rust/Slint application.
+
+For the language itself, start with the [official Slint getting-started guide](https://docs.slint.dev/latest/docs/slint/guide/getting-started/) and [step-by-step tutorial](https://docs.slint.dev/latest/docs/slint/tutorial/quickstart/). The [Rust API](https://docs.rs/slint/1.19.0/slint/) explains the generated window types and event loop. Slint also offers other language integrations; this kit's controllers and build helper use Rust.
+
+The pieces of a kit application fit together as follows:
+
+1. `Cargo.toml` selects matching dependencies, a backend for the target platform and a renderer.
+2. `build.rs` compiles `ui/app.slint` with `slint_kit_build::compile`, which registers `@kit` and generates Rust bindings.
+3. `.slint` properties present state; callbacks report user actions to Rust. Keep accepted domain values in Rust and project their presentation into the window.
+4. Rust includes the generated module, creates the window, calls `slint_kit::install(&app)` once, connects callbacks and starts the event loop with `app.run()` on desktop.
+
+Follow [Project setup](/guides/project-setup/) for the complete files, [Editor setup](/guides/editor/) for completion and previews, then the [development loop](/guides/development-loop/) to distinguish a static preview from a running Rust application.
+
+## Choose the target platform
+
+Slint can target desktop, Android, iOS, the web through WebAssembly, embedded Linux and microcontrollers. Backend selection, the application entry point and packaging depend on the target. The [platform table](/guides/project-setup/#desktop-and-mobile-targets) points to Slint's official build and deployment guides, including Android and embedded devices, and explains the kit's current limits on bare-metal targets.
 
 ## Create a desktop application
 
 Follow [Project setup](/guides/project-setup/) once to configure Cargo and `build.rs`. Use the public `@kit` root import and call `slint_kit::install(&app)` before showing each window. The kit supplies the component behavior, theme and typed contract conversions; application callbacks handle business actions.
 
-This documentation targets Slint Kit **{{ project.version }}**. Use matching runtime and build packages. Project setup also describes local source dependencies. Applications using an older release should follow its matching documentation.
+Use matching runtime and build packages. Project setup describes registry dependencies and source-checkout alternatives. Applications using an older release should follow its matching documentation.
 
 ## Use a documented example
 
 For a working app, start with the [button](/components/button/) or [searchable combobox](/components/combobox/): each page shows the Slint component and its business callbacks, with a link to shared project setup.
 
-Each page offers a complete downloadable project with `Cargo.lock`, Rust, Slint and `build.rs`. Extract its ZIP, then run `cargo run --locked`. The screenshot and interactive preview use that same example. For shared field rules, see [forms and validation](/guides/forms/).
+Each page offers a complete project with `Cargo.lock`, Rust, Slint and `build.rs`. Follow that page’s source-versus-release instructions before running it; an unreleased API may require source dependencies. An unchanged published project runs with `cargo run --locked`. The screenshot and interactive preview use the same example. For shared field rules, see [forms and validation](/guides/forms/).
 
 The screenshots show the declared example state. Host-dependent actions such as opening a file picker require the [native adapter](/guides/native/). For validated editing and interactive selection, see the [typed controller application](/guides/typed-example/).
 
@@ -42,7 +61,7 @@ The showcase is a working application that demonstrates the public components. B
 Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint {{ project.slint }} build guide](https://github.com/slint-ui/slint/blob/v{{ project.slint }}/docs/building.md#prerequisites) for platform setup.
 
 ```sh
-git clone https://github.com/damione1/slint-kit.git
+git clone --branch {% if project.registryExamples %}v{{ project.version }}{% else %}develop{% endif %} https://github.com/damione1/slint-kit.git
 cd slint-kit
 cargo build --release --locked -p kit-showcase
 cargo run --release --locked -p kit-showcase
@@ -50,7 +69,7 @@ cargo run --release --locked -p kit-showcase
 
 ## Announced and qualified targets
 
-Slint Kit announces the desktop platforms macOS, Windows and Linux, with Slint's winit backend and Skia renderer as the documented stack. Native file and directory pickers compile on macOS, Windows, Linux and FreeBSD and report `Unsupported` elsewhere. Android, iOS, the web and other Slint backends and renderers are not announced targets; the browser previews on this site compile the kit to WebAssembly for illustration only.
+Slint Kit’s documented desktop stack is macOS, Windows and Linux with Slint’s winit backend and Skia renderer. Slint also provides mobile, web and embedded backends; see [platform setup and official guides](/guides/project-setup/#desktop-and-mobile-targets) to adapt an application. This site’s browser previews run the Rust/Slint examples through WebAssembly. Those capabilities and builds do not qualify a native device. Native file and directory pickers compile on macOS, Windows, Linux and FreeBSD and report `Unsupported` elsewhere.
 
 An announced target is one the kit is built for. A qualified target is one with a named proof: a check that runs on a named OS, backend and renderer, and whose result you can read. The table lists every proof the kit publishes. The continuous-integration proofs run on every push to `main` and on every pull request; their current result is the latest run of the [Check workflow](https://github.com/damione1/slint-kit/actions/workflows/check.yml), not a claim made here. Each result below is a recorded past run, not the current state.
 

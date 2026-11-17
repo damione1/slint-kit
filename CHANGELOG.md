@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased — 0.9.0
+## 0.9.0
+
+Slint Kit 0.9.0 integrates Slint 1.19 with Rust 1.95+, edition-aware library imports, native reveals and reduced-motion handling. Read the [migration summary](https://slint-kit.dev/changelog/) and the [official Slint 1.19 release notes](https://github.com/slint-ui/slint/releases/tag/v1.19.0). The getting-started and project-setup guides now explain the Rust/Slint application structure and link to official Android, WebAssembly and embedded deployment documentation; Slint Kit does not provide a `no_std` microcontroller port.
+
+Slint Kit 0.9.0 intègre Slint 1.19 avec Rust 1.95+, les imports de bibliothèque par édition, les révélations natives et la réduction des animations. Consultez la [synthèse de migration](https://slint-kit.dev/fr/changelog/) et les [notes officielles de Slint 1.19](https://github.com/slint-ui/slint/releases/tag/v1.19.0). Les guides de démarrage et de configuration expliquent désormais la structure Rust/Slint et renvoient vers la documentation officielle de déploiement Android, WebAssembly et embarqué ; Slint Kit ne fournit pas de portage `no_std` pour microcontrôleur.
+
+- Complete the bilingual platform and Slint 1.19 migration guides, add the public changelog page, and fix missing catalogue illustrations and inherited date-entry validation documentation. Registry starter guidance now reflects released components.
+- Complète les guides bilingues de plateformes et de migration Slint 1.19, ajoute la page publique du changelog et corrige les illustrations de catalogue manquantes ainsi que la documentation héritée de validation des dates. Les indications des starters reflètent désormais les composants publiés.
 
 - Restore collection scroll positions before their first layout and keep the active tab/menu item visible after rapid navigation reversals. `KitScrollArea` keyboard steps are immediate again so every repeat is preserved and pointer/restoration changes supersede them without a pending destination; explicit reveal/start/end helpers remain animated unless motion is reduced.
 - Restaure les positions des collections avant leur premier placement et garde l’onglet ou l’élément de menu actif visible après une inversion rapide. Les pas clavier de `KitScrollArea` redeviennent immédiats : chaque répétition est conservée et le pointeur ou une restauration les remplace sans destination en attente ; les fonctions explicites de révélation/début/fin restent animées sauf avec réduction des animations.

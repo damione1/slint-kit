@@ -133,23 +133,23 @@ test('registration form declares its typed schema and business code within fifte
   assert.doesNotMatch(main, /FormFieldPorts|on_field_edited|register_view|\.accept\(|pub fn parse/);
 });
 
-test('unreleased component starters do not link to an absent registry example', async () => {
+test('released starters offer registry projects while unpublished examples retain source guidance', async () => {
   const { default: nunjucks } = await import('nunjucks');
   const env = new nunjucks.Environment();
   env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
   const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
   const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
-  assert.equal(starters['avatar-group'].development, true);
-  assert.equal(starters['avatar-group'].registryExample, false);
+  assert.equal(starters['avatar-group'].registryExample, true);
   for (const locale of ['en', 'fr']) {
-    for (const registryExamples of [false, true]) {
-      for (const version of ['0.7.2', '0.7.3']) {
-        const output = env.renderString(template, { component: { slug: 'avatar-group' }, locale, project: { registryExamples, version }, quickstart: { ...starters['avatar-group'], kitVersion: '0.7.2' } });
-        assert(!output.includes('https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/avatar-group'));
-        assert(!output.includes('cargo run --locked'));
-        assert(output.includes('/quickstart/projects/avatar-group.zip'));
-        assert(output.includes(locale === 'fr' ? 'Aucun exemple de ce nouveau composant' : 'This new component has no example'));
-      }
-    }
+    const project = { registryExamples: true, version: loadProject().version };
+    const released = env.renderString(template, { component: { slug: 'avatar-group' }, locale, project, quickstart: starters['avatar-group'] });
+    assert(released.includes('cargo run --locked'));
+    assert(released.includes('/quickstart/projects/avatar-group.zip'));
+    assert(!released.includes('tree/v0.7.2/'));
+    const pending = env.renderString(template, { component: { slug: 'unpublished-component' }, locale, project, quickstart: { ...starters['avatar-group'], registryExample: false } });
+    assert(!pending.includes('cargo run --locked'));
+    assert(pending.includes('/quickstart/projects/unpublished-component.zip'));
+    assert(pending.includes(locale === 'fr' ? 'Aucun exemple de ce nouveau composant' : 'This new component has no example'));
+    assert(!pending.includes('tree/v0.7.2/'));
   }
 });
