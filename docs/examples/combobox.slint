@@ -32,7 +32,8 @@ export component Example inherits Window {
         alignment: start;
         Text { text: "Find your workspace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Type in the inline field to filter workspaces, or browse with the arrow keys."; color: root.theme.text-secondary; wrap: word-wrap; }
-        workspace := KitCombobox { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme;
+        // Layer 0 belongs to the window. Inside a dialog, use its modal-layer here.
+        workspace := KitCombobox { modal-layer: 0; required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme;
             label: "Workspace";
             placeholder: "Search workspaces…";
             clearable: true;

@@ -1,3 +1,4 @@
+import { KitModalContext } from "modal.slint";
 import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
 import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
@@ -462,6 +463,54 @@ export component KitOptionBody inherits HorizontalLayout {
     }
 }
 
+// Shared by choice fields with a native PopupWindow. A host may project
+// state.open and acknowledge dismissal later. Close the actual popup before
+// notifying that host, and recognize this close when is-open changes.
+export component SelectPopupSession inherits Rectangle {
+    width: 0px; height: 0px;
+    in property <int> modal-layer;
+    in property <FieldAccess> access;
+    in property <bool> opened;
+    in property <bool> presented;
+    in property <bool> defer-show;
+    out property <bool> eligible: root.access == FieldAccess.editable && !KitModalContext.inert(root.modal-layer);
+    private property <bool> inert-open: root.opened && KitModalContext.inert(root.modal-layer);
+    private property <FieldAccess> open-access: root.opened ? root.access : FieldAccess.editable;
+    private property <bool> interrupted;
+    callback show-popup();
+    callback hide-popup();
+    callback closed(bool);
+    callback dismiss(CloseReason);
+    function interrupt() {
+        root.interrupted = true;
+        if (root.presented) { root.hide-popup(); }
+        root.dismiss(CloseReason.programmatic);
+    }
+    changed inert-open => {
+        // If access also became restricted in this turn, open-access owns the
+        // notification. A layer transition alone interrupts once per session.
+        if (root.inert-open && root.open-access == FieldAccess.editable && !root.interrupted) { root.interrupt(); }
+    }
+    // An externally projected open session still receives each distinct access
+    // restriction while its owner has not acknowledged the previous request.
+    changed open-access => {
+        if (root.open-access != FieldAccess.editable) { root.interrupt(); }
+    }
+    private property <bool> can-present: root.opened && root.eligible && !root.interrupted && !root.defer-show;
+    changed can-present => { if (root.can-present && !root.presented) { root.show-popup(); } }
+    changed opened => {
+        if (!root.opened) {
+            root.closed(!root.interrupted && !KitModalContext.inert(root.modal-layer));
+            root.interrupted = false;
+        }
+    }
+    changed presented => {
+        if (!root.presented && root.opened && root.eligible && !root.interrupted) {
+            root.dismiss(CloseReason.host-closed);
+        }
+    }
+}
+
 export component KitSelect inherits Rectangle {
     in property <int> modal-layer;
     in property <bool> required;
@@ -544,17 +593,13 @@ export component KitSelect inherits Rectangle {
     // The controller's open state, for every ownership. `open()` and `close()`
     // drive it from a shortcut or a label press.
     out property <bool> is-open: root.state.open;
-    public function open() { if (root.access == FieldAccess.editable) { selection.open(); } }
+    public function open() { if (session.eligible) { selection.open(); } }
     public function close() { if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); } }
     private property <bool> popup-focused;
     private property <bool> popup-presented;
     out property <bool> has-focus: trigger.has-focus || root.popup-focused;
-    changed has-focus => { if (!root.has-focus && !root.state.open && root.access == FieldAccess.editable) { checks.note-blur(); } }
-    changed access => {
-        trigger.cancel-press();
-        // The controller's closed state then closes the presentation once.
-        if (root.access != FieldAccess.editable && root.state.open) { root.handle-dismiss(CloseReason.programmatic); }
-    }
+    changed has-focus => { if (!root.has-focus && !root.state.open && session.eligible) { checks.note-blur(); } }
+    changed access => { trigger.cancel-press(); }
     private property <ValidationPresentation> presented-validation: checks.show-error || root.state.selection-availability == SelectionAvailability.unavailable ? ValidationPresentation.invalid : root.validation;
     private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
     public function take-focus() { trigger.take-focus(); }
@@ -568,21 +613,36 @@ export component KitSelect inherits Rectangle {
     function advance-tab(reverse: bool) -> KitKeyResult {
         // Close native presentation before the host advances focus. The deferred
         // state change must not restore over the host's next focus request.
+        if (!session.eligible) { return KitKeyResult.reject; }
         trigger.take-focus();
         popup.close();
         root.tab-restore-complete = true;
         return root.tab-navigation(reverse);
     }
     private property <PopupViewport> popup-viewport;
-    private property <bool> opened: root.state.open;
-    changed opened => {
-        if (root.state.open) { root.popup-viewport = KitFieldService.popup-viewport(); popup.show(); root.popup-presented = true; }
-        else {
+    session := SelectPopupSession {
+        access: root.access; modal-layer: root.modal-layer;
+        opened: root.state.open; presented: root.popup-visible;
+        show-popup => {
+            // Slint restores the item focused at show() on every native close.
+            // This trigger already owns ordinary focus return in closed().
+            trigger.take-focus();
+            trigger.clear-focus();
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.popup-presented = true;
+        }
+        hide-popup => {
+            popup.close();
+            if (root.access == FieldAccess.read-only && !trigger.inert) { trigger.take-focus(); }
+        }
+        dismiss(reason) => { root.handle-dismiss(reason); }
+        closed(restore-focus) => {
             root.popup-presented = false;
             root.pending-search-input = "";
             let reset-query = root.query != "";
             if (reset-query) { root.query = ""; }
-            if (!root.tab-restore-complete && root.access != FieldAccess.disabled) { trigger.take-focus(); }
+            if (restore-focus && !root.tab-restore-complete && root.access != FieldAccess.disabled) { trigger.take-focus(); }
             popup.close();
             root.tab-restore-complete = false;
             if (reset-query && root.query == "" && !root.state.open) { root.query-edited(""); }
@@ -590,8 +650,6 @@ export component KitSelect inherits Rectangle {
     }
     changed popup-visible => {
         if (!root.popup-visible) { root.popup-focused = false; root.popup-presented = false; }
-        // Native presentation closure does not expose its precise cause.
-        if (!root.popup-visible && root.state.open) { root.handle-dismiss(CloseReason.host-closed); }
     }
     trigger := KitSelectTrigger {
         theme: root.theme;
@@ -666,13 +724,13 @@ export component KitSelect inherits Rectangle {
             private property <bool> presented: root.popup-presented;
             private property <string> pending-input: root.pending-search-input;
             function deliver-search-input() {
-                if (self.presented && root.state.open && root.access == FieldAccess.editable && root.searchable && root.pending-search-input != "") {
+                if (self.presented && root.state.open && session.eligible && root.searchable && root.pending-search-input != "") {
                     let text = root.pending-search-input;
                     root.pending-search-input = "";
                     self.type-ahead(text);
                 }
             }
-            changed presented => { if (self.presented && root.state.open && root.access == FieldAccess.editable) { self.take-focus(); self.deliver-search-input(); } }
+            changed presented => { if (self.presented && root.state.open && session.eligible) { self.take-focus(); self.deliver-search-input(); } }
             changed pending-input => { self.deliver-search-input(); }
             accessible-name: root.label;
             accessible-item-count: root.rows.length;
@@ -728,27 +786,27 @@ export component KitSelect inherits Rectangle {
         chosen(row) => { checks.note-edit(); root.chosen(row); }
         query-reset => { root.query-edited(""); }
     }
-    function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
+    function handle-navigate(step: NavigationStep) { if (!session.eligible) { return; } selection.navigate(step); root.navigate(step); }
     function handle-activate(token: int, generation: int) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (!session.eligible) { return; }
         let row = KitSelectionService.source(root.rows, token);
         if (KitSelectionService.ready && root.options.length == 0 && generation == root.state.generation && row.token == token && !row.disabled) { checks.note-edit(); }
         selection.activate(token, generation); root.activate(token, generation);
     }
     function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
     function handle-clear() {
-        if (root.access != FieldAccess.editable) { return; }
+        if (!session.eligible) { return; }
         if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); }
         if (root.ownership == Ownership.local) { root.selected = { present: false, token: 0 }; }
         checks.note-edit();
         root.cleared();
     }
     function handle-typeahead(text: string) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (!session.eligible) { return; }
         if (root.searchable) { if (root.state.open) { root.pending-search-input += text; } }
         else { selection.typeahead(text); root.typeahead(text); }
     }
-    function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }
-    function handle-query-edited(text: string) { root.query = text; root.query-edited(text); }
+    function handle-open-requested() { if (!session.eligible) { return; } selection.open(); root.open-requested(); }
+    function handle-query-edited(text: string) { if (!session.eligible) { return; } root.query = text; root.query-edited(text); }
 
 }

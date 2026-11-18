@@ -532,6 +532,12 @@ where
     let service = window.global::<ui::KitFieldService>();
     crate::text_edit::install(window);
     crate::popup::install(window);
+    let owner = window.as_weak();
+    service.on_window_visible(move || {
+        owner
+            .upgrade()
+            .is_some_and(|owner| owner.window().is_visible())
+    });
     let edit_window = window.as_weak();
     service.on_edit_selection(move |text| {
         if let Some(window) = edit_window.upgrade() {

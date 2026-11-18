@@ -32,7 +32,8 @@ export component Example inherits Window {
         alignment: start;
         Text { text: "Trouvez votre espace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Saisissez dans le champ en ligne pour filtrer les espaces, ou parcourez-les avec les flèches."; color: root.theme.text-secondary; wrap: word-wrap; }
-        workspace := KitCombobox { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme;
+        // La couche 0 appartient à la fenêtre. Dans un dialogue, utilisez ici son modal-layer.
+        workspace := KitCombobox { modal-layer: 0; required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme;
             label: "Espace de travail";
             placeholder: "Rechercher un espace…";
             clearable: true;

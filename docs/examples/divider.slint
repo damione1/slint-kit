@@ -1,6 +1,6 @@
 import { InterFont } from "@kit-fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitDivider, KitTextField, KitTheme, KitThemes } from "@kit";
+import { KitInline, KitText, KitButton, KitDivider, KitTextField, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -16,6 +16,12 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Divider"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         KitTextField { theme: root.theme; label: "Email address"; placeholder: "you@example.com"; } KitDivider { theme: root.theme; label: "or continue with"; } KitButton { theme: root.theme; text: "Single sign-on"; activated => { root.status = "Action requested"; } }
+        KitInline {
+            theme: root.theme;
+            KitText { theme: root.theme; text: "PDF"; }
+            KitDivider { theme: root.theme; orientation: vertical; }
+            KitText { theme: root.theme; text: "EPUB"; }
+        }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

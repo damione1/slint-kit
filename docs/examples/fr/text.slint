@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitTheme, KitThemes, KitStack, KitText, KitDivider } from "@kit";
+
+export component Example inherits Window {
+    in-out property <KitTheme> theme: KitThemes.light;
+    default-font-family: InterFont.family;
+    background: root.theme.canvas;
+    preferred-width: 580px;
+    preferred-height: 360px;
+    max-width: 100000px;
+    max-height: 100000px;
+    KitStack {
+        theme: root.theme; inset: regular;
+        KitText { theme: root.theme; role: title; text: "Liste de lecture"; }
+        KitText { theme: root.theme; text: "Histoire locale et archives historiques"; }
+        KitText { theme: root.theme; role: caption; text: "Mis à jour lundi"; }
+        KitDivider { theme: root.theme; }
+        KitText { theme: root.theme; tone: success; text: "Disponible hors ligne"; }
+        KitText { theme: root.theme; role: caption; font: monospace; text: "CAT-2406"; }
+        KitText { theme: root.theme; wrap: no-wrap; overflow: elide; text: "Correspondance recueillie dans les archives historiques régionales"; }
+    }
+}

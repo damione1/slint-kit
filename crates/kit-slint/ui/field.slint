@@ -2,8 +2,11 @@ import { KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext, ChoiceFlow } from "theme.slint";
 import { KitIcon } from "icons.slint";
+import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
-import { KitPressable } from "button.slint";
+import { KitFieldService } from "field-service.slint";
+import { KitKeyResult } from "keyboard.slint";
+import { KitButton, KitIconButton, KitPressable } from "button.slint";
 import { ButtonIntent, ControlWidth } from "theme.slint";
 import { FocusRequest } from "contracts.slint";
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
@@ -173,6 +176,50 @@ export component KitFieldSeparator inherits Rectangle {
     vertical-stretch: 0;
 }
 
+// A single retained slot lets hosts switch orientation without recreating an editor.
+export component KitFieldRow inherits KitField {
+    in property <Orientation> orientation: Orientation.horizontal;
+    in property <string> label;
+    in property <string> description;
+    in property <string> error-message;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> show-divider;
+    callback focus-requested();
+    spacing: KitMetrics.label-gap(root.theme);
+
+    if root.show-divider: KitFieldSeparator { theme: root.theme; }
+    Rectangle {
+        private property <bool> stacked: root.orientation == Orientation.vertical;
+        private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
+        private property <bool> has-caption: root.label != "" || root.description != "" || root.error-message != "";
+        private property <length> gap: self.has-caption ? KitMetrics.field-gap(root.theme) : 0px;
+        preferred-width: self.stacked ? max(caption.preferred-width, slot.preferred-width)
+            : caption.preferred-width + self.gap + slot.preferred-width;
+        height: self.stacked ? caption.height + self.gap + slot.height : max(caption.height, slot.height);
+        caption := VerticalLayout {
+            x: parent.stacked || !parent.rtl ? 0px : slot.width + parent.gap;
+            y: 0px;
+            width: parent.stacked ? parent.width : max(0px, parent.width - slot.width - parent.gap);
+            height: self.preferred-height;
+            spacing: KitMetrics.help-gap(root.theme);
+            if root.label != "": KitFieldLabel {
+                theme: root.theme; text: root.label; access: root.access;
+                focus-requested => { if (!KitModalContext.inert(root.modal-layer)) { root.focus-requested(); } }
+            }
+            if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
+            if root.error-message != "": KitFieldError { theme: root.theme; text: root.error-message; }
+        }
+        slot := VerticalLayout {
+            x: parent.stacked || parent.rtl ? 0px : parent.width - self.width;
+            y: parent.stacked ? caption.height + parent.gap : (parent.height - self.height) / 2;
+            width: parent.stacked ? parent.width : min(parent.width, self.preferred-width);
+            height: self.preferred-height;
+            alignment: start;
+            @children
+        }
+    }
+}
+
 // Place these parts alongside a native editor inside an InputGroup's single
 // children surface. They do not add padding, borders or another focus target.
 export component KitInputGroupStart inherits HorizontalLayout {
@@ -238,6 +285,154 @@ export component KitFormErrorSummary inherits KitFieldGroup {
                     font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                     wrap: word-wrap; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left; vertical-alignment: center;
                 }
+            }
+        }
+    }
+}
+
+// A ticket names one proposal in its window, even across delegate replacement.
+export struct ShortcutTicket { sequence: int, generation: int }
+enum ShortcutPhase { idle, recording, pending }
+
+export component KitShortcutField inherits FocusScope {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <int> modal-layer;
+    in property <int> generation;
+    in property <string> label;
+    in property <string> description;
+    in property <string> value-label;
+    in property <string> empty-label: KitStrings.shortcut-empty-label;
+    in property <string> recording-label: KitStrings.shortcut-recording-label;
+    in property <string> clear-label: KitStrings.shortcut-clear-template.replace-all("{label}", root.label);
+    in property <bool> allow-modifier-only;
+    out property <bool> recording: root.phase == ShortcutPhase.recording && root.current;
+    out property <bool> recorder-focused: record.has-focus;
+    callback captured(ShortcutTicket, KeyEvent);
+    callback modifier-released(ShortcutTicket, KeyEvent);
+    callback clear-requested(ShortcutTicket);
+    callback cancelled();
+
+    private property <ShortcutPhase> phase;
+    private property <ShortcutTicket> ticket;
+    private property <int> activation-generation;
+    private property <string> activation-value;
+    function arm-action() {
+        root.activation-generation = root.generation;
+        root.activation-value = root.value-label;
+    }
+    pure function action-current() -> bool {
+        return root.editable && root.generation == root.activation-generation && root.activation-value == root.value-label;
+    }
+    private property <string> original-value;
+    private property <string> modifier;
+    private property <bool> editable: root.enabled && root.visible && root.access == FieldAccess.editable && !record.inert;
+    private property <bool> current: root.editable && record.has-focus
+        && root.ticket.sequence == KitFieldService.shortcut-session
+        && root.ticket.generation == root.generation && root.original-value == root.value-label;
+    changed current => { if (!root.current) { root.cancel(); } }
+    public function take-focus() { if (root.enabled && root.visible && KitFieldService.window-visible()) { record.take-focus(); } }
+    public function cancel() {
+        if (root.phase != ShortcutPhase.idle) {
+            root.phase = ShortcutPhase.idle;
+            root.modifier = "";
+            root.cancelled();
+        }
+    }
+    // The host consumes this result once, immediately before publishing its value.
+    public function finish(proposal: ShortcutTicket) -> bool {
+        if (!KitFieldService.window-visible()) { root.cancel(); return false; }
+        if (root.phase != ShortcutPhase.pending || !root.current || proposal != root.ticket) { return false; }
+        root.phase = ShortcutPhase.idle;
+        return true;
+    }
+    public function retry(proposal: ShortcutTicket) -> bool {
+        if (!root.finish(proposal)) { return false; }
+        return root.start(ShortcutPhase.recording);
+    }
+    function start(phase: ShortcutPhase) -> bool {
+        if (!root.editable || !KitFieldService.window-visible()) { return false; }
+        record.take-focus();
+        if (!record.has-focus || !root.editable) { return false; }
+        root.modifier = "";
+        root.original-value = root.value-label;
+        root.ticket = { sequence: KitFieldService.begin-shortcut-session(), generation: root.generation };
+        root.phase = root.ticket.sequence > 0 ? phase : ShortcutPhase.idle;
+        return root.phase == phase;
+    }
+    pure function modifier-key(text: string) -> bool {
+        return text == Key.Shift || text == Key.ShiftR || text == Key.Control || text == Key.ControlR
+            || text == Key.Meta || text == Key.MetaR || text == Key.Alt || text == Key.AltGr;
+    }
+    pure function multiple-modifiers(m: KeyboardModifiers) -> bool {
+        return (m.shift && (m.control || m.meta || m.alt))
+            || (m.control && (m.meta || m.alt)) || (m.meta && m.alt);
+    }
+    forward-focus: record;
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
+    horizontal-stretch: 0;
+    vertical-stretch: 0;
+    preferred-width: actions.preferred-width;
+    max-width: actions.preferred-width;
+    preferred-height: actions.preferred-height;
+    max-height: actions.preferred-height;
+    key-released(event) => {
+        if (!root.recording || !KitFieldService.window-visible()) { return reject; }
+        if (root.allow-modifier-only && root.modifier != "" && event.text == root.modifier) {
+            root.modifier = "";
+            root.phase = ShortcutPhase.pending;
+            root.modifier-released(root.ticket, event);
+        }
+        return accept;
+    }
+    actions := FlexboxLayout {
+        flex-wrap: no-wrap; cross-axis-alignment: center;
+        spacing: KitMetrics.inline-gap(root.theme);
+        record := KitButton {
+            theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+            disabled: !root.enabled || root.access == FieldAccess.disabled;
+            intent: root.recording ? ButtonIntent.primary : root.access == FieldAccess.read-only ? ButtonIntent.quiet : ButtonIntent.secondary;
+            text: root.recording ? root.recording-label : root.value-label != "" ? root.value-label : root.empty-label;
+            text-wrap: word-wrap;
+            accessible-name: root.label; description: root.description;
+            accessible-value: self.text;
+            accessible-read-only: root.access == FieldAccess.read-only;
+            focus-observed(focused) => { if (!focused) { root.cancel(); } }
+            activation-started => { root.arm-action(); }
+            activation-allowed => { return root.action-current(); }
+            activated => {
+                if (root.recording) { root.cancel(); }
+                else { root.start(ShortcutPhase.recording); }
+            }
+            key-event(event) => {
+                if (event.repeat && (root.recording || event.text == Key.Return || event.text == Key.Space)) {
+                    return KitKeyResult.accept;
+                }
+                if (event.text == Key.Escape && root.phase != ShortcutPhase.idle && root.current) {
+                    root.cancel();
+                    return KitKeyResult.accept;
+                }
+                if (!root.recording || !KitFieldService.window-visible()) { return KitKeyResult.reject; }
+                if (root.modifier-key(event.text)) {
+                    root.modifier = root.modifier == "" && !root.multiple-modifiers(event.modifiers) ? event.text : "";
+                } else if (event.text != "") {
+                    root.modifier = "";
+                    root.phase = ShortcutPhase.pending;
+                    root.captured(root.ticket, event);
+                }
+                return KitKeyResult.accept;
+            }
+        }
+        if root.value-label != "": KitIconButton {
+            theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+            disabled: !root.enabled || root.access != FieldAccess.editable;
+            glyph: root.theme.icons.delete; accessible-name: root.clear-label;
+            activation-started => { root.arm-action(); }
+            activation-allowed => { return root.action-current(); }
+            activated => {
+                if (root.value-label != "" && root.start(ShortcutPhase.pending)) { root.clear-requested(root.ticket); }
             }
         }
     }

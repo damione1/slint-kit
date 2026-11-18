@@ -214,8 +214,30 @@ DateTimeField vérifie les parties natives date/heure et les contraintes de pair
 
 `KitSelect`, `KitCombobox` et `KitMultiSelect` s’ouvrent et se ferment depuis le code avec `open()` et `close()` et indiquent leur état par `is-open`, en lecture seule ; `open()` est sans effet si le contrôle est en lecture seule ou désactivé et n’émet pas `open-requested()`. `KitMultiSelect` émet `limit-reached(OptionRow)` lorsqu’un ajout est refusé à `selection-limit` et expose `at-limit` ; les jetons sélectionnés dont l’option a été remplacée ne comptent plus dans la limite.
 
+Donnez à `modal-layer` le numéro de la couche qui contient le champ. Quand sa couche devient inerte, la liste ouverte se ferme avec `CloseReason.programmatic`. La modale garde le focus et reçoit le premier clic. Si vous fournissez `state`, acquittez la fermeture en passant `state.open` à faux. La valeur acceptée conserve sa politique de propriété. Tant que l’hôte maintient `state.open` à vrai, chaque passage explicite en lecture seule ou à l’état désactivé demande une fermeture, même sur une couche inerte.
+
 ## Composition de validation personnalisée
 
 Importez `FormConstraintState` depuis `@kit` pour créer une apparence de contrôle personnalisée. C’est une primitive de composition invisible, pas un éditeur ni une classe de base offrant des propriétés de champ héritées. Liez `kind`, `access`, `text` ou `checked` et les contraintes intrinsèques ; relayez `check-validity()`, `report-validity()` et les résultats de validation que vous exposez. Initialisez le service partagé une fois par fenêtre via `install` et conservez la garde de soumission Rust typée. Préférez les contrôles existants du kit lorsque leur comportement convient.
 
 Les éditeurs utilisent le suivi natif du curseur de Slint 1.19 dans les ancêtres défilants, y compris en multiligne et avec un retrait horizontal. Conservez l’éditeur natif et son historique de sélection/annulation lorsque vous révélez un champ ; appelez `field.ensure-visible(KitThemes.scroll-behavior(theme))` pour une action utilisateur plutôt que de réécrire les décalages du viewport.
+
+### Placer un contrôle à côté de sa légende
+
+Utilisez `KitFieldRow` pour placer une aide à gauche et un interrupteur, une sélection ou plusieurs actions à droite. Le contrôle garde sa largeur préférée. Choisissez `orientation: vertical` lorsque la largeur de fenêtre ou le grossissement du texte impose de placer le contrôle sous la légende. Le changement de disposition conserve l’éditeur. Pour plusieurs actions, insérez un seul `KitInline` ou `KitWrap` dans la rangée.
+
+Donnez à l’interrupteur ou au sélecteur le nom accessible de la rangée, liez le même état d’accès sur les deux éléments et relayez `focus-requested` vers `take-focus()`. Renseignez `accessible-description` sur l’interrupteur si la rangée fournit son aide. Pour un choix, liez `error-message` au message de validation visible. Un éditeur multilignes affiche déjà son libellé, son aide et ses erreurs. Placez-le directement dans une rangée verticale en laissant vides la légende et l’erreur de cette rangée. Voir [l’exemple de rangée de formulaire](/fr/components/field-row/).
+
+Dans une fenêtre basse, placez les rangées dans un `KitScrollArea`. Pour révéler tout l’anneau extérieur par Tab, incluez son débord `KitThemes.focus-outset(theme.focus)` et la marge souhaitée dans le remplissage de la rangée, puis appelez `ensure-visible` sur cette rangée lorsque l’éditeur reçoit le focus.
+
+### Saisir un raccourci clavier
+
+Placez `KitShortcutField` dans un `KitFieldRow`. Liez le libellé, l’aide et l’accès de la rangée au champ. Projetez la valeur acceptée dans `value-label` et changez `generation` quand le même champ reçoit un autre enregistrement. Le bouton de saisie répond au clic, à Entrée, à Espace et à son action accessible. Échap annule. Un second bouton nommé propose l’effacement. Retour arrière et Suppr restent enregistrables, y compris avec modificateur.
+
+Traitez `captured(ticket, event)` pour une pression logique. Avec `allow-modifier-only`, un modificateur seul déclenche `modifier-released(ticket, event)` à son relâchement. Les deux callbacks transmettent le `KeyEvent` original de Slint. Son texte dépend de la disposition du clavier. Sur macOS, Slint associe Commande au modificateur control. L’hôte conserve les codes physiques, les conversions de disposition, les accélérateurs autorisés, les conflits et l’enregistrement système.
+
+Avant d’accepter une proposition, appelez `finish(ticket)` sur le champ d’origine. Publiez la valeur acceptée uniquement si le résultat est vrai. Pour une combinaison refusée, appelez `retry(ticket)` et affichez le motif dans la rangée. Une reprise admise conserve le focus et reçoit immédiatement la touche suivante. Pour une réponse différée, utilisez la même garde et une référence faible à la fenêtre d’origine. Une perte de focus, une modale couvrante, le retrait de la cible ou une nouvelle saisie invalident l’ancienne proposition.
+
+Pour masquer par code une fenêtre conservée, utilisez `slint_kit::hide_window(&app)`. Cet appel invalide la saisie avant le masquage natif, même si la fenêtre est immédiatement réaffichée. Dans un gestionnaire de fermeture existant qui retourne `HideWindow`, appelez `app.global::<KitFieldService>().invoke_invalidate_shortcut_session()` avant de retourner ce verdict. Le `hide()` brut de Slint 1.19 ne signale pas la perte du focus sur tous les backends. Liez `enabled` du champ à l’état actif du panneau conservé pour bloquer immédiatement les événements et les acquittements. Si un panneau conservé peut être masqué puis réaffiché durant le même événement, appelez `cancel()` sur son champ en quittant le panneau. Voir l’[exemple à deux champs](/fr/components/shortcut-field/).
+
+Si une fenêtre conservée utilise la fermeture par défaut de Slint, installez un gestionnaire `on_close_requested` qui invalide la session et retourne `slint::CloseRequestResponse::HideWindow`. Si l’application possède déjà un gestionnaire, ajoutez l’invalidation dans sa branche qui accepte le masquage. Un refus de fermeture peut conserver la session.

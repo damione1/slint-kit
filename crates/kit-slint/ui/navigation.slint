@@ -11,7 +11,7 @@ import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonInten
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
-import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
+import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry, PopoverAnchor, PopoverTicket } from "field-service.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitDialogSurface, KitDialogPanel, KitDialogFooter, DialogAction, DialogActionButton, DialogCloseButton } from "dialog.slint";
 import { KitModalContext } from "modal.slint";
@@ -448,14 +448,35 @@ export component KitTabs inherits Rectangle {
                         opacity: tab-action.selected ? 1 : 0;
                         animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
                     }
-                    changed active => {
-                        if (self.active) {
-                            // ensure-visible leaves an existing animation running
-                            // when its new target is already visible.
-                            viewport.scroll-to({x: -viewport.content-x, y: -viewport.content-y}, ScrollBehavior.instant);
-                            if (root.vertical && self.height > viewport.visible-height) { root.reveal(self.y, self.y + self.height); }
-                            else if (!root.vertical && self.width > viewport.visible-width) { root.reveal(self.x, self.x + self.width); }
-                            else { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); }
+                    // A controlled selection may already exist when this delegate is
+                    // created. Read its Flexbox geometry after the repeater has placed it.
+                    private property <bool> reveal-target: keyboard.has-focus || root.state.selection-availability != SelectionAvailability.available
+                        ? self.active : self.selected;
+                    private property <bool> placed;
+                    Timer {
+                        interval: 0ms;
+                        running: tab-action.reveal-target && !tab-action.placed;
+                        triggered => { tab-action.placed = true; }
+                    }
+                    // Content-local geometry changes on relayout, but stays fixed
+                    // when the user scrolls. Only the target observes its span.
+                    private property <{start: length, extent: length, viewport: length}> reveal-span:
+                        !self.placed || !self.reveal-target ? {} : root.vertical
+                        ? {start: self.y, extent: self.height, viewport: viewport.visible-height}
+                        : {start: self.x, extent: self.width, viewport: viewport.visible-width};
+                    changed reveal-span => {
+                        let span = self.reveal-span;
+                        if (span.extent > 0px && span.viewport > 0px) {
+                            if (keyboard.has-focus) {
+                                root.reveal(span.start, span.start + span.extent);
+                            } else {
+                                // A background strip must only move its own viewport.
+                                let offset = root.vertical ? -viewport.content-y : -viewport.content-x;
+                                let next = span.extent > span.viewport
+                                    ? (span.start >= offset && span.start < offset + span.viewport ? offset : span.start)
+                                    : clamp(offset, span.start + span.extent - span.viewport, span.start);
+                                viewport.scroll-to(root.vertical ? {x: 0px, y: next} : {x: next, y: 0px}, ScrollBehavior.instant);
+                            }
                         }
                     }
                     key-event(event) => {
@@ -1332,6 +1353,7 @@ component PopoverPanel inherits Rectangle {
     in property <SurfaceRecipe> recipe;
     in property <length> inset;
     in property <bool> presented;
+    in property <bool> tab-stop: true;
     callback escape();
     preferred-height: body.preferred-height;
     // The panel may be created after `presented` turned true: focus on both.
@@ -1339,6 +1361,7 @@ component PopoverPanel inherits Rectangle {
     changed presented => { if (root.presented) { scope.focus(); } }
     ElevatedSurface { recipe: root.recipe; }
     scope := FocusScope {
+        focus-on-tab-navigation: root.tab-stop;
         key-pressed(event) => {
             if (event.text == Key.Escape) { root.escape(); return accept; }
             return reject;
@@ -1357,7 +1380,16 @@ component PopoverPanel inherits Rectangle {
 // a press on the trigger itself, closes the panel as `host-closed` and does not
 // move focus. `dismissed` names why the panel closed. Slint forbids reading or calling an element of the panel from
 // outside it: drive panel content through its callbacks and `changed` handlers.
+export enum PopoverTrigger { button, external }
 export component KitPopover inherits Rectangle {
+    in property <PopoverTrigger> trigger-kind: PopoverTrigger.button;
+    private property <bool> external: root.trigger-kind == PopoverTrigger.external;
+    in property <PopupViewport> viewport;
+    private property <PopoverAnchor> anchor;
+    out property <PopoverTicket> ticket;
+    // The host resolves the original identity against its current document.
+    pure callback anchor-available(int, int) -> bool;
+    callback restore-focus(PopoverTicket);
     in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -1374,46 +1406,72 @@ export component KitPopover inherits Rectangle {
     callback opened();
     callback dismissed(CloseReason);
     private property <PopupViewport> popup-viewport;
-    private property <bool> reported;
-    public function take-focus() { trigger.take-focus(); }
+    private property <bool> pending-dismissal;
+    public function take-focus() { if (!root.external) { trigger.take-focus(); } }
+    function present() {
+        root.pending-dismissal = true;
+        root.popup-viewport = root.external ? root.viewport : KitFieldService.popup-viewport();
+        popup.show();
+        root.opened();
+    }
+    function flush-native-close() {
+        if (!root.open && root.pending-dismissal) {
+            root.pending-dismissal = false;
+            root.dismissed(CloseReason.host-closed);
+        }
+    }
     public function show() {
-        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) {
-            root.reported = false;
-            root.popup-viewport = KitFieldService.popup-viewport();
-            popup.show();
-            root.opened();
-        }
+        root.flush-native-close();
+        if (!root.external && !root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) { root.present(); }
     }
-    // Closes the panel, names the reason in `dismissed` and returns focus to the trigger.
+    public function show-at(anchor: PopoverAnchor) -> bool {
+        root.flush-native-close();
+        if (!root.external || root.viewport.width <= 0px || root.viewport.height <= 0px || root.open || root.disabled || !root.visible || KitModalContext.inert(root.modal-layer)
+            || !KitFieldService.window-visible() || !root.anchor-available(anchor.token, anchor.generation)) { return false; }
+        let sequence = KitFieldService.begin-popover-session();
+        if (sequence <= 0) { return false; }
+        root.anchor = anchor;
+        root.ticket = { token: anchor.token, generation: anchor.generation, sequence: sequence };
+        root.present();
+        return root.open && root.ticket.sequence == sequence;
+    }
+    public function finish(proposal: PopoverTicket) -> bool {
+        if (!root.external || !root.open || root.disabled || !root.visible || KitModalContext.inert(root.modal-layer)
+            || root.viewport != root.popup-viewport || !root.pending-dismissal || proposal != root.ticket || proposal.sequence <= 0 || proposal.sequence != KitFieldService.popover-session
+            || !KitFieldService.window-visible() || !root.anchor-available(proposal.token, proposal.generation)) { return false; }
+        root.dismiss(CloseReason.programmatic);
+        return true;
+    }
     public function dismiss(reason: CloseReason) {
-        if (!root.open) { return; }
+        if (!root.open || !root.pending-dismissal) { return; }
+        let origin = root.ticket;
+        root.pending-dismissal = false;
         popup.close();
-        trigger.take-focus();
-        root.report(reason);
-    }
-    function report(reason: CloseReason) {
-        if (!root.reported) { root.reported = true; root.dismissed(reason); }
-    }
-    changed open => {
-        if (!root.open) {
-            // Slint closes the panel on an outside press and consumes that press,
-            // so a press on the trigger closes the panel without reopening it.
-            root.report(CloseReason.host-closed);
-            root.reported = false;
+        root.dismissed(reason);
+        // A dismissal callback may already have opened another presentation.
+        if (!root.open && !KitModalContext.inert(root.modal-layer) && !root.disabled && root.visible) {
+            if (!root.external) { trigger.take-focus(); }
+            else if (origin.sequence == KitFieldService.popover-session && KitFieldService.window-visible()) { root.restore-focus(origin); }
         }
     }
+    changed open => { root.flush-native-close(); }
+    private property <bool> interrupted: root.open && (KitModalContext.inert(root.modal-layer)
+        || (root.external && (!root.visible || root.ticket.sequence != KitFieldService.popover-session
+            || root.viewport != root.popup-viewport)));
+    changed interrupted => { if (root.interrupted) { root.dismiss(CloseReason.programmatic); } }
     changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
-    min-width: layout.min-width;
-    preferred-width: layout.preferred-width;
-    min-height: layout.min-height;
-    preferred-height: layout.preferred-height;
+    min-width: root.external ? 0px : layout.min-width;
+    preferred-width: root.external ? 0px : layout.preferred-width;
+    min-height: root.external ? 0px : layout.min-height;
+    preferred-height: root.external ? 0px : layout.preferred-height;
     vertical-stretch: 0;
     layout := VerticalLayout {
+        visible: !root.external;
         trigger := KitButton {
             theme: root.theme; control-size: root.control-size; intent: root.intent; modal-layer: root.modal-layer;
             text: root.text; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
             accessible-name: root.accessible-name;
-            disabled: root.disabled;
+            disabled: root.disabled || root.external;
             accessible-expandable: true; accessible-expanded: root.open;
             activated => { if (root.open) { root.dismiss(CloseReason.trigger-toggle); } else { root.show(); } }
             key-event(event) => {
@@ -1425,16 +1483,32 @@ export component KitPopover inherits Rectangle {
     popup := PopupWindow {
         width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
         private property <length> desired-height: min(root.popup-height, panel.preferred-height);
-        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
-        x: self.placement.x; y: self.placement.y;
+        private property <PopupGeometry> source: root.external ? root.anchor.bounds
+            : {x: root.absolute-position.x, y: root.absolute-position.y, width: root.width, height: root.height};
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: self.source.x, y: self.source.y, anchor-width: self.source.width, anchor-height: self.source.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
+        x: self.placement.x + (self.source.x - root.absolute-position.x);
+        y: self.placement.y + (self.source.y - root.absolute-position.y);
         height: self.placement.height;
         close-policy: close-on-click-outside;
         panel := PopoverPanel {
             recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
-            inset: KitMetrics.popover-inset(root.theme);
+            tab-stop: !root.external;
             presented: root.open;
             escape => { root.dismiss(CloseReason.escape); }
-            @children
+            frame := ScrollFrame {
+                theme: root.theme;
+                min-height: 0px; preferred-height: body.preferred-height;
+                horizontal-scrollbar-policy: always-off;
+                vertical-scrollbar-policy: root.external ? as-needed : always-off;
+                overlay-scrollbars: true;
+                content-width: self.visible-width;
+                content-height: root.external ? max(self.visible-height, body.preferred-height) : self.visible-height;
+                body := VerticalLayout {
+                    x: 0px; y: 0px; width: frame.visible-width; height: frame.content-height;
+                    padding: KitMetrics.popover-inset(root.theme);
+                    @children
+                }
+            }
         }
     }
 }
@@ -1452,6 +1526,7 @@ export component KitDropdownMenu inherits Rectangle {
     in property <IconGlyph> trailing-icon: root.theme.icons.chevron-down;
     in property <string> accessible-name;
     in property <bool> disabled;
+    private property <bool> live: !root.disabled && !KitModalContext.inert(root.modal-layer);
     in property <[OptionRow]> options;
     in property <[MenuItem]> items;
     in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
@@ -1461,34 +1536,32 @@ export component KitDropdownMenu inherits Rectangle {
     callback chosen(OptionRow);
     callback dismissed(CloseReason);
     private property <PopupViewport> popup-viewport;
-    private property <bool> reported;
-    public function take-focus() { trigger.take-focus(); }
+    private property <bool> pending-dismissal;
+    function flush-native-close() {
+        if (!root.open && root.pending-dismissal) {
+            root.pending-dismissal = false;
+            root.dismissed(CloseReason.host-closed);
+        }
+    }
+    changed open => { root.flush-native-close(); }
+    public function take-focus() { if (root.live) { trigger.take-focus(); } }
     public function show() {
-        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) {
-            root.reported = false;
+        root.flush-native-close();
+        if (root.live && !root.open) {
+            root.pending-dismissal = true;
             root.popup-viewport = KitFieldService.popup-viewport();
             popup.show();
             root.opened();
         }
     }
     public function dismiss(reason: CloseReason) {
-        if (!root.open) { return; }
+        if (!root.open || !root.pending-dismissal) { return; }
+        root.pending-dismissal = false;
         popup.close();
-        trigger.take-focus();
-        root.report(reason);
+        if (root.live) { trigger.take-focus(); }
+        root.dismissed(reason);
     }
-    function report(reason: CloseReason) {
-        if (!root.reported) { root.reported = true; root.dismissed(reason); }
-    }
-    changed open => {
-        if (!root.open) {
-            // Slint closes the panel on an outside press and consumes that press,
-            // so a press on the trigger closes the panel without reopening it.
-            root.report(CloseReason.host-closed);
-            root.reported = false;
-        }
-    }
-    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    changed live => { if (!root.live && root.open) { root.dismiss(CloseReason.programmatic); } }
     min-width: layout.min-width;
     preferred-width: layout.preferred-width;
     min-height: layout.min-height;
@@ -1527,7 +1600,9 @@ export component KitDropdownMenu inherits Rectangle {
                 private property <bool> presented: root.open;
                 init => { if (root.open) { self.take-focus(); } }
                 changed presented => { if (self.presented) { self.take-focus(); } }
-                chosen(row) => { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                chosen(row) => {
+                    if (root.live && root.open) { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                }
                 dismiss(reason) => { if (reason != CloseReason.programmatic) { root.dismiss(reason); } }
             }
         }
@@ -1548,6 +1623,7 @@ export component KitContextMenu inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> accessible-name: "Context menu";
     in property <bool> disabled;
+    private property <bool> live: !root.disabled && !KitModalContext.inert(root.modal-layer);
     in property <[OptionRow]> options;
     in property <[MenuItem]> items;
     in property <length> popup-width: KitMetrics.select-popup-min-width(root.theme);
@@ -1562,12 +1638,20 @@ export component KitContextMenu inherits Rectangle {
     private property <PopupViewport> popup-viewport;
     private property <length> anchor-x;
     private property <length> anchor-y;
-    private property <bool> reported;
-    public function take-focus() { scope.focus(); }
+    private property <bool> pending-dismissal;
+    function flush-native-close() {
+        if (!root.open && root.pending-dismissal) {
+            root.pending-dismissal = false;
+            root.dismissed(CloseReason.host-closed);
+        }
+    }
+    changed open => { root.flush-native-close(); }
+    public function take-focus() { if (root.live) { scope.focus(); } }
     // Opens the menu at a point of the content area.
     public function show-at(x: length, y: length) {
-        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open && root.options.length > 0) {
-            root.reported = false;
+        root.flush-native-close();
+        if (root.live && !root.open && root.options.length > 0) {
+            root.pending-dismissal = true;
             root.anchor-x = x;
             root.anchor-y = y;
             root.popup-viewport = KitFieldService.popup-viewport();
@@ -1578,28 +1662,19 @@ export component KitContextMenu inherits Rectangle {
     // Opens the menu where the menu key does.
     public function show() { root.show-at(root.keyboard-anchor-x, root.keyboard-anchor-y); }
     public function dismiss(reason: CloseReason) {
-        if (!root.open) { return; }
+        if (!root.open || !root.pending-dismissal) { return; }
+        root.pending-dismissal = false;
         popup.close();
-        scope.focus();
-        root.report(reason);
+        if (root.live) { scope.focus(); }
+        root.dismissed(reason);
     }
-    function report(reason: CloseReason) {
-        if (!root.reported) { root.reported = true; root.dismissed(reason); }
-    }
-    changed open => {
-        if (!root.open) {
-            // Slint closes the panel on an outside press and consumes that press.
-            root.report(CloseReason.host-closed);
-            root.reported = false;
-        }
-    }
-    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    changed live => { if (!root.live && root.open) { root.dismiss(CloseReason.programmatic); } }
     min-width: layout.min-width;
     preferred-width: layout.preferred-width;
     min-height: layout.min-height;
     preferred-height: layout.preferred-height;
     scope := FocusScope {
-        enabled: !root.disabled;
+        enabled: root.live;
         key-pressed(event) => {
             if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
                 root.show();
@@ -1608,7 +1683,7 @@ export component KitContextMenu inherits Rectangle {
             return reject;
         }
         touch := TouchArea {
-            enabled: !root.disabled;
+            enabled: root.live;
             pointer-event(event) => {
                 if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.show-at(self.mouse-x, self.mouse-y); }
             }
@@ -1634,7 +1709,9 @@ export component KitContextMenu inherits Rectangle {
                 private property <bool> presented: root.open;
                 init => { if (root.open) { self.take-focus(); } }
                 changed presented => { if (self.presented) { self.take-focus(); } }
-                chosen(row) => { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                chosen(row) => {
+                    if (root.live && root.open) { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                }
                 dismiss(reason) => { if (reason != CloseReason.programmatic) { root.dismiss(reason); } }
             }
         }

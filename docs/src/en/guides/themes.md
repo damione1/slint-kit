@@ -341,3 +341,11 @@ Compose intrinsic icons inside a row-height wrapper and center the icon within t
 ## Calendar focus and picker help
 
 KitCalendar uses one native keyboard scope with list semantics. Accessible focus delegates to the active day, carrying its selected, disabled and read-only state. Calendar-slot positions stay stable when adjacent-month days are hidden and when geometry is RTL. Slint 1.18.1 has no grid/row/cell roles; this list representation does not qualify VoiceOver or NVDA. KitDatePicker exposes its calendar button’s expanded state and guards its accessible expand action. Its description is associated with the native editor and remains visible below the field. For composed text fields, show-description:false hides only the helper row; description still reaches the native editor.
+
+### Text, images and layered content
+
+Use `KitText.role` for titles, body copy and captions. A semantic `tone` accompanies a written status. Set `font: monospace` for an identifier. Text wraps by default. For a single-line list caption, constrain the width and set `wrap: no-wrap; overflow: elide;`. The accessible label keeps the full string.
+
+For a two-ended header, put the leading and trailing groups in `KitInline { alignment: space-between; }`. Put a `KitDivider { orientation: vertical; }` between items in a row of finite height. Use `KitImage.source` for a host-supplied bitmap or vector logo. Set both box dimensions to contain the entire image. A decorative image beside a title needs no label. Set `purpose: informative` and `label` for a standalone logo.
+
+Place overlapping children in declaration order inside `KitFocusBackground` when unused space should release an editor's focus. Controls stay above the click surface. Set the matching `modal-layer` inside a modal. For navigation between screens, use the route and transition contracts of `KitRouter` and `KitScreen`.

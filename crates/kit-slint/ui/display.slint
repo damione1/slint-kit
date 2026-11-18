@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { TextViewFont } from "theme.slint";
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
 import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
-import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
+import { KitIcon, KitGlyphs, IconGlyph, IconPurpose } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
 import { KitStrings } from "strings.slint";
@@ -14,6 +15,43 @@ export enum ChatSide { start, end }
 export enum StepState { pending, current, complete, error }
 export struct TimelineEntry { title: string, description: string, metadata: string, tone: Tone, glyph: IconGlyph }
 export struct StepEntry { token: int, generation: int, label: string, description: string, state: StepState, enabled: bool }
+
+// Native Text supplies wrapping, elision, alignment and accessible text semantics.
+export component KitText inherits Text {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <TypographyRole> role: TypographyRole.body;
+    in property <Tone> tone: Tone.neutral;
+    in property <TextViewFont> font: TextViewFont.proportional;
+    font-family: root.font == TextViewFont.monospace ? root.theme.typography.family-monospace : root.theme.typography.family;
+    font-size: KitMetrics.font-size(root.theme, root.role);
+    font-weight: root.role == TypographyRole.title || root.role == TypographyRole.display ? root.theme.typography.weight-bold
+        : root.role == TypographyRole.subtitle ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular;
+    color: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.success ? root.theme.success
+        : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger
+        : root.tone == Tone.information ? root.theme.information
+        : root.role == TypographyRole.caption ? root.theme.text-secondary : root.theme.text-primary;
+    horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
+    vertical-stretch: 0;
+    wrap: word-wrap;
+    accessible-role: text;
+    accessible-label: root.text;
+}
+
+// An unmasked source image, fitted inside a theme-sized box. The host owns the asset.
+export component KitImage inherits Image {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    width: KitMetrics.icon-size(root.theme, root.control-size);
+    height: self.width;
+    in property <IconPurpose> purpose: IconPurpose.decorative;
+    in property <string> label;
+    image-fit: contain;
+    accessible-role: none;
+    if root.purpose == IconPurpose.informative && root.label != "": Rectangle {
+        accessible-role: image;
+        accessible-label: root.label;
+    }
+}
 
 export component KitBadge inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -207,10 +245,20 @@ export component KitFooter inherits Rectangle {
 export component KitDivider inherits HorizontalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label;
-    spacing: root.label == "" ? 0px : root.theme.spacing.unit * 3; vertical-stretch: 0;
-    VerticalLayout { alignment: center; vertical-stretch: 1; leading-rule := Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; } }
-    if root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-stretch: 0; }
-    VerticalLayout { alignment: center; vertical-stretch: 1; trailing-rule := Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; } }
+    in property <Orientation> orientation: Orientation.horizontal;
+    private property <bool> horizontal: root.orientation == Orientation.horizontal;
+    spacing: root.horizontal && root.label != "" ? root.theme.spacing.unit * 3 : 0px;
+    vertical-stretch: root.horizontal ? 0 : 1;
+    horizontal-stretch: root.horizontal ? 1 : 0;
+    if root.horizontal: VerticalLayout { alignment: center; vertical-stretch: 1; leading-rule := Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; } }
+    if root.horizontal && root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-stretch: 0; }
+    if root.horizontal: VerticalLayout { alignment: center; vertical-stretch: 1; trailing-rule := Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; } }
+    if !root.horizontal: VerticalLayout {
+        spacing: root.label == "" ? 0px : root.theme.spacing.unit * 3;
+        HorizontalLayout { alignment: center; Rectangle { width: root.theme.shape.border-width; background: root.theme.border-subtle; } }
+        if root.label != "": KitText { theme: root.theme; role: caption; text: root.label; horizontal-alignment: center; }
+        HorizontalLayout { alignment: center; Rectangle { width: root.theme.shape.border-width; background: root.theme.border-subtle; } }
+    }
 }
 export component KitStat inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;

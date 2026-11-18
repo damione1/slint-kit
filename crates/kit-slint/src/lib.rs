@@ -56,6 +56,22 @@ mod calendar;
 #[cfg(feature = "adapter")]
 pub use calendar::*;
 
+/// Hide a retained window and retire outstanding shortcut and popover proposals before it can be shown again.
+#[cfg(feature = "adapter")]
+pub fn hide_window<W>(window: &W) -> Result<(), slint::PlatformError>
+where
+    W: slint::ComponentHandle,
+    for<'a> ui::KitFieldService<'a>: slint::Global<'a, W>,
+{
+    window
+        .global::<ui::KitFieldService>()
+        .invoke_invalidate_shortcut_session();
+    window
+        .global::<ui::KitFieldService>()
+        .invoke_invalidate_popover_session();
+    window.hide()
+}
+
 /// Install shared pure services once per window, before showing the UI.
 /// Components keep their own state; repeated installation is harmless.
 #[cfg(feature = "adapter")]

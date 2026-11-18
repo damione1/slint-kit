@@ -443,3 +443,255 @@ fn actual_document_starter_fills_its_decorated_parent_without_an_orphan_strip() 
     }
     capture(&app, "document-fill");
 }
+
+#[test]
+fn field_rows_reflow_without_losing_native_edits_or_control_semantics() {
+    use slint_kit::ui::FieldAccess;
+    platform();
+    let app = crate::FieldRowExample::new().unwrap();
+    slint_kit::install(&app);
+    app.show().unwrap();
+    settle(&app);
+    let toggle = component(&app, "KitSwitch");
+    let notes = component(&app, "KitTextArea");
+    let editor = crate::native_editor(&notes);
+    let rows = ElementQuery::from_root(&app)
+        .match_inherits("KitFieldRow")
+        .find_all();
+    assert_eq!(rows.len(), 3);
+    let caption = rows[0]
+        .query_descendants()
+        .match_inherits("KitFieldLabel")
+        .find_first()
+        .unwrap();
+    let helper = rows[0]
+        .query_descendants()
+        .match_inherits("KitFieldDescription")
+        .find_first()
+        .unwrap();
+
+    click(&app, &caption);
+    let press = |text: slint::SharedString| {
+        app.window()
+            .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+        app.window()
+            .dispatch_event(WindowEvent::KeyReleased { text });
+        settle(&app);
+    };
+    press(" ".into());
+    assert_eq!(toggle.accessible_checked(), Some(false));
+    key(&app, Key::Tab);
+    key(&app, Key::DownArrow);
+    key(&app, Key::Home);
+    key(&app, Key::Return);
+    let select = component(&app, "KitSelectTrigger");
+    assert_eq!(
+        select.accessible_value().as_deref(),
+        Some("Toutes les publications")
+    );
+    key(&app, Key::Tab);
+    press("Brouillon".into());
+    assert_eq!(notes.accessible_value().as_deref(), Some("Brouillon"));
+
+    for (name, base) in [
+        ("light", app.get_test_theme()),
+        ("dark", app.global::<slint_kit::ui::KitThemes>().get_dark()),
+    ] {
+        for scale in [1, 2] {
+            let mut theme = base.clone();
+            theme.text_scale = if scale == 2 { 2. } else { 1. };
+            theme.reduced_motion = true;
+            app.set_test_theme(theme);
+            for width in [680., 360.] {
+                app.window().set_size(LogicalSize::new(width, 660.));
+                settle(&app);
+                assert!(editor.is_valid());
+                if width == 360. && scale == 2 {
+                    assert!(bottom(&helper) <= toggle.absolute_position().y);
+                    near(helper.size().width, rows[0].size().width);
+                } else {
+                    near(
+                        toggle.absolute_position().x + toggle.size().width,
+                        rows[0].absolute_position().x + rows[0].size().width,
+                    );
+                    assert!(
+                        helper.absolute_position().x + helper.size().width
+                            <= toggle.absolute_position().x
+                    );
+                }
+                assert!(toggle.size().width < rows[0].size().width / 2.);
+                assert!(bottom(&helper) <= rows[1].absolute_position().y);
+                near(notes.size().width, rows[2].size().width);
+                assert!(bottom(&select) <= notes.absolute_position().y);
+                if width == 360. && scale == 2 {
+                    let wheel = |delta_y| {
+                        app.window().dispatch_event(WindowEvent::PointerScrolled {
+                            position: LogicalPosition::new(24., 200.),
+                            delta_x: 0.,
+                            delta_y,
+                        });
+                        settle(&app);
+                    };
+                    wheel(1200.);
+                    assert!(bottom(&notes) > 660.);
+                    capture(&app, &format!("field-row-{name}-2-360-top"));
+                    wheel(-1200.);
+                    assert!(bottom(&notes) <= 660., "wheel reaches the whole editor");
+                    wheel(1200.);
+                    click(&app, &caption);
+                    key(&app, Key::Tab);
+                    key(&app, Key::Tab);
+                    let ring = notes
+                        .query_descendants()
+                        .match_inherits("FocusOutline")
+                        .find_first()
+                        .unwrap();
+                    assert!(
+                        ring.absolute_position().y >= 0. && bottom(&ring) < 660.,
+                        "Tab must reveal the outside ring with a trailing inset, bottom {}",
+                        bottom(&ring)
+                    );
+                    assert!(bottom(&notes) < bottom(&ring));
+                    press("x".into());
+                    assert_eq!(notes.accessible_value().as_deref(), Some("Brouillonx"));
+                    key(&app, Key::Backspace);
+                }
+                assert!(bottom(&notes) <= 660.);
+                assert_eq!(notes.accessible_value().as_deref(), Some("Brouillon"));
+                capture(&app, &format!("field-row-{name}-{scale}-{width}"));
+            }
+        }
+    }
+    app.window().set_size(LogicalSize::new(680., 660.));
+    settle(&app);
+    for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {
+        app.set_test_access(access);
+        settle(&app);
+        click(&app, &toggle);
+        assert_eq!(toggle.accessible_checked(), Some(false));
+        click(&app, &editor);
+        press("X".into());
+        assert_eq!(notes.accessible_value().as_deref(), Some("Brouillon"));
+        if access == FieldAccess::ReadOnly {
+            assert_eq!(toggle.accessible_read_only(), Some(true));
+        } else {
+            assert_eq!(toggle.accessible_enabled(), Some(false));
+        }
+        capture(&app, &format!("field-row-{access:?}"));
+    }
+}
+
+#[test]
+fn image_header_distributes_spare_space_and_vertical_rule_follows_row_height() {
+    platform();
+    let app = crate::ImageHeaderExample::new().unwrap();
+    app.show().unwrap();
+    let logo = labelled(&app, "Slint Kit");
+    let title = labelled(&app, "Library");
+    for width in [320., 600.] {
+        app.window().set_size(LogicalSize::new(width, 200.));
+        settle(&app);
+        near(logo.absolute_position().x, 16.);
+        near(logo.size().width, 120.);
+        near(
+            title.absolute_position().x + title.size().width,
+            width - 16.,
+        );
+    }
+    let divider = crate::VerticalDividerExample::new().unwrap();
+    divider.show().unwrap();
+    settle(&divider);
+    let rules = ElementQuery::from_root(&divider)
+        .match_inherits("KitDivider")
+        .find_all();
+    let label = labelled(&divider, "PDF");
+    assert_eq!(rules.len(), 2);
+    near(rules[1].size().width, divider.get_rule_width());
+    near(rules[1].size().height, label.size().height);
+}
+
+#[test]
+fn empty_row_collapses_and_changing_axis_retains_the_focused_editor() {
+    use slint::language::Orientation;
+    use slint_kit::ui::IconPurpose;
+    platform();
+    let app = crate::EmptyFieldRowFixture::new().unwrap();
+    slint_kit::install(&app);
+    app.show().unwrap();
+    settle(&app);
+    let editor = crate::native_editor(&component(&app, "KitTextArea"));
+    click(&app, &editor);
+    app.window().dispatch_event(WindowEvent::KeyPressed {
+        text: "note".into(),
+    });
+    app.window().dispatch_event(WindowEvent::KeyReleased {
+        text: "note".into(),
+    });
+    for axis in [Orientation::Vertical, Orientation::Horizontal] {
+        app.set_orientation(axis);
+        settle(&app);
+        near(app.get_empty_height(), 0.);
+        assert!(app.get_editor_focused() && editor.is_valid());
+        assert_eq!(app.get_draft(), "note");
+    }
+    let background = LogicalPosition::new(8., 230.);
+    for event in [
+        WindowEvent::PointerPressed {
+            position: background,
+            button: PointerEventButton::Left,
+        },
+        WindowEvent::PointerReleased {
+            position: background,
+            button: PointerEventButton::Left,
+        },
+    ] {
+        app.window().dispatch_event(event);
+    }
+    settle(&app);
+    assert!(!app.get_editor_focused());
+    assert_eq!(app.get_draft(), "note");
+    let images = || {
+        ElementQuery::from_root(&app)
+            .match_accessible_role(i_slint_backend_testing::AccessibleRole::Image)
+            .find_all()
+    };
+    assert!(images().is_empty());
+    app.set_image_label("Publisher".into());
+    assert!(images().is_empty());
+    app.set_purpose(IconPurpose::Informative);
+    settle(&app);
+    let images = images();
+    assert_eq!(images.len(), 1);
+    assert_eq!(images[0].accessible_label().as_deref(), Some("Publisher"));
+}
+
+#[test]
+fn caption_preserves_full_accessible_text_and_projects_theme_metrics() {
+    use slint_kit::ui::{KitThemes, Tone};
+    platform();
+    let app = crate::PresentationTextFixture::new().unwrap();
+    app.show().unwrap();
+    let palette = app.global::<KitThemes>();
+    for mut theme in [palette.get_light(), palette.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            app.set_theme(theme.clone());
+            app.set_tone(Tone::Neutral);
+            settle(&app);
+            assert_eq!(app.get_ink(), theme.text_secondary);
+            assert_eq!(app.get_family(), theme.typography.family_monospace);
+            near(
+                app.get_caption_size(),
+                theme.typography.size_caption * scale,
+            );
+            assert!(app.get_wrapped_height() > app.get_elided_height());
+            app.set_tone(Tone::Danger);
+            assert_eq!(app.get_ink(), theme.danger);
+            let full = "An unabridged reference label for the reading catalogue";
+            assert_eq!(
+                labelled(&app, full).accessible_label().as_deref(),
+                Some(full)
+            );
+        }
+    }
+}

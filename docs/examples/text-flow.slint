@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitTextFlow, KitStack, KitText, KitTheme, KitThemes } from "@kit";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    in-out property <KitTheme> theme: KitThemes.light;
+    preferred-width: 480px; preferred-height: 260px;
+    max-width: 100000px; max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <string> selection;
+    KitStack {
+        theme: root.theme; inset: regular;
+        KitText { theme: root.theme; role: title; text: "Specimens"; }
+        KitTextFlow {
+            theme: root.theme;
+            fragments: [
+                {item: {token: 17, generation: 1, label: "Maple"}, suffix: ", "},
+                {item: {token: 4, generation: 1, label: "and", disabled: true}, suffix: " "},
+                {item: {token: 31, generation: 1, label: "Beech"}, suffix: "."}
+            ];
+            activated(anchor) => { root.selection = anchor.token == 17 ? "Maple" : "Beech"; }
+        }
+        KitText { theme: root.theme; text: root.selection; }
+    }
+}

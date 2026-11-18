@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitStack, KitText, KitImage, KitInline, KitDivider } from "@kit";
+
+export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
+    default-font-family: InterFont.family;
+    background: root.theme.canvas;
+    preferred-width: 420px;
+    preferred-height: 150px;
+    max-width: 100000px;
+    max-height: 100000px;
+    KitStack {
+        theme: root.theme; inset: regular;
+        KitInline {
+            theme: root.theme; alignment: space-between;
+            KitImage {
+                theme: root.theme;
+                width: 120px; height: 48px;
+                source: root.theme.canvas == KitThemes.dark.canvas
+                    ? @image-url("assets/wordmark-dark.png")
+                    : @image-url("assets/wordmark.png");
+                purpose: informative; label: "Slint Kit";
+            }
+            KitText { theme: root.theme; role: caption; text: "Library"; }
+        }
+        KitDivider { theme: root.theme; }
+    }
+}

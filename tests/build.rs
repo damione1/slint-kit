@@ -57,6 +57,14 @@ fn main() {
         .expect("keep each catalogue window in its own module");
     }
     kit_build::compile_with_config(
+        "../docs/examples/popover.slint",
+        kit_build::config().with_debug_info(true),
+    )
+    .expect("compile the standalone fragment editor");
+    let output = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    std::fs::copy(output.join("kit-app.rs"), output.join("fragment-editor.rs"))
+        .expect("keep the standalone fragment editor");
+    kit_build::compile_with_config(
         "ui/fixture.slint",
         kit_build::config()
             .with_debug_info(true)

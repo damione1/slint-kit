@@ -342,3 +342,11 @@ Composez les icônes intrinsèques dans un conteneur de la hauteur de ligne et c
 ## Focus du calendrier et aide du sélecteur
 
 KitCalendar utilise un seul focus clavier natif avec le rôle liste. Le focus accessible est délégué au jour actif, avec ses états sélectionné, désactivé et lecture seule. Les indices des cases restent stables quand les jours des mois adjacents sont masqués ou en géométrie RTL. Slint 1.18.1 ne fournit pas les rôles grille/ligne/cellule ; cette liste ne qualifie pas VoiceOver ou NVDA. KitDatePicker expose l’état ouvert de son bouton calendrier et protège son action accessible d’ouverture. Sa description est associée à l’éditeur natif et reste visible sous le champ. Pour les champs composés, show-description:false masque seulement la ligne d’aide ; description parvient toujours à l’éditeur natif.
+
+### Texte, images et superposition
+
+Utilisez `KitText.role` pour les titres, le corps et les légendes. Une couleur sémantique `tone` accompagne un état formulé en toutes lettres. Choisissez `font: monospace` pour un identifiant. Le texte revient à la ligne par défaut. Pour une légende de liste sur une seule ligne, bornez sa largeur et utilisez `wrap: no-wrap; overflow: elide;`. Le nom accessible conserve la chaîne entière.
+
+Pour un en-tête à deux extrémités, placez les deux groupes dans `KitInline { alignment: space-between; }`. Insérez `KitDivider { orientation: vertical; }` entre les éléments d’une rangée de hauteur bornée. Fournissez votre logo bitmap ou vectoriel à `KitImage.source`. Donnez les deux dimensions du cadre pour y faire tenir l’image entière. À côté d’un titre, une image décorative se passe de nom. Pour un logo autonome, définissez `purpose: informative` et `label`.
+
+Si un clic sur le fond doit retirer le focus d’un éditeur, superposez les enfants de `KitFocusBackground` dans leur ordre de déclaration. Les contrôles restent devant la surface de clic. Dans une modale, renseignez le `modal-layer` correspondant. Pour naviguer entre écrans, utilisez les routes et les transitions de `KitRouter` et `KitScreen`.

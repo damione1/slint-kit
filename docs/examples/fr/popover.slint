@@ -1,30 +1,126 @@
-import { InterFont } from "@kit-fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitPopover, KitTheme, KitThemes } from "@kit";
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitButton, KitText, KitTextFlow, KitTextField, KitPopover, KitStack, KitInline, KitScrollArea,
+    KitTheme, KitThemes, KitSelectionService, TextFragment, PopoverAnchor, PopoverTicket, CloseReason } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "Exemple KitPopover";
-    preferred-width: 480px;
-    preferred-height: 320px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    preferred-width: 640px; preferred-height: 540px;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status: "Aucune action";
-    VerticalLayout {
-        padding: 24px;
-        spacing: 12px;
-        alignment: start;
-        KitPopover {
-            theme: root.theme;
-            text: "Détails du projet";
-            popup-width: 280px * root.theme.text-scale;
-            opened => { root.status = "Détails ouverts"; }
-            dismissed(reason) => { root.status = "Détails fermés"; }
-            Text { text: "Notes de terrain"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; max-height: self.preferred-height; }
-            Text { text: "Mis à jour ce matin"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; max-height: self.preferred-height; }
+    background: root.theme.canvas;
+    in-out property <bool> second-document;
+    in property <bool> route-active: true;
+    in property <[TextFragment]> fragments: root.second-document ? [
+        {item: {token: 100, generation: 2, label: "Vermillon", disabled: false}, suffix: ", "},
+        {item: {token: 101, generation: 2, label: "outremer", disabled: false}, suffix: " "},
+        {item: {token: 102, generation: 2, label: "et", disabled: true}, suffix: " "},
+        {item: {token: 103, generation: 2, label: "safran", disabled: false}, suffix: " "},
+        {item: {token: 104, generation: 2, label: "composent", disabled: false}, suffix: " "},
+        {item: {token: 105, generation: 2, label: "cette", disabled: false}, suffix: " "},
+        {item: {token: 106, generation: 2, label: "étude", disabled: false}, suffix: " "},
+        {item: {token: 107, generation: 2, label: "de", disabled: true}, suffix: " "},
+        {item: {token: 108, generation: 2, label: "polychromatographieinterdisciplinaire", disabled: false}, suffix: ". "},
+        {item: {token: 109, generation: 2, label: "Chaque", disabled: false}, suffix: " "},
+        {item: {token: 110, generation: 2, label: "échantillon", disabled: false}, suffix: " "},
+        {item: {token: 111, generation: 2, label: "porte", disabled: false}, suffix: " "},
+        {item: {token: 112, generation: 2, label: "une", disabled: true}, suffix: " "},
+        {item: {token: 113, generation: 2, label: "annotation", disabled: false}, suffix: " "},
+        {item: {token: 114, generation: 2, label: "manuscrite", disabled: false}, suffix: ". "}
+    ] : [
+        {item: {token: 10, generation: 1, label: "Églantines", disabled: false}, suffix: ", "},
+        {item: {token: 11, generation: 1, label: "fougères", disabled: false}, suffix: " "},
+        {item: {token: 12, generation: 1, label: "et", disabled: true}, suffix: " "},
+        {item: {token: 13, generation: 1, label: "lichens", disabled: false}, suffix: " "},
+        {item: {token: 14, generation: 1, label: "tapissent", disabled: false}, suffix: " "},
+        {item: {token: 15, generation: 1, label: "les", disabled: true}, suffix: " "},
+        {item: {token: 16, generation: 1, label: "rochers", disabled: false}, suffix: " "},
+        {item: {token: 17, generation: 1, label: "de", disabled: true}, suffix: " "},
+        {item: {token: 18, generation: 1, label: "la", disabled: true}, suffix: " "},
+        {item: {token: 19, generation: 1, label: "péninsule", disabled: false}, suffix: ". "},
+        {item: {token: 20, generation: 1, label: "Après", disabled: false}, suffix: " "},
+        {item: {token: 21, generation: 1, label: "la", disabled: true}, suffix: " "},
+        {item: {token: 22, generation: 1, label: "pluie", disabled: false}, suffix: ", "},
+        {item: {token: 23, generation: 1, label: "leurs", disabled: false}, suffix: " "},
+        {item: {token: 24, generation: 1, label: "couleurs", disabled: false}, suffix: " "},
+        {item: {token: 25, generation: 1, label: "changent", disabled: false}, suffix: " "},
+        {item: {token: 26, generation: 1, label: "à", disabled: true}, suffix: " "},
+        {item: {token: 27, generation: 1, label: "la", disabled: true}, suffix: " "},
+        {item: {token: 28, generation: 1, label: "lumière", disabled: false}, suffix: " "},
+        {item: {token: 29, generation: 1, label: "du", disabled: true}, suffix: " "},
+        {item: {token: 30, generation: 1, label: "matin", disabled: false}, suffix: ". "}
+    ];
+    in-out property <string> heading;
+    in-out property <string> note;
+    in-out property <string> status;
+    out property <PopoverTicket> ticket: editor.ticket;
+    in-out property <length> document-offset <=> scroller.content-y;
+    out property <bool> editing: editor.open;
+    callback saved(PopoverTicket, string, string);
+    callback opened();
+    callback dismissed(CloseReason);
+    callback focus-returned(PopoverTicket);
+
+    public function edit(anchor: PopoverAnchor) -> bool {
+        if (!editor.show-at(anchor)) { return false; }
+        root.heading = KitSelectionService.source(KitSelectionService.fragment-options(root.fragments), anchor.token).label;
+        root.note = "";
+        return true;
+    }
+    public function save(proposal: PopoverTicket) -> bool {
+        let heading = root.heading;
+        let note = root.note;
+        if (heading == "" || !editor.finish(proposal)) { return false; }
+        root.status = heading;
+        root.saved(proposal, heading, note);
+        return true;
+    }
+    public function cancel() { editor.dismiss(CloseReason.programmatic); }
+    KitStack {
+        theme: root.theme; inset: regular; alignment: stretch; vertical-stretch: 1; visible: root.route-active;
+        document-switch := KitButton {
+            theme: root.theme; text: root.second-document ? "Carnet précédent" : "Carnet suivant";
+            activated => { root.second-document = !root.second-document; }
         }
-        Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+        KitText { theme: root.theme; role: title; text: root.second-document ? "Atlas des couleurs" : "Herbier du littoral"; }
+        scroller := KitScrollArea {
+            theme: root.theme; inset: tight;
+            paragraph := KitTextFlow {
+                theme: root.theme; enabled: root.route-active; fragments: root.fragments;
+                activated(anchor) => { root.edit(anchor); }
+            }
+        }
+        KitButton { theme: root.theme; text: "Marquer comme lu"; activated => { root.status = "Carnet lu"; } }
+        if root.status != "": KitText { theme: root.theme; text: root.status; }
+    }
+    editor := KitPopover {
+        x: 0px; y: 0px; width: 0px; height: 0px;
+        trigger-kind: external; theme: root.theme; disabled: !root.route-active;
+        viewport: {width: root.width, height: root.height};
+        popup-width: 310px * root.theme.text-scale;
+        popup-height: root.height;
+        anchor-available(token, generation) => { return paragraph.available(token, generation); }
+        restore-focus(origin) => {
+            root.focus-returned(origin);
+            if (!editor.open && root.route-active && !paragraph.focus-fragment(origin.token, origin.generation)) {
+                document-switch.take-focus();
+            }
+        }
+        opened => { root.opened(); }
+        dismissed(reason) => { root.dismissed(reason); }
+        KitStack {
+            theme: root.theme; gap: compact;
+            KitTextField { theme: root.theme; accessible-name: "Intitulé"; placeholder: "Intitulé"; text <=> root.heading;
+                commit-requested => { root.save(editor.ticket); } }
+            KitTextField { theme: root.theme; accessible-name: "Annotation"; placeholder: "Annotation"; text <=> root.note;
+                commit-requested => { root.save(editor.ticket); } }
+            KitInline {
+                theme: root.theme; gap: compact;
+                KitButton { theme: root.theme; text: "Annuler"; activated => { root.cancel(); } }
+                KitButton { theme: root.theme; text: "Valider"; intent: primary;
+                    disabled: root.heading == "" || !paragraph.available(editor.ticket.token, editor.ticket.generation);
+                    activated => { root.save(editor.ticket); } }
+            }
+        }
     }
 }

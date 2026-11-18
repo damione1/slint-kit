@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- Fixed #440. A topmost modal receives its first click when it interrupts an open KitPopover, KitDropdownMenu or KitContextMenu.
+- Correction de #440. Une modale au premier plan reçoit son premier clic lorsqu’elle interrompt un KitPopover, KitDropdownMenu ou KitContextMenu ouvert.
+- Added external window-local anchors and one-shot edit tickets to `KitPopover`. Added `KitTextFlow` for wrapping keyed fragments with attached suffixes, directional navigation and one Tab stop per paragraph.
+- Ajout des ancres externes en coordonnées fenêtre et des tickets de validation à usage unique à `KitPopover`. Ajout de `KitTextFlow` pour les fragments identifiés avec suffixes solidaires, navigation directionnelle et un arrêt Tab par paragraphe.
+
+- Fixed #439. An overflowing tab strip reveals the controlled selection when mounted or recreated, while preserving focus and manual scrolling.
+- Correction de #439. Une barre d’onglets en débordement révèle la sélection contrôlée à sa création et à son remontage, en préservant le focus et le défilement manuel.
+
+- Fixed #438. An open Select, MultiSelect or Combobox releases its popup and keyboard focus when another modal layer takes over. Its first action receives the first click.
+- Correction de #438. Select, MultiSelect et Combobox ferment leur liste et cèdent le focus clavier quand une autre couche modale devient active. Son action reçoit le premier clic.
+
+- Added `KitShortcutField` for controlled logical keyboard capture, with optional lone modifiers, explicit clearing, ticketed retry and `hide_window` for retained windows.
+- Ajout de `KitShortcutField` pour la saisie contrôlée de touches logiques, avec modificateurs seuls facultatifs, effacement explicite, reprise par ticket et `hide_window` pour les fenêtres conservées.
+
+- Added `KitFieldRow` for horizontal and stacked form composition, `KitText` for scaled presentation text, `KitImage` for uncropped artwork and `KitFocusBackground` for layered content with click-to-blur behavior. `KitDivider.orientation` adds a vertical rule.
+- Ajout de `KitFieldRow` pour les formulaires en ligne et empilés, de `KitText` pour le texte thémé, de `KitImage` pour les images non rognées et de `KitFocusBackground` pour la superposition avec défocalisation au clic. `KitDivider.orientation` permet un trait vertical.
+
 ## 0.9.0
 
 <!-- release-summary:start -->

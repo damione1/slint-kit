@@ -337,6 +337,14 @@ where
     if service.get_ready() {
         return;
     }
+    service.on_fragment_options(|fragments| {
+        ModelRc::new(VecModel::from(
+            tracked(&fragments)
+                .into_iter()
+                .map(|fragment| fragment.item)
+                .collect::<Vec<_>>(),
+        ))
+    });
     service.on_chip_labels(|model, separator| {
         let rows = tracked(&model);
         rows.iter()

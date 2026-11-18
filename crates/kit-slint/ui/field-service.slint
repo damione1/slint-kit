@@ -13,6 +13,8 @@ export struct PopupViewport { width: length, height: length }
 export enum DropdownPlacement { auto, below, above }
 export struct PopupRequest { x: length, y: length, anchor-width: length, anchor-height: length, width: length, height: length, gap: length, placement: DropdownPlacement }
 export struct PopupGeometry { x: length, y: length, width: length, height: length }
+export struct PopoverAnchor { token: int, generation: int, bounds: PopupGeometry }
+export struct PopoverTicket { token: int, generation: int, sequence: int }
 export struct FieldValue { present: bool, text: string }
 export struct FieldState {
     accepted: FieldValue, draft: string, dirty: bool, touched: bool,
@@ -45,6 +47,29 @@ export struct SliderAccessibleValue { valid: bool, minimum: float, maximum: floa
 export struct RangeAccessibleValue { lower: SliderAccessibleValue, upper: SliderAccessibleValue }
 export struct RangeSetValueResult { status: NumberStepStatus, value: DecimalRangeView }
 export global KitFieldService {
+    // One live capture per window. Retire its ticket synchronously before hiding.
+    private property <int> shortcut-sequence;
+    out property <int> shortcut-session;
+    public function begin-shortcut-session() -> int {
+        if (self.shortcut-sequence == 2147483647) { self.shortcut-session = 0; }
+        else {
+            self.shortcut-sequence += 1;
+            self.shortcut-session = self.shortcut-sequence;
+        }
+        return self.shortcut-session;
+    }
+    public function invalidate-shortcut-session() { self.shortcut-session = 0; }
+    private property <int> popover-sequence;
+    out property <int> popover-session;
+    public function begin-popover-session() -> int {
+        if (self.popover-sequence < 2147483647) {
+            self.popover-sequence += 1;
+            self.popover-session = self.popover-sequence;
+        } else { self.popover-session = 0; }
+        return self.popover-session;
+    }
+    public function invalidate-popover-session() { self.popover-session = 0; }
+    callback window-visible() -> bool;
     callback popup-viewport() -> PopupViewport;
     pure callback place-popup(PopupRequest, PopupViewport) -> PopupGeometry;
     pure callback color-wheel-image() -> image;

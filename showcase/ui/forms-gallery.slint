@@ -5,7 +5,7 @@ import { KitCard, Tone } from "@kit";
 import { KitButton } from "@kit";
 import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit";
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit";
-import { KitField, KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit";
+import { KitFieldRow, KitText, KitField, KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit";
 import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField, PhoneNumberMode } from "@kit";
 import { NumberInputFormat } from "@kit";
 import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit";
@@ -316,8 +316,19 @@ export component FormGallery inherits VerticalLayout {
         }
         KitFormErrorSummary {theme:root.theme;errors:FormExamples.profile-errors;error-activated(target)=>{FormExamples.profile-error-activated(target);}}
         KitCheckbox {control-size:root.control-size;private property <int> focus-sequence:FormExamples.consent-focus-sequence;changed focus-sequence=>{self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}theme: root.theme; label: "I agree to the project terms"; state: FormExamples.consent; access: FormExamples.access; toggled(state)=>{FormExamples.consent = state; FormExamples.consent-toggled(state);}}
-        KitSwitch {control-size:root.control-size;theme:root.theme; label:"Email notifications"; checked:FormExamples.notifications; access:FormExamples.access; toggled(value)=>{FormExamples.notifications = value; FormExamples.notifications-toggled(value);}}
-        KitFieldDescription {font-size:KitMetrics.font-size(root.theme, TypographyRole.body);theme:root.theme;text:FormExamples.profile-status;}
+        notifications := KitFieldRow {
+            theme: root.theme; access: FormExamples.access; label: "Email notifications";
+            description: "Receive updates when your profile changes.";
+            focus-requested => { toggle.take-focus(); }
+            toggle := KitSwitch {
+                theme: root.theme; control-size: root.control-size; access: notifications.access;
+                accessible-name: notifications.label; accessible-description: notifications.description;
+                label-position: start; control-width: intrinsic;
+                checked: FormExamples.notifications;
+                toggled(value) => { FormExamples.notifications = value; FormExamples.notifications-toggled(value); }
+            }
+        }
+        KitText { theme: root.theme; text: FormExamples.profile-status; }
         FlexboxLayout {spacing:KitMetrics.inline-gap(root.theme);alignment:start;
             KitButton {control-size:root.control-size;theme:root.theme;text:"Save profile";intent:ButtonIntent.primary;busy:FormExamples.profile-submission == SubmissionPresentation.pending;disabled:FormExamples.access != FieldAccess.editable;activated=>{FormExamples.profile-submit();}}
             KitButton {control-size:root.control-size;theme:root.theme;text:"Reset";intent:ButtonIntent.quiet;activated=>{FormExamples.profile-reset();}}

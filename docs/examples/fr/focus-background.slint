@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitTheme, KitThemes, KitStack, KitText, KitTextArea, KitFocusBackground } from "@kit";
+
+export component Example inherits Window {
+    in-out property <KitTheme> theme: KitThemes.light;
+    default-font-family: InterFont.family;
+    background: root.theme.canvas;
+    preferred-width: 420px;
+    preferred-height: 240px;
+    max-width: 100000px;
+    max-height: 100000px;
+    KitFocusBackground {
+        KitStack {
+            theme: root.theme; inset: regular;
+            KitTextArea { theme: root.theme; label: "Notes"; }
+            KitText { theme: root.theme; role: caption; text: "Cliquez sous l’éditeur pour quitter le champ."; }
+        }
+    }
+}

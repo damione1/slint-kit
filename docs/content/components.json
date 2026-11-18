@@ -2156,7 +2156,7 @@
           "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         },
         "modal-layer": {
-          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale. Quand sa couche devient inerte, la liste ouverte se ferme avec `CloseReason.programmatic`. La modale garde le focus et reçoit le premier clic. Si vous fournissez `state`, acquittez la fermeture en passant `state.open` à faux.",
           "default": "`0` (la fenêtre).",
           "example": "KitCombobox {\n    modal-layer: 1;\n}"
         },
@@ -2186,7 +2186,7 @@
         "clear": "Délègue la suppression du texte modifiable non vide à l’éditeur natif, en conservant annulation et protection de composition ; cleared() suit une suppression terminée et la recherche vide est émise une fois. La propriété locale efface selected immédiatement ; l’hôte contrôlé acquitte via selected. Une action vide ou refusée n’émet pas cleared(). Un popup déjà ouvert reste ouvert.",
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
-        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule ou désactivé. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
+        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule, désactivé ou sur une couche inerte. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel. Lors d’une ouverture pendant une préédition IME, l’éditeur attend la fin du texte marqué avant de présenter les suggestions. L’ouverture conserve sa sélection UTF-8 et son historique d’annulation.",
         "close": "Ferme la liste depuis le code. `dismiss(CloseReason.programmatic)` suit et le focus revient au déclencheur."
       },
       "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Le focus natif reste dans le TextInput éditable, préservant sélection, curseur, annulation et routage IME. Les options du popup exposent leurs positions, mais Slint 1.18.1 n’a pas de relation publique active-descendant/controls par identifiant entre l’éditeur feuille et les options sœurs ou de popup. Déplacer le focus natif vers une option casserait l’édition et n’est pas utilisé. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
@@ -2325,7 +2325,7 @@
           "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         },
         "modal-layer": {
-          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number. An open list closes with `CloseReason.programmatic` when its layer becomes inert. The modal keeps focus and receives the first click. If you supply `state`, acknowledge the dismissal by setting `state.open` to false.",
           "default": "`0` (window).",
           "example": "KitCombobox {\n    modal-layer: 1;\n}"
         },
@@ -2355,7 +2355,7 @@
         "clear": "Delegate nonempty editable text deletion to the native editor, preserving undo and its composition guard; cleared() follows a completed deletion and the empty query is published once. Local ownership clears selected immediately; controlled owners acknowledge through selected. Empty or refused native actions do not emit cleared(). An already-open suggestion popup remains open.",
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
-        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only or disabled. The `open-requested()` callback reports user gestures only and does not fire for this call.",
+        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only, disabled or on an inert layer. The `open-requested()` callback reports user gestures only and does not fire for this call. When opening suggestions during IME preedit, the inline editor waits for the marked text to finish before showing the list. Opening preserves its UTF-8 selection and undo history.",
         "close": "Close the list from code. `dismiss(CloseReason.programmatic)` follows and focus returns to the trigger."
       },
       "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Native focus remains in the editable TextInput, preserving selection, caret, undo and IME routing. Popup options expose positions, but Slint 1.18.1 has no public active-descendant/controls identifier relation from the editor leaf to sibling or popup options. Moving native focus to an option would break editing and is not used. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
@@ -4669,7 +4669,7 @@
   },
   "KitDivider": {
     "fr": {
-      "summary": "Séparation horizontale avec un libellé facultatif au centre.",
+      "summary": "Séparation horizontale ou verticale avec un libellé facultatif au centre.",
       "usage": "Utilisez `label` pour nommer une séparation, par exemple entre deux méthodes de connexion. Laissez la chaîne vide pour un simple trait.",
       "behavior": "Les lignes utilisent `border-subtle` et le libellé garde sa largeur naturelle. Le conteneur parent décide de l’espacement avant et après la séparation.",
       "label": "Séparateur",
@@ -4677,10 +4677,16 @@
       "related": [
         "KitFieldSeparator",
         "KitStack"
-      ]
+      ],
+      "properties": {
+        "orientation": {
+          "effect": "Choisissez vertical dans une rangée de hauteur bornée. Le trait adopte l’épaisseur de bordure du thème."
+        }
+      },
+      "accessibility": "Le trait seul est décoratif et reste hors du parcours Tab. La légende facultative est un texte lisible."
     },
     "en": {
-      "summary": "Horizontal separator with an optional central label.",
+      "summary": "Horizontal or vertical separator with an optional central label.",
       "usage": "Use `label` to name a division, such as between two sign-in methods. Leave it empty for a plain rule.",
       "behavior": "Lines use `border-subtle` and the label keeps its natural width. The parent decides spacing before and after the separator.",
       "label": "Divider",
@@ -4688,7 +4694,13 @@
       "related": [
         "KitFieldSeparator",
         "KitStack"
-      ]
+      ],
+      "properties": {
+        "orientation": {
+          "effect": "Use vertical in a finite-height row. The line uses the theme border width."
+        }
+      },
+      "accessibility": "A plain rule is decorative and stays outside the Tab order. The optional label is readable text."
     }
   },
   "KitDrawer": {
@@ -5911,17 +5923,21 @@
     "en": {
       "label": "Popover",
       "seoTitle": "Popover for Slint",
-      "summary": "Trigger button that opens an anchored panel holding any content.",
-      "usage": "Set `text` for the trigger and place the panel content as children. Handle `opened()` and `dismissed(CloseReason)`; call `show()` or `dismiss(reason)` to drive the panel from code.",
-      "behavior": "The panel sits below the trigger, or above it when there is more room, shifts horizontally and shrinks in height to stay inside the window, using the same placement as the field popups. An outside press, which includes a press on the trigger itself, or Escape closes it; Down Arrow on the trigger opens it. `dismissed` reports `escape`, `programmatic` (for `dismiss`), `trigger-toggle` (the trigger activated by keyboard or assistive action while open) or `host-closed` (an outside press, including one on the trigger, or any other native closure). Escape and `dismiss` return focus to the trigger; an outside press does not move focus itself. The panel takes focus when presented so that Escape works; Tab moves through its controls. `popup-height` (default 320px) caps the panel height. Slint forbids reading or calling an element of a popup from outside it, so react to panel content through its own callbacks.",
+      "summary": "Composed panel attached to its button or to a keyed external anchor.",
+      "usage": "Set `text` for the trigger and place the panel content as children. Handle `opened()` and `dismissed(CloseReason)`; call `show()` or `dismiss(reason)` to drive the panel from code. For an external opener, set trigger-kind to external, bind viewport to the logical window size and implement anchor-available. Pass the rectangle and stable token/generation to show-at. Snapshot draft values before finish(ticket) and publish only on success.",
+      "behavior": "The panel sits below the trigger, or above it when there is more room, shifts horizontally and shrinks in height to stay inside the window, using the same placement as the field popups. An outside press, which includes a press on the trigger itself, or Escape closes it; Down Arrow on the trigger opens it. `dismissed` reports `escape`, `programmatic` (for `dismiss`), `trigger-toggle` (the trigger activated by keyboard or assistive action while open) or `host-closed` (an outside press, including one on the trigger, or any other native closure). Escape and `dismiss` return focus to the trigger; an outside press does not move focus itself. The panel takes focus when presented so that Escape works; Tab moves through its controls. `popup-height` (default 320px) caps the panel height. Slint forbids reading or calling an element of a popup from outside it, so react to panel content through its own callbacks. External placement freezes the window rectangle at opening. Scrolling or reordering leaves the mounted form intact. Resizing the bound viewport closes it. A removed or replaced target can keep its draft open, but finish checks the original identity, current window session, route admission and visibility. A modal taking over closes either trigger mode once with programmatic and retains focus.",
       "related": [
         "KitDropdownMenu",
         "KitSelect",
         "KitDrawer",
-        "KitContextMenu"
+        "KitContextMenu",
+        "KitTextFlow"
       ],
-      "callbacks": {},
-      "accessibility": "The trigger is a button with `expanded` state reflecting `open`. The panel is a plain container: give interactive content its own accessible names. Headless tests do not qualify VoiceOver, NVDA or physical IME.",
+      "callbacks": {
+        "anchor-available": "Resolve token and generation against the current source and access policy.",
+        "restore-focus": "Return focus to the eligible opening control or paragraph after explicit dismissal."
+      },
+      "accessibility": "The trigger is a button with `expanded` state reflecting `open`. The panel is a plain container: give interactive content its own accessible names. Headless tests do not qualify VoiceOver, NVDA or physical IME. Externally triggered panels have no visible button. Tab cycles through the supplied native controls. On explicit dismissal restore focus to the ticket’s opener or, when it is gone, to an eligible document control.",
       "properties": {
         "has-focus": {
           "effect": "True while the trigger button owns focus.",
@@ -5945,23 +5961,37 @@
           "effect": "Width of the panel, capped at the window width minus a gap on each side.",
           "default": "The larger of the trigger width and the select popup minimum width.",
           "example": "popup-width: 320px;"
+        },
+        "trigger-kind": {
+          "effect": "Choose the built-in button or an external opener. An external anchor occupies no intrinsic trigger space."
+        },
+        "ticket": {
+          "effect": "Token, generation and per-window sequence of the originating external edit."
+        },
+        "viewport": {
+          "effect": "Bind width and height to logical window lengths for external placement."
         }
-      }
+      },
+      "states": "Closed, open from button, open from an external anchor, stale external target, interrupted by modal, route departure or resize. Closing preserves the reason and allows a callback to start another session."
     },
     "fr": {
-      "label": "",
-      "seoTitle": " pour Slint",
-      "summary": "Bouton déclencheur qui ouvre un panneau ancré contenant un contenu libre.",
-      "usage": "Renseignez `text` pour le déclencheur et placez le contenu du panneau en enfants. Traitez `opened()` et `dismissed(CloseReason)` ; appelez `show()` ou `dismiss(reason)` pour piloter le panneau depuis le code.",
-      "behavior": "Le panneau se place sous le déclencheur, ou au-dessus s’il y a plus de place, se décale horizontalement et réduit sa hauteur pour rester dans la fenêtre, avec le même placement que les popups des champs. Un appui extérieur, y compris un appui sur le déclencheur lui-même, ou Échap le ferme ; la flèche bas sur le déclencheur l’ouvre. `dismissed` signale `escape`, `programmatic` (pour `dismiss`), `trigger-toggle` (déclencheur activé au clavier ou par action assistive alors que le panneau est ouvert) ou `host-closed` (un appui extérieur, y compris sur le déclencheur, ou toute autre fermeture native). Échap et `dismiss` rendent le focus au déclencheur ; un appui extérieur ne déplace pas le focus lui-même. Le panneau prend le focus à sa présentation pour qu’Échap fonctionne ; Tab parcourt ses contrôles. `popup-height` (320 px par défaut) plafonne la hauteur du panneau. Slint interdit de lire ou d’appeler un élément d’un popup depuis l’extérieur : réagissez au contenu du panneau par ses propres callbacks.",
+      "label": "Panneau contextuel",
+      "seoTitle": "Panneau contextuel pour Slint",
+      "summary": "Panneau composé attaché à son bouton ou à une ancre externe identifiée.",
+      "usage": "Renseignez `text` pour le déclencheur et placez le contenu du panneau en enfants. Traitez `opened()` et `dismissed(CloseReason)` ; appelez `show()` ou `dismiss(reason)` pour piloter le panneau depuis le code. Pour un déclencheur externe, réglez trigger-kind sur external, liez viewport aux dimensions logiques de la fenêtre et implémentez anchor-available. Passez le rectangle et le couple token/génération à show-at. Copiez les valeurs du brouillon avant finish(ticket) et publiez-les en cas de succès.",
+      "behavior": "Le panneau se place sous le déclencheur, ou au-dessus s’il y a plus de place, se décale horizontalement et réduit sa hauteur pour rester dans la fenêtre, avec le même placement que les popups des champs. Un appui extérieur, y compris un appui sur le déclencheur lui-même, ou Échap le ferme ; la flèche bas sur le déclencheur l’ouvre. `dismissed` signale `escape`, `programmatic` (pour `dismiss`), `trigger-toggle` (déclencheur activé au clavier ou par action assistive alors que le panneau est ouvert) ou `host-closed` (un appui extérieur, y compris sur le déclencheur, ou toute autre fermeture native). Échap et `dismiss` rendent le focus au déclencheur ; un appui extérieur ne déplace pas le focus lui-même. Le panneau prend le focus à sa présentation pour qu’Échap fonctionne ; Tab parcourt ses contrôles. `popup-height` (320 px par défaut) plafonne la hauteur du panneau. Slint interdit de lire ou d’appeler un élément d’un popup depuis l’extérieur : réagissez au contenu du panneau par ses propres callbacks. Le placement externe fige le rectangle fenêtre à l’ouverture. Le défilement ou le tri conserve le formulaire monté. Un changement du viewport lié le ferme. Une cible supprimée ou remplacée peut garder son brouillon ouvert. finish contrôle l’identité initiale, la session de fenêtre, l’activité de route et la visibilité. Une prise de modalité ferme les deux modes une seule fois avec programmatic et conserve le focus.",
       "related": [
         "KitDropdownMenu",
         "KitSelect",
         "KitDrawer",
-        "KitContextMenu"
+        "KitContextMenu",
+        "KitTextFlow"
       ],
-      "callbacks": {},
-      "accessibility": "Le déclencheur est un bouton dont l’état `expanded` reflète `open`. Le panneau est un conteneur simple : donnez un nom accessible à chaque contenu interactif. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "callbacks": {
+        "anchor-available": "Vérifiez le token et la génération dans la source et la politique d’accès courantes.",
+        "restore-focus": "Rendez le focus au déclencheur admissible ou au paragraphe après une fermeture explicite."
+      },
+      "accessibility": "Le déclencheur est un bouton dont l’état `expanded` reflète `open`. Le panneau est un conteneur simple : donnez un nom accessible à chaque contenu interactif. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique. Le mode à ancre externe ne dessine aucun bouton. Tab parcourt les contrôles natifs fournis. À la fermeture explicite, rendez le focus au déclencheur identifié par le ticket ou, s’il a disparu, à une commande du document encore admissible.",
       "properties": {
         "has-focus": {
           "effect": "Vrai tant que le bouton déclencheur a le focus.",
@@ -5985,8 +6015,18 @@
           "effect": "Largeur du panneau, plafonnée à la largeur de la fenêtre moins un espace de chaque côté.",
           "default": "Le plus grand de la largeur du déclencheur et de la largeur minimale du popup de sélection.",
           "example": "popup-width: 320px;"
+        },
+        "trigger-kind": {
+          "effect": "Choisit le bouton intégré ou un déclencheur externe sans espace intrinsèque."
+        },
+        "ticket": {
+          "effect": "Token, génération et séquence par fenêtre de l’édition externe."
+        },
+        "viewport": {
+          "effect": "Liez largeur et hauteur aux dimensions logiques de la fenêtre pour le placement externe."
         }
-      }
+      },
+      "states": "Fermé, ouvert depuis le bouton ou une ancre externe, cible périmée, interruption par une modale, un départ de route ou un redimensionnement. La fermeture préserve son motif et un callback peut démarrer une nouvelle session."
     }
   },
   "KitDropdownMenu": {
@@ -5995,7 +6035,7 @@
       "seoTitle": "Dropdown Menu for Slint",
       "summary": "Trigger button that opens a menu of actions.",
       "usage": "Pass `options` from `Choices<K>::model()` and handle `chosen(OptionRow)`; `Choices::accept` validates the callback and returns its domain key. Call `slint_kit::install` once per window. Set `text` for the trigger.",
-      "behavior": "Placement, dismissal, `show()`, `dismiss(reason)`, `opened()` and `dismissed(CloseReason)` follow `KitPopover`. Opening focuses the rows; the arrow keys, Home, End, PageUp, PageDown and typeahead move the active row as in `KitMenu`, Enter or a click chooses it, and the menu then closes, emits `chosen` and returns focus to the trigger. Disabled rows cannot be chosen. A choice reports `programmatic` in `dismissed`. A menu opened by the right button is `KitContextMenu`; an application sidebar is `KitSidebar`.",
+      "behavior": "Placement, dismissal, `show()`, `dismiss(reason)`, `opened()` and `dismissed(CloseReason)` follow `KitPopover`. Opening focuses the rows; the arrow keys, Home, End, PageUp, PageDown and typeahead move the active row as in `KitMenu`, Enter or a click chooses it, and the menu then closes, emits `chosen` and returns focus to the trigger. Disabled rows cannot be chosen. A choice reports `programmatic` in `dismissed`. A menu opened by the right button is `KitContextMenu`; an application sidebar is `KitSidebar`. When another modal layer takes over, the menu dismisses once with `programmatic`. The topmost dialog keeps focus and receives the first click.",
       "related": [
         "KitPopover",
         "KitMenu",
@@ -6034,7 +6074,7 @@
       "seoTitle": " pour Slint",
       "summary": "Bouton déclencheur qui ouvre un menu d’actions.",
       "usage": "Fournissez `options` avec `Choices<K>::model()` et traitez `chosen(OptionRow)` ; `Choices::accept` valide le callback et retourne sa clé métier. Appelez `slint_kit::install` une fois par fenêtre. Renseignez `text` pour le déclencheur.",
-      "behavior": "Le placement, la fermeture, `show()`, `dismiss(reason)`, `opened()` et `dismissed(CloseReason)` suivent `KitPopover`. L’ouverture donne le focus aux lignes ; les flèches, Début, Fin, PageUp, PageDown et la recherche à la frappe déplacent la ligne active comme dans `KitMenu`, Entrée ou un clic la choisit, puis le menu se ferme, émet `chosen` et rend le focus au déclencheur. Une ligne désactivée ne peut pas être choisie. Un choix signale `programmatic` dans `dismissed`. Un menu ouvert par le bouton droit est `KitContextMenu` ; une barre latérale d’application est `KitSidebar`.",
+      "behavior": "Le placement, la fermeture, `show()`, `dismiss(reason)`, `opened()` et `dismissed(CloseReason)` suivent `KitPopover`. L’ouverture donne le focus aux lignes ; les flèches, Début, Fin, PageUp, PageDown et la recherche à la frappe déplacent la ligne active comme dans `KitMenu`, Entrée ou un clic la choisit, puis le menu se ferme, émet `chosen` et rend le focus au déclencheur. Une ligne désactivée ne peut pas être choisie. Un choix signale `programmatic` dans `dismissed`. Un menu ouvert par le bouton droit est `KitContextMenu` ; une barre latérale d’application est `KitSidebar`. Quand une autre couche modale devient active, le menu se ferme une fois avec `programmatic`. La nouvelle modale conserve le focus et reçoit le premier clic.",
       "related": [
         "KitPopover",
         "KitMenu",
@@ -6075,7 +6115,7 @@
       "seoTitle": "Context Menu for Slint",
       "summary": "Content area with a menu of actions opened at the pointer by the right button or the menu key.",
       "usage": "Place the content as children, pass `options` from `Choices<K>::model()` and handle `chosen(OptionRow)`; `Choices::accept` validates the callback and returns its domain key. Call `slint_kit::install` once per window. `show-at(x, y)` opens the menu at a point of the content from code, `show()` where the menu key does and `dismiss(reason)` closes it.",
-      "behavior": "The right button opens the menu at the pointer point; the menu key or Shift+F10 opens it at `keyboard-anchor-x` and `keyboard-anchor-y` from the content, and also from a focusable child that does not use the key itself. The content takes one tab stop. A control inside the content that handles the pointer itself, such as a button or a text field, keeps its own right-button behavior: use `show-at` from its callback, or open the menu from the surrounding area. The menu reuses the panel, rows, placement and dismissal of `KitDropdownMenu`, anchored at a point instead of a trigger: it sits below the point, or above it when there is more room, and shifts to stay inside the window. Opening focuses the rows; Enter or a click chooses one, and the menu then closes, emits `chosen` and returns focus to the content area. Escape and `dismiss` return focus too; an outside press closes the menu as `host-closed` without moving focus. `dismissed` reports `escape`, `programmatic` (a choice or `dismiss`) or `host-closed`. A disabled content area or an empty `options` model does not open. Slint's own `ContextMenuArea` is not used: it draws a native or default-styled menu, ignores the kit theme and rows and reports no dismissal reason.",
+      "behavior": "The right button opens the menu at the pointer point; the menu key or Shift+F10 opens it at `keyboard-anchor-x` and `keyboard-anchor-y` from the content, and also from a focusable child that does not use the key itself. The content takes one tab stop. A control inside the content that handles the pointer itself, such as a button or a text field, keeps its own right-button behavior: use `show-at` from its callback, or open the menu from the surrounding area. The menu reuses the panel, rows, placement and dismissal of `KitDropdownMenu`, anchored at a point instead of a trigger: it sits below the point, or above it when there is more room, and shifts to stay inside the window. Opening focuses the rows; Enter or a click chooses one, and the menu then closes, emits `chosen` and returns focus to the content area. Escape and `dismiss` return focus too; an outside press closes the menu as `host-closed` without moving focus. `dismissed` reports `escape`, `programmatic` (a choice or `dismiss`) or `host-closed`. A disabled content area or an empty `options` model does not open. Slint's own `ContextMenuArea` is not used: it draws a native or default-styled menu, ignores the kit theme and rows and reports no dismissal reason. When another modal layer takes over, the menu dismisses once with `programmatic`. The topmost dialog keeps focus and receives the first click.",
       "related": [
         "KitDropdownMenu",
         "KitPopover",
@@ -6127,7 +6167,7 @@
       "seoTitle": " pour Slint",
       "summary": "Zone de contenu avec un menu d’actions ouvert au pointeur par le bouton droit ou la touche Menu.",
       "usage": "Placez le contenu en enfants, fournissez `options` avec `Choices<K>::model()` et traitez `chosen(OptionRow)` ; `Choices::accept` valide le callback et retourne sa clé métier. Appelez `slint_kit::install` une fois par fenêtre. `show-at(x, y)` ouvre le menu en un point du contenu depuis le code, `show()` là où la touche Menu l’ouvre et `dismiss(reason)` le ferme.",
-      "behavior": "Le bouton droit ouvre le menu au point du pointeur ; la touche Menu ou Maj+F10 l’ouvre à `keyboard-anchor-x` et `keyboard-anchor-y` du contenu, y compris depuis un enfant focalisable qui n’utilise pas lui-même la touche. Le contenu prend un arrêt de tabulation. Un contrôle du contenu qui gère lui-même le pointeur, comme un bouton ou un champ de texte, garde son propre comportement du bouton droit : appelez `show-at` depuis son callback, ou ouvrez le menu depuis la zone environnante. Le menu réutilise le panneau, les lignes, le placement et la fermeture de `KitDropdownMenu`, ancrés sur un point au lieu d’un déclencheur : il se place sous le point, ou au-dessus s’il y a plus de place, et se décale pour rester dans la fenêtre. L’ouverture donne le focus aux lignes ; Entrée ou un clic en choisit une, puis le menu se ferme, émet `chosen` et rend le focus à la zone de contenu. Échap et `dismiss` rendent aussi le focus ; un appui extérieur ferme le menu en `host-closed` sans déplacer le focus. `dismissed` signale `escape`, `programmatic` (un choix ou `dismiss`) ou `host-closed`. Une zone désactivée ou un modèle `options` vide n’ouvre pas le menu. Le `ContextMenuArea` de Slint n’est pas utilisé : il dessine un menu natif ou au style par défaut, ignore le thème et les lignes du kit et ne signale aucune raison de fermeture.",
+      "behavior": "Le bouton droit ouvre le menu au point du pointeur ; la touche Menu ou Maj+F10 l’ouvre à `keyboard-anchor-x` et `keyboard-anchor-y` du contenu, y compris depuis un enfant focalisable qui n’utilise pas lui-même la touche. Le contenu prend un arrêt de tabulation. Un contrôle du contenu qui gère lui-même le pointeur, comme un bouton ou un champ de texte, garde son propre comportement du bouton droit : appelez `show-at` depuis son callback, ou ouvrez le menu depuis la zone environnante. Le menu réutilise le panneau, les lignes, le placement et la fermeture de `KitDropdownMenu`, ancrés sur un point au lieu d’un déclencheur : il se place sous le point, ou au-dessus s’il y a plus de place, et se décale pour rester dans la fenêtre. L’ouverture donne le focus aux lignes ; Entrée ou un clic en choisit une, puis le menu se ferme, émet `chosen` et rend le focus à la zone de contenu. Échap et `dismiss` rendent aussi le focus ; un appui extérieur ferme le menu en `host-closed` sans déplacer le focus. `dismissed` signale `escape`, `programmatic` (un choix ou `dismiss`) ou `host-closed`. Une zone désactivée ou un modèle `options` vide n’ouvre pas le menu. Le `ContextMenuArea` de Slint n’est pas utilisé : il dessine un menu natif ou au style par défaut, ignore le thème et les lignes du kit et ne signale aucune raison de fermeture. Quand une autre couche modale devient active, le menu se ferme une fois avec `programmatic`. La nouvelle modale conserve le focus et reçoit le premier clic.",
       "related": [
         "KitDropdownMenu",
         "KitPopover",
@@ -6521,7 +6561,7 @@
           "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
-          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale. Quand sa couche devient inerte, la liste ouverte se ferme avec `CloseReason.programmatic`. La modale garde le focus et reçoit le premier clic. Si vous fournissez `state`, acquittez la fermeture en passant `state.open` à faux.",
           "default": "`0` (la fenêtre).",
           "example": "KitMultiSelect {\n    modal-layer: 1;\n}"
         },
@@ -6563,7 +6603,7 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
-        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule ou désactivé. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
+        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule, désactivé ou sur une couche inerte. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
         "close": "Ferme la liste depuis le code. `dismiss(CloseReason.programmatic)` suit et le focus revient au déclencheur."
       },
       "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Son sélecteur hérite du popup nommé et des positions logiques de KitSelect, ainsi que des limites SDK du focus d’option active virtualisée. Le focus des chips et la valeur libellés/nombre sélectionnés restent indépendants. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique. Les options visibles sélectionnées affichent la coche et exposent accessible-item-selected, y compris après sélection initiale, filtrage et réordonnancement. Cette projection suit les jetons stables et la sélection acquittée ; ces métadonnées ne qualifient pas un lecteur d’écran natif."
@@ -6663,7 +6703,7 @@
           "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
-          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number. An open list closes with `CloseReason.programmatic` when its layer becomes inert. The modal keeps focus and receives the first click. If you supply `state`, acknowledge the dismissal by setting `state.open` to false.",
           "default": "`0` (window).",
           "example": "KitMultiSelect {\n    modal-layer: 1;\n}"
         },
@@ -6705,7 +6745,7 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
-        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only or disabled. The `open-requested()` callback reports user gestures only and does not fire for this call.",
+        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only, disabled or on an inert layer. The `open-requested()` callback reports user gestures only and does not fire for this call.",
         "close": "Close the list from code. `dismiss(CloseReason.programmatic)` follows and focus returns to the trigger."
       },
       "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Its selector inherits the named popup and logical option positions of KitSelect, together with the SDK limits for virtualized active-option focus. Chip focus and the selected label/count value remain independent. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME. Visible selected options show a check glyph and expose accessible-item-selected, including preselected membership after filtering/reordering. The marker projection follows stable tokens and acknowledged selection; this metadata is not native screen-reader qualification."
@@ -8341,7 +8381,7 @@
           "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
-          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale. Quand sa couche devient inerte, la liste ouverte se ferme avec `CloseReason.programmatic`. La modale garde le focus et reçoit le premier clic. Si vous fournissez `state`, acquittez la fermeture en passant `state.open` à faux.",
           "default": "`0` (la fenêtre).",
           "example": "KitSelect {\n    modal-layer: 1;\n}"
         },
@@ -8420,7 +8460,7 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
-        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule ou désactivé. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
+        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule, désactivé ou sur une couche inerte. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
         "close": "Ferme la liste depuis le code. `dismiss(CloseReason.programmatic)` suit et le focus revient au déclencheur."
       },
       "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. La surface nommée du popup et ses options virtualisées exposent la sémantique de liste et les positions. L’édition native de recherche conserve son focus. Le SDK n’offre pas de relation publique sûre entre cet éditeur ou la portée clavier virtualisée et l’option active ; le focus AT de l’option active reste non qualifié. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique. Les options visibles sélectionnées affichent la coche et exposent accessible-item-selected, y compris après sélection initiale, filtrage et réordonnancement. Cette projection suit les jetons stables et la sélection acquittée ; ces métadonnées ne qualifient pas un lecteur d’écran natif."
@@ -8564,7 +8604,7 @@
           "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
-          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number. An open list closes with `CloseReason.programmatic` when its layer becomes inert. The modal keeps focus and receives the first click. If you supply `state`, acknowledge the dismissal by setting `state.open` to false.",
           "default": "`0` (window).",
           "example": "KitSelect {\n    modal-layer: 1;\n}"
         },
@@ -8643,7 +8683,7 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
-        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only or disabled. The `open-requested()` callback reports user gestures only and does not fire for this call.",
+        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only, disabled or on an inert layer. The `open-requested()` callback reports user gestures only and does not fire for this call.",
         "close": "Close the list from code. `dismiss(CloseReason.programmatic)` follows and focus returns to the trigger."
       },
       "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The named popup surface and virtualized options expose list semantics and positions. Native search editing retains its own focus. The SDK has no safe public relation from that editor or the virtualized keyboard scope to the active option; active-option AT focus remains unqualified. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME. Visible selected options show a check glyph and expose accessible-item-selected, including preselected membership after filtering/reordering. The marker projection follows stable tokens and acknowledged selection; this metadata is not native screen-reader qualification."
@@ -9331,7 +9371,7 @@
     "fr": {
       "summary": "Barre d’onglets contrôlée séparant le focus de la destination sélectionnée.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `activation` vaut `TabActivation.manual` par défaut (Gauche/Droite/Début/Fin déplacent le focus itinérant et Entrée/Espace sélectionne) ou `TabActivation.automatic` (la navigation sélectionne aussi l’onglet actif en mode modifiable). `flow` hérite de `theme.direction` (inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`), `wrap` (`true` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Gauche/Droite suivent flow ; Début/Fin restent disponibles. Haut/Bas (Gauche/Droite quand `orientation` est verticale), pages, Échap et raccourcis Contrôle/Alt/Méta sont laissés au parent. En activation automatique, flèches et préfixe optionnel proposent la sélection ; en ownership controlled, le panneau attend la confirmation du propriétaire. Composez KitTabPanel avec state et une référence de la même source Choices. Un nouvel élément actif annule l’ancienne destination de défilement, même si le nouvel élément est déjà visible : les inversions rapides au clavier gardent l’élément actif à l’écran.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `activation` vaut `TabActivation.manual` par défaut (Gauche/Droite/Début/Fin déplacent le focus itinérant et Entrée/Espace sélectionne) ou `TabActivation.automatic` (la navigation sélectionne aussi l’onglet actif en mode modifiable). `flow` hérite de `theme.direction` (inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`), `wrap` (`true` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Gauche/Droite suivent flow ; Début/Fin restent disponibles. Haut/Bas (Gauche/Droite quand `orientation` est verticale), pages, Échap et raccourcis Contrôle/Alt/Méta sont laissés au parent. En activation automatique, flèches et préfixe optionnel proposent la sélection ; en ownership controlled, le panneau attend la confirmation du propriétaire. Composez KitTabPanel avec state et une référence de la même source Choices. Un nouvel élément actif annule l’ancienne destination de défilement, même si le nouvel élément est déjà visible : les inversions rapides au clavier gardent l’élément actif à l’écran. Au montage ou au remontage, la barre révèle l’onglet désigné par la sélection contrôlée et son indicateur dès que leurs dimensions sont connues, sans prendre le focus ni émettre `chosen`. Vous pouvez ensuite faire défiler la barre librement. En mode manuel, le défilement au clavier suit l’onglet actif même si un autre onglet reste sélectionné.",
       "related": [
         "KitMenuBar",
         "KitNavigationAction",
@@ -9370,7 +9410,7 @@
     "en": {
       "summary": "Controlled tab bar separating focus from the selected destination.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `activation` defaults to `TabActivation.manual` (Left/Right/Home/End move roving focus and Enter/Space selects) or `TabActivation.automatic` (roving navigation also selects the active tab while editable). `flow` inherits `theme.direction` (reversing horizontal tab order and Left/Right arrows in `ChoiceFlow.right-to-left`), `wrap` (`true` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. Left/Right follow flow; Home/End remain available. Up/Down (Left/Right when `orientation` is vertical), page keys, Escape and Control/Alt/Meta chords reach the parent. Automatic activation proposes selection for arrow and optional prefix navigation; with controlled ownership the panel waits for acknowledgment. Compose KitTabPanel with state and a reference from the same Choices source. A newer active item cancels an older scroll destination, including when the new item is already visible, so rapid keyboard reversals keep the active item in view.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `activation` defaults to `TabActivation.manual` (Left/Right/Home/End move roving focus and Enter/Space selects) or `TabActivation.automatic` (roving navigation also selects the active tab while editable). `flow` inherits `theme.direction` (reversing horizontal tab order and Left/Right arrows in `ChoiceFlow.right-to-left`), `wrap` (`true` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. Left/Right follow flow; Home/End remain available. Up/Down (Left/Right when `orientation` is vertical), page keys, Escape and Control/Alt/Meta chords reach the parent. Automatic activation proposes selection for arrow and optional prefix navigation; with controlled ownership the panel waits for acknowledgment. Compose KitTabPanel with state and a reference from the same Choices source. A newer active item cancels an older scroll destination, including when the new item is already visible, so rapid keyboard reversals keep the active item in view. On mount or remount, the strip reveals the controlled selection and its indicator once layout is known, without taking focus or emitting `chosen`. You can then scroll the strip freely. In manual mode, keyboard navigation scrolls the active tab into view even when another tab remains selected.",
       "related": [
         "KitMenuBar",
         "KitNavigationAction",
@@ -9599,7 +9639,7 @@
     "fr": {
       "summary": "Saisie native sur une ligne avec libellé et message de validation.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs. Fonctions d’édition native : `set-selection(anchor, cursor)` et `cursor-position`/`selection-anchor` utilisent des offsets UTF-8 en octets ; `insert-at-cursor(text)` prend le focus et insère via la saisie native, en conservant annulation et filtres. `cut-selection()`, `paste()`, `undo()`, `redo()` et `blur()` transmettent les API natives. Le menu contextuel standard localisable respecte l’accès et la confidentialité du mot de passe ; désactivez-le avec `TextContextMenu.disabled`. Définissez `KitStrings` une fois par fenêtre pour localiser les messages de validation, codec, téléphone, action et compteur ; les propriétés d’instance restent prioritaires. Les compteurs distinguent singulier/pluriel et les messages de bornes utilisent `{count}`/`{value}`. Pour `FieldBinding`, transmettez `window.global::<KitStrings>().get_fields()` à `set_messages()` ; les erreurs métier restent traduites par leur callback. `show-character-count` fonctionne sans comptage par l’hôte après `install()` : `character-count` compte les graphèmes Unicode. `CharacterCountFormat.of-max` et `.remaining` utilisent les unités UTF-16 de `max-length` HTML ; les modèles sont dans `KitStrings`. Surchargez `character-count-text` pour un format personnalisé et `character-count-warning-threshold` pour la couleur d’avertissement du thème près de la borne. Composez des contenus interactifs dans la même surface avec des enfants KitInputGroupStart/End ; liez leur layout-order à leading-adornment-order/trailing-adornment-order. Utilisez focus-on-pointer: false pour qu’un bouton auxiliaire conserve le focus d’édition. L’ordre Tab natif suit la déclaration : éditeur, actions intégrées, puis enfants personnalisés dans leur ordre de déclaration ; layout-order ne modifie que l’ordre visuel.",
-      "behavior": "L’exemple accepte le texte non vide à la perte de focus ou avec Accepter. L’édition native conserve curseur, sélection et annulation. `text-cell-width` mesure un long échantillon de zéros dans la police de l’éditeur afin de réduire l’arrondi de layout ; le champ OTP lit `theme.typography.family-monospace` pour un pas régulier. `length-policy` vaut `TextLengthPolicy.validate` par défaut : les contraintes de longueur valident sans réécrire les éditions natives. `TextLengthPolicy.limit` impose une limite stricte en UTF-16, avec le comportement de dépassement et d’historique décrit pour le champ OTP. L’acceptation à chaque changement suit l’édition native complète, y compris les mises à jour synchrones de l’hôte et les limites de longueur ; les touches de navigation n’émettent aucun engagement. Le flou engage uniquement les brouillons modifiés. Les contraintes de longueur HTML utilisent le véritable indicateur de saisie ; le moment de validation régit aussi les erreurs de codec. Une correction de texte par l’hôte efface les erreurs de transition périmées. `report-validity()` actualise la visibilité des erreurs sans déplacer le focus. Appelez explicitement `focus-if-invalid()` sur le premier champ invalide. `clear()` et l’action d’effacement de recherche utilisent une suppression native, conservent l’annulation et suivent la même politique d’édition/engagement que la saisie. Les affectations de réinitialisation, d’annulation et de pas numérique remplacent volontairement la référence d’édition et remettent à zéro l’historique natif. `key-pressed(KeyEvent) -> KitKeyResult` précède filtrage et édition native uniquement sans préédition IME active. `escape-behavior` vaut clear pour la recherche et bubble sinon ; `.cancel` restaure la valeur acceptée et émet `cancelled()`. Une recherche vide laisse passer Échap. Les champs multiligne peuvent activer Ctrl/Cmd+Entrée avec `submit-on-modified-enter`. Accessibilité : l’éditeur natif expose l’espace réservé, l’aide et l’erreur visible, l’obligation, préfixe/suffixe, compteur et vérification en cours ; les mots de passe cachés taisent la valeur. Le libellé indique l’obligation localisable (`show-required-indicator` permet de la cacher). Les vérifications demandent une annonce polie. Slint 1.18 ne propose pas d’état accessible requis/invalide natif, de clavier courriel/URL/téléphone ni de remplissage OTP ; le texte descriptif constitue le contournement pris en charge. Les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil. Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. clearable s’applique à tout usage monoligne et reveal-toggle contrôle séparément l’action de révélation. Les deux actions peuvent coexister. Les actions intégrées au pointeur préservent le focus de l’éditeur ; leur activation au clavier le restaure. busy est indépendant de la validation et conserve les deux états d’attente si nécessaire. Pour une valeur occupée non modifiable, l’hôte règle access explicitement. La hauteur intrinsèque de la surface suit la partie la plus haute, tandis que la zone native conserve son minimum intrinsèque et remplit la ligne disponible. Les libellés, légendes, aides, erreurs, placeholders, textes formatés et éditeurs natifs utilisent par défaut l’alignement logique start. Le kit projette Start/End logiques sur Left/Right physiques via theme.direction, sans déduire le sens du contenu. Start natif de Slint 1.18.1 Software a été observé à gauche ; cette projection explicite couvre aussi libellés/aides/erreurs, placeholders et textes formatés. Configurez theme.direction une fois avec l’enum ChoiceFlow partagée ; flow reprend cette direction et peut remplacer uniquement la rangée visuelle d’un champ. Toute la rangée native est inversée visuellement, y compris icônes, préfixe/suffixe, attente, effacement et révélation ; les parties Start/End suivent leur layout-order projeté. Tab conserve l’ordre de déclaration. La perte de focus native peut replier la sélection ; les actions clavier d’effacement/révélation restaurent le focus de l’éditeur, tandis que le pointeur conserve focus et sélection. Le contenu interne des parties personnalisées reste géré par l’appelant. OTP garde explicitement le texte à gauche. Pour un brouillon numérique/temporel non vide mal formé, le message badInput précède le drapeau valueMissing qui peut l’accompagner ; un brouillon requis réellement vide garde son message de présence. Slint garde le curseur natif visible dans les ancêtres défilants pendant la saisie et les déplacements de sélection, en tenant compte du retrait horizontal de l’éditeur. Cela ne qualifie pas un IME physique ni un lecteur d’écran.",
+      "behavior": "L’exemple accepte le texte non vide à la perte de focus ou avec Accepter. L’édition native conserve curseur, sélection et annulation. `text-cell-width` mesure un long échantillon de zéros dans la police de l’éditeur afin de réduire l’arrondi de layout ; le champ OTP lit `theme.typography.family-monospace` pour un pas régulier. `length-policy` vaut `TextLengthPolicy.validate` par défaut : les contraintes de longueur valident sans réécrire les éditions natives. `TextLengthPolicy.limit` impose une limite stricte en UTF-16, avec le comportement de dépassement et d’historique décrit pour le champ OTP. L’acceptation à chaque changement suit l’édition native complète, y compris les mises à jour synchrones de l’hôte et les limites de longueur ; les touches de navigation n’émettent aucun engagement. Le flou engage uniquement les brouillons modifiés. Les contraintes de longueur HTML utilisent le véritable indicateur de saisie ; le moment de validation régit aussi les erreurs de codec. Une correction de texte par l’hôte efface les erreurs de transition périmées. `report-validity()` actualise la visibilité des erreurs sans déplacer le focus. Appelez explicitement `focus-if-invalid()` sur le premier champ invalide. `clear()` et l’action d’effacement de recherche utilisent une suppression native, conservent l’annulation et suivent la même politique d’édition/engagement que la saisie. Les affectations de réinitialisation, d’annulation et de pas numérique remplacent volontairement la référence d’édition et remettent à zéro l’historique natif. `key-pressed(KeyEvent) -> KitKeyResult` précède filtrage et édition native uniquement sans préédition IME active. `escape-behavior` vaut clear pour la recherche et bubble sinon ; `.cancel` restaure la valeur acceptée et émet `cancelled()`. Une recherche vide laisse passer Échap. Les champs multiligne peuvent activer Ctrl/Cmd+Entrée avec `submit-on-modified-enter`. Accessibilité : l’éditeur natif expose l’espace réservé, l’aide et l’erreur visible, l’obligation, préfixe/suffixe, compteur et vérification en cours ; les mots de passe cachés taisent la valeur. Le libellé indique l’obligation localisable (`show-required-indicator` permet de la cacher). Les vérifications demandent une annonce polie. Slint 1.18 ne propose pas d’état accessible requis/invalide natif, de clavier courriel/URL/téléphone ni de remplissage OTP ; le texte descriptif constitue le contournement pris en charge. Les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil. Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. clearable s’applique à tout usage monoligne et reveal-toggle contrôle séparément l’action de révélation. Les deux actions peuvent coexister. Les actions intégrées au pointeur préservent le focus de l’éditeur ; leur activation au clavier le restaure. busy est indépendant de la validation et conserve les deux états d’attente si nécessaire. Pour une valeur occupée non modifiable, l’hôte règle access explicitement. La hauteur intrinsèque de la surface suit la partie la plus haute, tandis que la zone native conserve son minimum intrinsèque et remplit la ligne disponible. Les libellés, légendes, aides, erreurs, placeholders, textes formatés et éditeurs natifs utilisent par défaut l’alignement logique start. Le kit projette Start/End logiques sur Left/Right physiques via theme.direction, sans déduire le sens du contenu. Start natif de Slint 1.18.1 Software a été observé à gauche ; cette projection explicite couvre aussi libellés/aides/erreurs, placeholders et textes formatés. Configurez theme.direction une fois avec l’enum ChoiceFlow partagée ; flow reprend cette direction et peut remplacer uniquement la rangée visuelle d’un champ. Toute la rangée native est inversée visuellement, y compris icônes, préfixe/suffixe, attente, effacement et révélation ; les parties Start/End suivent leur layout-order projeté. Tab conserve l’ordre de déclaration. La perte de focus native peut replier la sélection ; les actions clavier d’effacement/révélation restaurent le focus de l’éditeur, tandis que le pointeur conserve focus et sélection. Le contenu interne des parties personnalisées reste géré par l’appelant. OTP garde explicitement le texte à gauche. Pour un brouillon numérique/temporel non vide mal formé, le message badInput précède le drapeau valueMissing qui peut l’accompagner ; un brouillon requis réellement vide garde son message de présence. Slint garde le curseur natif visible dans les ancêtres défilants pendant la saisie et les déplacements de sélection, en tenant compte du retrait horizontal de l’éditeur. Cela ne qualifie pas un IME physique ni un lecteur d’écran. Les sous-classes peuvent utiliser la fonction protégée `has-preedit()` pour différer un changement de focus pendant que l’éditeur natif contient du texte marqué.",
       "related": [
         "KitTextArea",
         "KitPasswordField",
@@ -10249,7 +10289,7 @@
     "en": {
       "summary": "Single-line native text input with a label and validation feedback.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs. Native editing functions: `set-selection(anchor, cursor)` and `cursor-position`/`selection-anchor` use UTF-8 byte offsets; `insert-at-cursor(text)` focuses and inserts through the native input path, preserving undo and filters. `cut-selection()`, `paste()`, `undo()`, `redo()` and `blur()` forward native APIs. The localisable standard context menu honors access and password privacy; disable with `TextContextMenu.disabled`. Set `KitStrings` once per window to localise all default validation, codec, phone, action and counter messages; instance message properties remain overrides. Count labels support singular/plural; bounded length/range messages use `{count}`/`{value}` templates. For `FieldBinding`, pass `window.global::<KitStrings>().get_fields()` to `set_messages()`; domain error callbacks still supply their own translations. `show-character-count` works without host counting after `install()`: default `character-count` counts Unicode grapheme clusters. `CharacterCountFormat.of-max` and `.remaining` use UTF-16 units to match HTML `max-length`; templates live in `KitStrings`. Override `character-count-text` for a custom format and set `character-count-warning-threshold` for the theme warning color near the bound. Compose interactive content inside the same surface with KitInputGroupStart/End children; bind their layout-order to leading-adornment-order/trailing-adornment-order. Use focus-on-pointer: false on an auxiliary button that should keep native editing focus. Native Tab order follows declaration: editor, built-in actions, then custom children in their declaration order; visual layout-order does not reorder keyboard focus.",
-      "behavior": "The example accepts nonempty text on blur or Accept. Native editing keeps caret, selection and undo. `text-cell-width` measures the zero glyph in the actual editor font; the OTP reads `theme.typography.family-monospace` for a predictable cell without approximating native metrics. `length-policy` defaults to `TextLengthPolicy.validate`: length constraints validate without rewriting native edits. Opt into `TextLengthPolicy.limit` for strict UTF-16 input limits, with the OTP overflow/history behavior described in its reference. On-change acceptance runs after the complete native edit, including synchronous host updates and length limits; navigation keys do not emit commits. Blur commits only changed drafts. HTML length constraints use the actual user-edit flag; validation timing also gates codec errors. Programmatic text corrections clear stale transition errors. `report-validity()` updates error visibility without moving focus. Call `focus-if-invalid()` explicitly for the first invalid field. `clear()` and the search clear action use a native delete transaction, preserve undo and dispatch the same edit/commit policy as typing. Reset, cancel and number-step assignments deliberately replace the editing baseline and reset native undo history. `key-pressed(KeyEvent) -> KitKeyResult` runs before filtering/native editing only when no IME preedit is active. `escape-behavior` defaults to clear for search and bubble otherwise; `.cancel` restores the accepted value and emits `cancelled()`. An empty search lets Escape bubble. Multiline fields can opt into Ctrl/Cmd+Enter submission using `submit-on-modified-enter`. Accessibility: the native editor exposes placeholder, help plus visible error, required text, prefix/suffix, counter and pending state; hidden passwords omit the value. The label shows localisable required text (`show-required-indicator` can hide it). Pending checks request a polite live announcement. Slint 1.18 lacks native accessible required/invalid states, email/URL/telephone keyboard content types and OTP autofill; descriptive text is the supported workaround. Headless tests do not qualify screen-reader, IME or device behavior. Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. clearable applies to any single-line purpose, and reveal-toggle controls the independent password action. Clear and reveal can coexist. Built-in pointer actions preserve editor focus; their keyboard activation restores it. busy is independent of validation and keeps both pending labels when needed. A host that requires a read-only busy value must set access explicitly. The surface’s intrinsic height follows the tallest adornment while the native viewport keeps its intrinsic minimum and fills the available row. Text defaults use logical start alignment for labels, legends, help, errors, placeholders, formatted text and the native editor. The kit projects logical Start/End to physical Left/Right using theme.direction; it does not infer direction from paragraph contents. Native Slint 1.18.1 Software Start was observed at Left, so this explicit kit mapping also covers labels/help/errors, placeholders and formatted text. Set theme.direction once using the shared ChoiceFlow enum; flow defaults to that direction and overrides only the visual row for one field. The complete built-in surface row mirrors, including icons, prefix/suffix, busy, clear and reveal; Start/End parts follow their projected layout-order. Native Tab remains declaration order. Native focus loss can collapse a selected range; keyboard clear/reveal actions restore editor focus, while pointer actions keep focus and selection. Layout inside custom parts remains the caller’s responsibility. OTP keeps an explicit left text default. For nonempty malformed numeric/temporal drafts, the badInput message takes precedence over an accompanying valueMissing flag; blank required drafts still use the required message. Slint keeps the native caret visible through surrounding scrollable ancestors while typing and moving the selection, including the editor horizontal inset. This does not qualify physical IME or screen-reader behavior.",
+      "behavior": "The example accepts nonempty text on blur or Accept. Native editing keeps caret, selection and undo. `text-cell-width` measures the zero glyph in the actual editor font; the OTP reads `theme.typography.family-monospace` for a predictable cell without approximating native metrics. `length-policy` defaults to `TextLengthPolicy.validate`: length constraints validate without rewriting native edits. Opt into `TextLengthPolicy.limit` for strict UTF-16 input limits, with the OTP overflow/history behavior described in its reference. On-change acceptance runs after the complete native edit, including synchronous host updates and length limits; navigation keys do not emit commits. Blur commits only changed drafts. HTML length constraints use the actual user-edit flag; validation timing also gates codec errors. Programmatic text corrections clear stale transition errors. `report-validity()` updates error visibility without moving focus. Call `focus-if-invalid()` explicitly for the first invalid field. `clear()` and the search clear action use a native delete transaction, preserve undo and dispatch the same edit/commit policy as typing. Reset, cancel and number-step assignments deliberately replace the editing baseline and reset native undo history. `key-pressed(KeyEvent) -> KitKeyResult` runs before filtering/native editing only when no IME preedit is active. `escape-behavior` defaults to clear for search and bubble otherwise; `.cancel` restores the accepted value and emits `cancelled()`. An empty search lets Escape bubble. Multiline fields can opt into Ctrl/Cmd+Enter submission using `submit-on-modified-enter`. Accessibility: the native editor exposes placeholder, help plus visible error, required text, prefix/suffix, counter and pending state; hidden passwords omit the value. The label shows localisable required text (`show-required-indicator` can hide it). Pending checks request a polite live announcement. Slint 1.18 lacks native accessible required/invalid states, email/URL/telephone keyboard content types and OTP autofill; descriptive text is the supported workaround. Headless tests do not qualify screen-reader, IME or device behavior. Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. clearable applies to any single-line purpose, and reveal-toggle controls the independent password action. Clear and reveal can coexist. Built-in pointer actions preserve editor focus; their keyboard activation restores it. busy is independent of validation and keeps both pending labels when needed. A host that requires a read-only busy value must set access explicitly. The surface’s intrinsic height follows the tallest adornment while the native viewport keeps its intrinsic minimum and fills the available row. Text defaults use logical start alignment for labels, legends, help, errors, placeholders, formatted text and the native editor. The kit projects logical Start/End to physical Left/Right using theme.direction; it does not infer direction from paragraph contents. Native Slint 1.18.1 Software Start was observed at Left, so this explicit kit mapping also covers labels/help/errors, placeholders and formatted text. Set theme.direction once using the shared ChoiceFlow enum; flow defaults to that direction and overrides only the visual row for one field. The complete built-in surface row mirrors, including icons, prefix/suffix, busy, clear and reveal; Start/End parts follow their projected layout-order. Native Tab remains declaration order. Native focus loss can collapse a selected range; keyboard clear/reveal actions restore editor focus, while pointer actions keep focus and selection. Layout inside custom parts remains the caller’s responsibility. OTP keeps an explicit left text default. For nonempty malformed numeric/temporal drafts, the badInput message takes precedence over an accompanying valueMissing flag; blank required drafts still use the required message. Slint keeps the native caret visible through surrounding scrollable ancestors while typing and moving the selection, including the editor horizontal inset. This does not qualify physical IME or screen-reader behavior. Subclasses can use the protected `has-preedit()` function to defer focus changes while the native editor holds marked text.",
       "related": [
         "KitTextArea",
         "KitPasswordField",
@@ -12489,6 +12529,386 @@
           "effect": "Padding transmis au KitStack interne."
         }
       }
+    }
+  },
+  "KitFieldRow": {
+    "en": {
+      "label": "Form row",
+      "summary": "Place a control or a group of actions beside or below its caption.",
+      "usage": "Put the control in the child slot. For a selector, bind its accessible field name to the row label and forward focus-requested to take-focus(). For a text area with its own label and error, leave the row caption empty.",
+      "behavior": "The horizontal row gives the control its preferred width and wraps the caption in the remaining space. Vertical orientation offers the slot the full width. Changing orientation retains the same child.",
+      "accessibility": "The real control owns the Tab stop and validation. Bind access on both the row and the control. An error uses the polite field-error announcement.",
+      "related": [
+        "KitField",
+        "KitSelect",
+        "KitTextArea"
+      ],
+      "properties": {
+        "orientation": {
+          "effect": "Choose horizontal or vertical according to available width."
+        },
+        "label": {
+          "effect": "Optional visible caption."
+        },
+        "description": {
+          "effect": "Optional wrapping help."
+        },
+        "error-message": {
+          "effect": "Visible message from the owner of the field. For a choice bind error-visible ? validation-message : \"\"."
+        },
+        "show-divider": {
+          "effect": "Draw a leading field separator."
+        },
+        "access": {
+          "effect": "Styles the caption and disables its focus request when disabled. Supplied children receive their own access binding."
+        }
+      },
+      "callbacks": {
+        "focus-requested": "A click on the enabled row label requests focus for the supplied control."
+      }
+    },
+    "fr": {
+      "label": "Rangée de formulaire",
+      "summary": "Place un contrôle ou un groupe d’actions à côté ou sous sa légende.",
+      "usage": "Insérez le contrôle comme enfant. Pour une sélection, liez son nom de champ au libellé de la rangée et relayez focus-requested vers take-focus(). Pour un éditeur doté de son propre libellé et de son erreur, laissez la légende de rangée vide.",
+      "behavior": "En ligne, le contrôle reçoit sa largeur préférée et la légende se replie dans la place restante. En colonne, le contrôle dispose de toute la largeur. Le changement d’orientation conserve le même enfant.",
+      "accessibility": "Le véritable contrôle possède l’arrêt de tabulation et la validation. Liez access sur la rangée et le contrôle. Le message d’erreur utilise l’annonce polie de KitFieldError.",
+      "related": [
+        "KitField",
+        "KitSelect",
+        "KitTextArea"
+      ],
+      "properties": {
+        "orientation": {
+          "effect": "Choisit la disposition horizontale ou verticale selon la largeur disponible."
+        },
+        "label": {
+          "effect": "Libellé visible facultatif."
+        },
+        "description": {
+          "effect": "Aide facultative sur plusieurs lignes."
+        },
+        "error-message": {
+          "effect": "Message visible du propriétaire du champ. Pour un choix, liez error-visible ? validation-message : \"\"."
+        },
+        "show-divider": {
+          "effect": "Affiche un trait avant la rangée."
+        },
+        "access": {
+          "effect": "Adapte la légende et bloque sa demande de focus si désactivée. Les enfants reçoivent leur propre liaison d’accès."
+        }
+      },
+      "callbacks": {
+        "focus-requested": "Un clic sur la légende active demande le focus pour le contrôle fourni."
+      }
+    }
+  },
+  "KitFocusBackground": {
+    "en": {
+      "label": "Focusable background",
+      "summary": "Leave an editor by clicking unused background space.",
+      "usage": "Place controls and overlays in the child slot. Later children paint on top. Bind modal-layer when the background belongs to a modal.",
+      "behavior": "A click reaching the background focuses its scope. Child controls receive their own pointer events.",
+      "accessibility": "The scope is outside Tab navigation. A covered background cannot take focus through a click.",
+      "related": [
+        "KitFocusTarget",
+        "KitScreen",
+        "KitDialog"
+      ],
+      "properties": {
+        "modal-layer": {
+          "effect": "Only the active layer accepts background clicks. Zero identifies the window."
+        }
+      }
+    },
+    "fr": {
+      "label": "Fond défocalisable",
+      "summary": "Quitte le champ actif en cliquant sur une partie libre du fond.",
+      "usage": "Placez contrôles et couches superposées comme enfants. Les derniers enfants sont au premier plan. Liez modal-layer si le fond appartient à une modale.",
+      "behavior": "Un clic qui atteint le fond transfère le focus à sa portée. Chaque contrôle enfant reçoit ses événements de pointeur.",
+      "accessibility": "La portée est hors tabulation. Une couche couverte par une modale ne peut pas prendre le focus au clic.",
+      "related": [
+        "KitFocusTarget",
+        "KitScreen",
+        "KitDialog"
+      ],
+      "properties": {
+        "modal-layer": {
+          "effect": "Seule la couche active accepte le clic de fond. Zéro désigne la fenêtre."
+        }
+      }
+    }
+  },
+  "KitImage": {
+    "en": {
+      "label": "Fitted image",
+      "summary": "Display a supplied image at its original aspect ratio.",
+      "usage": "Set source, width and height. Beside an equivalent title, leave purpose at decorative. For a standalone logo set purpose: informative and supply label.",
+      "behavior": "The full source fits the box with image-fit: contain. Its default square size follows the theme icon metric.",
+      "accessibility": "An informative image with a nonempty label exposes one named image. Decorative images add no announcement or Tab stop.",
+      "related": [
+        "KitIcon",
+        "KitAvatar",
+        "KitInline"
+      ],
+      "properties": {
+        "control-size": {
+          "effect": "Sets the default image box size."
+        },
+        "purpose": {
+          "effect": "Select informative to expose a named image."
+        },
+        "label": {
+          "effect": "Accessible name when informative."
+        }
+      }
+    },
+    "fr": {
+      "label": "Image ajustée",
+      "summary": "Affiche une image fournie en conservant ses proportions.",
+      "usage": "Renseignez source, width et height. À côté d’un titre équivalent, conservez purpose à decorative. Pour un logo autonome, choisissez purpose: informative et définissez label.",
+      "behavior": "La source entière tient dans le cadre avec image-fit: contain. La taille carrée par défaut suit la métrique des icônes du thème.",
+      "accessibility": "Une image informative au libellé non vide expose une seule image nommée. Une image décorative n’ajoute ni annonce ni arrêt de tabulation.",
+      "related": [
+        "KitIcon",
+        "KitAvatar",
+        "KitInline"
+      ],
+      "properties": {
+        "control-size": {
+          "effect": "Règle la taille par défaut du cadre de l’image."
+        },
+        "purpose": {
+          "effect": "Choisissez informative pour exposer une image nommée."
+        },
+        "label": {
+          "effect": "Nom accessible de l’image informative."
+        }
+      }
+    }
+  },
+  "KitText": {
+    "en": {
+      "label": "Presentation text",
+      "summary": "Draw text using a typography role and semantic tone.",
+      "usage": "Set text and role. Caption uses secondary ink by default. Use font: monospace for identifiers. To elide one line, set wrap: no-wrap and overflow: elide with a bounded width.",
+      "behavior": "Uses the theme’s scaled font size and direction. Body text wraps by default.",
+      "accessibility": "Exposes the full text as its accessible label, including when elided. Override accessible-label for a different reading.",
+      "related": [
+        "KitSection",
+        "KitStat",
+        "KitFieldDescription"
+      ],
+      "properties": {
+        "role": {
+          "effect": "Select a TypographyRole for size and weight."
+        },
+        "tone": {
+          "effect": "Select a semantic foreground from Tone. Include status meaning in the words."
+        },
+        "font": {
+          "effect": "Choose the theme’s proportional or monospace family."
+        }
+      }
+    },
+    "fr": {
+      "label": "Texte de présentation",
+      "summary": "Affiche un texte selon son rôle typographique et sa couleur sémantique.",
+      "usage": "Définissez text et role. Une légende utilise par défaut la couleur secondaire. Choisissez font: monospace pour un identifiant. Dans une largeur bornée, wrap: no-wrap et overflow: elide produisent une ellipse.",
+      "behavior": "La taille de police suit le facteur de texte du thème et l’alignement suit son sens de lecture. Le corps revient à la ligne par défaut.",
+      "accessibility": "Le nom accessible conserve le texte intégral, même avec ellipse. Adaptez accessible-label pour une autre lecture.",
+      "related": [
+        "KitSection",
+        "KitStat",
+        "KitFieldDescription"
+      ],
+      "properties": {
+        "role": {
+          "effect": "Choisit la taille et la graisse via TypographyRole."
+        },
+        "tone": {
+          "effect": "Choisit une couleur sémantique via Tone. Précisez l’état dans le texte."
+        },
+        "font": {
+          "effect": "Choisit la famille proportionnelle ou monospace du thème."
+        }
+      }
+    }
+  },
+  "KitShortcutField": {
+    "en": {
+      "label": "Shortcut field",
+      "summary": "Record a keyboard gesture for a host-defined action.",
+      "usage": "Install the kit once per window. Bind value-label to the accepted value. Use finish(ticket) before publishing an assignment or retry(ticket) to accept another gesture after a rejection. Bind enabled to the active state of a retained panel. Use slint_kit::hide_window for programmatic hide/show and invalidate the shortcut session on accepted close as described in the forms guide.",
+      "behavior": "Enter, Space, click or the default action starts capture. Escape cancels. Backspace and Delete remain logical keys. Only the clear action proposes removal.",
+      "accessibility": "The named record button reports its value and help. Clear has a separate named action. Both respect the modal layer. Recording keeps focus on the record button.",
+      "related": [
+        "KitFieldRow",
+        "KitButton",
+        "KitIconButton"
+      ],
+      "properties": {
+        "label": {
+          "effect": "Stable accessible name of the record button."
+        },
+        "description": {
+          "effect": "Instructions or host validation feedback on the button."
+        },
+        "value-label": {
+          "effect": "Display the accepted shortcut. An empty value hides the clear action."
+        },
+        "generation": {
+          "effect": "Change this revision when the binding points to another target, even if its displayed value is identical."
+        },
+        "allow-modifier-only": {
+          "effect": "Propose a lone modifier on its matching release."
+        },
+        "access": {
+          "effect": "Read-only preserves the focusable value. Disabled removes the action from Tab navigation."
+        },
+        "recording": {
+          "effect": "True while the focused field is listening for a gesture."
+        },
+        "recorder-focused": {
+          "effect": "Reports native focus on the record button."
+        },
+        "modal-layer": {
+          "effect": "Match the layer of the containing dialog when used inside a modal."
+        },
+        "clear-label": {
+          "effect": "Accessible name of the separate clear button."
+        },
+        "empty-label": {
+          "effect": "Idle button text for an unassigned shortcut."
+        },
+        "recording-label": {
+          "effect": "Visible and accessible prompt during capture."
+        }
+      },
+      "callbacks": {
+        "captured": "Proposes the original logical key press with its modifiers and ticket.",
+        "modifier-released": "Proposes the original release event of an admitted lone modifier.",
+        "clear-requested": "Proposes removing the current assignment. Consume the ticket before publishing an empty value.",
+        "cancelled": "The field ended capture or discarded a pending proposal."
+      }
+    },
+    "fr": {
+      "label": "Champ de raccourci",
+      "summary": "Saisit un geste clavier associé à une action définie par l’hôte.",
+      "usage": "Installez le kit une fois par fenêtre. Liez value-label à la valeur acceptée. Appelez finish(ticket) avant de publier une attribution ou retry(ticket) pour saisir un autre geste après un refus. Liez enabled à l’état actif du panneau conservé. Utilisez slint_kit::hide_window pour un masquage par code et invalidez la session à la fermeture acceptée comme décrit dans le guide des formulaires.",
+      "behavior": "Entrée, Espace, le clic ou l’action par défaut déclenchent la saisie. Échap annule. Retour arrière et Suppr restent des touches logiques. Seule l’action d’effacement propose un retrait.",
+      "accessibility": "Le bouton de saisie nommé expose sa valeur et son aide. L’effacement possède sa propre action nommée. Les deux respectent la couche modale. La saisie conserve le focus sur le bouton.",
+      "related": [
+        "KitFieldRow",
+        "KitButton",
+        "KitIconButton"
+      ],
+      "properties": {
+        "label": {
+          "effect": "Nom accessible stable du bouton de saisie."
+        },
+        "description": {
+          "effect": "Aide ou erreur de validation fournie au bouton."
+        },
+        "value-label": {
+          "effect": "Affiche le raccourci accepté. Une valeur vide masque l’action d’effacement."
+        },
+        "generation": {
+          "effect": "Changez cette révision quand la cible liée change, même si son libellé est identique."
+        },
+        "allow-modifier-only": {
+          "effect": "Propose un modificateur seul à son relâchement."
+        },
+        "access": {
+          "effect": "La lecture seule conserve une valeur focalisable. La désactivation retire le bouton du parcours Tab."
+        },
+        "recording": {
+          "effect": "Vrai pendant que le champ focalisé attend un geste."
+        },
+        "recorder-focused": {
+          "effect": "Indique le focus natif du bouton de saisie."
+        },
+        "modal-layer": {
+          "effect": "Dans une modale, indiquez la couche de la boîte de dialogue."
+        },
+        "clear-label": {
+          "effect": "Nom accessible du bouton d’effacement distinct."
+        },
+        "empty-label": {
+          "effect": "Texte au repos quand aucun raccourci n’est attribué."
+        },
+        "recording-label": {
+          "effect": "Invite visible et accessible pendant la saisie."
+        }
+      },
+      "callbacks": {
+        "captured": "Propose la pression logique originale avec ses modificateurs et son ticket.",
+        "modifier-released": "Propose le relâchement original d’un modificateur seul autorisé.",
+        "clear-requested": "Propose de retirer le raccourci. Acquittez le ticket avant de publier une valeur vide.",
+        "cancelled": "Le champ a annulé la saisie ou abandonné une proposition en attente."
+      }
+    }
+  },
+  "KitTextFlow": {
+    "en": {
+      "label": "Interactive text flow",
+      "seoTitle": "Interactive text flow for Slint",
+      "summary": "A wrapping paragraph of named actions and literal text with attached punctuation.",
+      "usage": "Supply TextFragment rows. item.label carries the text, item.disabled marks a literal, and suffix stays with the fragment. Use positive source generations and unique stable tokens. KeyedModel<K, TextFragment> stamps both fields. Connect activated to KitPopover.show-at. Use available(token, generation) for synchronous admission, focus-fragment(token, generation) to return to an exact opener, and take-focus() for the current action.",
+      "behavior": "One native Tab stop per actionable paragraph. Left/Right follow theme direction. Home/End move to the first/last action. Return or Space activates. The suffix is outside the hit rectangle. For a long document, virtualize its paragraphs.",
+      "accessibility": "Actionable text has the button role and full label. Literals expose text. Arrow navigation skips literals. The active action uses an inset focus outline.",
+      "related": [
+        "KitPopover",
+        "KitWrap",
+        "KitPressable",
+        "KitText",
+        "KitSelectKeyboard"
+      ],
+      "callbacks": {
+        "activated": "Receives PopoverAnchor with token, generation and logical window bounds."
+      },
+      "properties": {
+        "fragments": {
+          "effect": "The model in logical reading order."
+        },
+        "enabled": {
+          "effect": "Bind to the activity of a retained route."
+        },
+        "modal-layer": {
+          "effect": "Layer containing the paragraph."
+        }
+      },
+      "states": "Literal, actionable, hovered, pressed, keyboard-focused and inert. Changes to the model preserve logical navigation by token. A suffix on a wrapped token follows the shaped advance of its final line."
+    },
+    "fr": {
+      "label": "Texte interactif",
+      "seoTitle": "Texte interactif pour Slint",
+      "summary": "Paragraphe repliable avec actions nommées, texte littéral et ponctuation solidaire.",
+      "usage": "Fournissez des lignes TextFragment. item.label contient le texte, item.disabled indique un littéral et suffix accompagne son fragment. Utilisez des générations positives et des tokens uniques et stables. KeyedModel<K, TextFragment> attribue ces deux champs. Reliez activated à KitPopover.show-at. Utilisez available(token, generation) pour vérifier la cible immédiatement, focus-fragment(token, generation) pour rendre le focus à l’élément exact et take-focus() pour l’action courante.",
+      "behavior": "Un arrêt Tab natif par paragraphe avec action. Gauche/Droite suivent le sens du thème. Début/Fin atteignent la première ou dernière action. Entrée ou Espace active. Le suffixe est hors de la cible. Virtualisez les paragraphes des longs documents.",
+      "accessibility": "Le texte activable expose le rôle bouton et son libellé entier. Les littéraux exposent du texte. Les flèches sautent les littéraux. L’action active reçoit un anneau intérieur.",
+      "related": [
+        "KitPopover",
+        "KitWrap",
+        "KitPressable",
+        "KitText",
+        "KitSelectKeyboard"
+      ],
+      "callbacks": {
+        "activated": "Reçoit un PopoverAnchor avec token, génération et rectangle en coordonnées logiques de fenêtre."
+      },
+      "properties": {
+        "fragments": {
+          "effect": "Le modèle dans l’ordre logique de lecture."
+        },
+        "enabled": {
+          "effect": "Liez cette propriété à l’activité d’une route conservée."
+        },
+        "modal-layer": {
+          "effect": "Couche qui contient le paragraphe."
+        }
+      },
+      "states": "Littéral, activable, survolé, pressé, focalisé au clavier ou inerte. La navigation logique suit le token lors des mutations du modèle. Le suffixe d’un mot replié suit l’avance réellement composée de sa dernière ligne."
     }
   }
 }

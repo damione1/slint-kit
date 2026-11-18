@@ -12,7 +12,7 @@ import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
-import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitOptionBody } from "select.slint";
+import { SelectPopupSession, KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitOptionBody } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
 import { KitSpinner } from "feedback.slint";
 import { Tone } from "display.slint";
@@ -988,14 +988,13 @@ export component KitMultiSelect inherits Rectangle {
     callback limit-reached(OptionRow);
     out property <bool> at-limit: selection.at-limit;
     out property <bool> is-open: root.state.open;
-    public function open() { if (root.access == FieldAccess.editable) { selection.open(); } }
+    public function open() { if (root.access == FieldAccess.editable && !KitModalContext.inert(root.modal-layer)) { selection.open(); } }
     public function close() { if (root.state.open) { selection.dismiss(CloseReason.programmatic); root.dismiss(CloseReason.programmatic); } }
     vertical-stretch: 0;
     private property <SelectionRef> focused-chip;
     out property <bool> has-focus: selector.has-focus || root.focused-chip.present;
     changed has-focus => { if (!root.has-focus && !root.state.open && !selector.popup-visible && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { selector.take-focus(); }
-    changed access => { selector.cancel-press(); if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); } }
     VerticalLayout {
         spacing: KitMetrics.label-gap(root.theme);
         if root.access == FieldAccess.read-only && root.chips.length > 0: ChipWrap {
@@ -1023,6 +1022,7 @@ export component KitMultiSelect inherits Rectangle {
             }
         }
         selector := KitSelect {
+            modal-layer: root.modal-layer;
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; choice-rows: root.choice-rows; label: root.label; placeholder: root.placeholder; value-label: root.value-label;
             unavailable-label: root.unavailable-label;
             access: root.access;
@@ -1131,6 +1131,10 @@ export component KitTagInput inherits Rectangle {
     }
 }
 
+component SuggestionEditor inherits KitTextField {
+    out property <bool> composing: root.has-preedit();
+}
+
 // The inline native editor owns the combobox field while the popup presents
 // the option list and status. Query draft and accepted selection stay separate.
 export component KitCombobox inherits Rectangle {
@@ -1204,7 +1208,6 @@ export component KitCombobox inherits Rectangle {
     callback end-reached();
     callback tab-navigation(bool) -> KitKeyResult;
     private property <PopupViewport> popup-viewport;
-    private property <bool> opened: root.state.open;
     private property <bool> editing-draft;
     private property <bool> syncing-text;
     private property <string> pending-query;
@@ -1219,12 +1222,12 @@ export component KitCombobox inherits Rectangle {
     accessible-placeholder-text: root.placeholder;
     accessible-value: root.text != "" ? root.text : root.selected-label;
     accessible-expanded: root.state.open;
-    accessible-expandable: root.access == FieldAccess.editable;
+    accessible-expandable: session.eligible;
     accessible-action-expand => {
         if (root.access == FieldAccess.editable && !root.state.open) { root.handle-open-requested(); }
     }
     accessible-read-only: root.access == FieldAccess.read-only;
-    accessible-enabled: root.access != FieldAccess.disabled;
+    accessible-enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     accessible-description: KitStrings.join-description(checks.show-error ? checks.validation-message : root.status-text, root.required ? KitStrings.required-label : "");
     private property <bool> popup-focused;
     out property <bool> has-focus: editor.has-focus || trigger.has-focus || root.popup-focused;
@@ -1244,7 +1247,7 @@ export component KitCombobox inherits Rectangle {
         }
     }
     changed has-focus => {
-        if (!root.has-focus && !root.state.open && root.access == FieldAccess.editable) {
+        if (!root.has-focus && !root.state.open && session.eligible) {
             if (root.editing-draft) {
                 if (root.allow-custom-value) { root.commit-custom-value(); }
                 else { root.restore-accepted-text(); }
@@ -1252,18 +1255,17 @@ export component KitCombobox inherits Rectangle {
             checks.note-blur();
         }
     }
-    public function take-focus() { editor.take-focus(); }
+    public function take-focus() { if (!KitModalContext.inert(root.modal-layer)) { editor.take-focus(); } }
     out property <bool> is-open: root.state.open;
-    public function open() { if (root.access == FieldAccess.editable && !root.state.open) { selection.open(); } }
+    public function open() { if (session.eligible && !root.state.open) { selection.open(); } }
     public function close() { if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); } }
     public function clear() {
         // The shared native action owns deletion, undo and composition guards.
-        editor.clear();
+        if (session.eligible) { editor.clear(); }
     }
     changed access => {
         trigger.cancel-press();
         if (root.has-focus) { root.take-focus(); }
-        if (root.access != FieldAccess.editable && root.state.open) { popup.close(); root.handle-dismiss(CloseReason.programmatic); }
     }
     debounce-timer := Timer {
         interval: Math.max(0ms, root.query-debounce);
@@ -1292,7 +1294,7 @@ export component KitCombobox inherits Rectangle {
         root.syncing-text = false;
     }
     function commit-custom-value() {
-        if (!root.allow-custom-value || root.access != FieldAccess.editable) { return; }
+        if (!root.allow-custom-value || !session.eligible) { return; }
         debounce-timer.running = false;
         root.editing-draft = false;
         root.syncing-text = true;
@@ -1303,7 +1305,7 @@ export component KitCombobox inherits Rectangle {
         }
     }
     function handle-inline-edited(draft: string) {
-        if (root.syncing-text || root.access != FieldAccess.editable) { return; }
+        if (root.syncing-text || !session.eligible) { return; }
         checks.note-edit();
         root.editing-draft = true;
         if (root.allow-custom-value && root.ownership == Ownership.local && root.selected.present && draft != root.selected-label) {
@@ -1368,30 +1370,40 @@ export component KitCombobox inherits Rectangle {
         return KitKeyResult.reject;
     }
     function advance-tab(reverse: bool) -> KitKeyResult {
+        if (!session.eligible) { return KitKeyResult.reject; }
         root.handle-dismiss(CloseReason.programmatic);
-        // Native close restores its parent focus. Complete it before the host
-        // advances Tab, while preserving a session reopened by dismiss().
+        // Complete presentation closure before the host advances Tab, while
+        // preserving a session reopened by dismiss().
         if (!root.state.open) { popup.close(); }
         return root.tab-navigation(reverse);
     }
-    changed opened => {
-        if (root.opened) {
-            if (root.access == FieldAccess.editable) { editor.take-focus(); }
+    session := SelectPopupSession {
+        access: root.access; modal-layer: root.modal-layer;
+        opened: root.state.open; presented: popup.is-open;
+        defer-show: editor.composing;
+        show-popup => {
+            // Leave no parent focus target for a delayed native close. Slint
+            // collapses the editor selection on blur; retain its UTF-8 offsets.
+            let anchor = editor.selection-anchor;
+            let cursor = editor.cursor-position;
+            editor.take-focus();
+            editor.blur();
             root.popup-viewport = KitFieldService.popup-viewport();
             popup.show();
-            if (root.access == FieldAccess.editable) { editor.take-focus(); }
-        } else {
-            // The native editor keeps focus while suggestions are open. Closing
-            // must not steal focus back from an outside pointer destination.
+            editor.take-focus();
+            if (anchor != cursor) { editor.set-selection(anchor, cursor); }
+        }
+        hide-popup => { popup.close(); }
+        dismiss(reason) => { root.handle-dismiss(reason); }
+        closed(restore-focus) => {
             popup.close();
             debounce-timer.running = false;
             root.pending-query = "";
             if (root.query != "") { root.query = ""; root.query-edited(""); }
         }
+        changed presented => { if (!self.presented) { root.popup-focused = false; } }
     }
-    private property <bool> presented: popup.is-open;
-    changed presented => { if (!root.presented) { root.popup-focused = false; if (root.state.open) { root.handle-dismiss(CloseReason.host-closed); } } }
-    editor := KitTextField { modal-layer: root.modal-layer;
+    editor := SuggestionEditor { modal-layer: root.modal-layer;
         implicit-form-submit: false;
         width: root.width;
         theme: root.theme;
@@ -1564,9 +1576,9 @@ export component KitCombobox inherits Rectangle {
             root.chosen(row);
         }
     }
-    function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
+    function handle-navigate(step: NavigationStep) { if (!session.eligible) { return; } selection.navigate(step); root.navigate(step); }
     function handle-activate(token: int, generation: int) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (!session.eligible) { return; }
         let row = KitSelectionService.source(root.rows, token);
         if (KitSelectionService.ready && root.options.length == 0 && generation == root.state.generation && row.token == token && !row.disabled) { checks.note-edit(); }
         selection.activate(token, generation); root.activate(token, generation);
@@ -1574,19 +1586,19 @@ export component KitCombobox inherits Rectangle {
     function handle-dismiss(reason: CloseReason) {
         debounce-timer.running = false;
         root.pending-query = "";
-        let reset-by-draft = root.editing-draft && (reason == CloseReason.escape || reason == CloseReason.outside-press || reason == CloseReason.host-closed);
+        let reset-by-draft = root.editing-draft && (KitModalContext.inert(root.modal-layer) || reason == CloseReason.escape || reason == CloseReason.outside-press || reason == CloseReason.host-closed);
         let had-query = root.query != "";
         if (reset-by-draft) {
-            if (root.allow-custom-value && reason != CloseReason.escape) { root.commit-custom-value(); }
+            if (session.eligible && root.allow-custom-value && reason != CloseReason.escape) { root.commit-custom-value(); }
             else { root.restore-accepted-text(); }
         }
         selection.dismiss(reason);
         root.dismiss(reason);
         if (reset-by-draft && had-query && root.query == "" && !root.state.open) { root.query-edited(""); }
     }
-    function handle-typeahead(text: string) { if (root.access != FieldAccess.editable) { return; } selection.typeahead(text); root.typeahead(text); }
-    function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }
-    function handle-query-edited(text: string) { root.query = text; root.schedule-query-edited(text); }
+    function handle-typeahead(text: string) { if (!session.eligible) { return; } selection.typeahead(text); root.typeahead(text); }
+    function handle-open-requested() { if (!session.eligible) { return; } selection.open(); root.open-requested(); }
+    function handle-query-edited(text: string) { if (!session.eligible) { return; } root.query = text; root.schedule-query-edited(text); }
 }
 
 // One mark of a slider: a tick on the track and an optional label. The value is

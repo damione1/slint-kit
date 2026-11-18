@@ -65,3 +65,59 @@ export component QaDocumentDemo inherits DocumentDemo {
     in-out property <KitTheme> test-theme <=> root.theme;
     in property <[TextLine]> test-lines; lines: root.test-lines;
 }
+
+import { Example as FrenchForm } from "../../docs/examples/fr/field-row.slint";
+import { Example as ImageHeader } from "../../docs/examples/image.slint";
+import { Example as DividerRow } from "../../docs/examples/divider.slint";
+import { FieldAccess, KitFieldRow, KitTextArea, KitFocusBackground, KitImage, IconPurpose } from "@kit";
+export component FieldRowExample inherits FrenchForm {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    in property <FieldAccess> test-access;
+    access: root.test-access;
+}
+export component ImageHeaderExample inherits ImageHeader {}
+export component VerticalDividerExample inherits DividerRow {
+    out property <length> rule-width: root.theme.shape.border-width;
+}
+export component EmptyFieldRowFixture inherits Window {
+    width: 320px; height: 240px;
+    in property <Orientation> orientation;
+    in property <IconPurpose> purpose;
+    in property <string> image-label;
+    out property <length> empty-height: empty.height;
+    out property <bool> editor-focused: editor.has-focus;
+    in-out property <string> draft <=> editor.text;
+    KitFocusBackground {
+        x: 0px; y: 0px;
+        VerticalLayout {
+            alignment: start;
+            empty := KitFieldRow { orientation: root.orientation; }
+            KitFieldRow {
+                orientation: root.orientation;
+                editor := KitTextArea { accessible-name: "Draft"; }
+            }
+            KitImage { purpose: root.purpose; label: root.image-label; }
+        }
+    }
+}
+
+import { KitText, Tone } from "@kit";
+export component PresentationTextFixture inherits Window {
+    width: 250px; height: 300px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <Tone> tone;
+    out property <color> ink: sample.color;
+    out property <length> caption-size: sample.font-size;
+    out property <string> family: sample.font-family;
+    out property <length> wrapped-height: body.height;
+    out property <length> elided-height: sample.height;
+    VerticalLayout {
+        alignment: start;
+        sample := KitText {
+            theme: root.theme; role: caption; tone: root.tone; font: monospace;
+            text: "An unabridged reference label for the reading catalogue";
+            wrap: no-wrap; overflow: elide;
+        }
+        body := KitText { theme: root.theme; role: caption; font: monospace; text: sample.text; }
+    }
+}

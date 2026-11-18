@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitShortcutField, ShortcutTicket, KitButton, KitStrings, KitDialogSurface, KitDialogPanel, FieldAccess } from "@kit";
+
+export component ShortcutFixture inherits Window {
+    width: 450px; height: 360px;
+    in property <FieldAccess> access;
+    in property <bool> modal;
+    in property <bool> multiline;
+    in property <bool> panel-active: true;
+    in property <bool> mounted: true;
+    in property <bool> modifier-only: true;
+    in property <int> generation;
+    in-out property <string> value: "F2";
+    out property <ShortcutTicket> proposal;
+    out property <KeyEvent> event;
+    out property <int> presses;
+    out property <int> releases;
+    out property <int> clears;
+    out property <int> cancels;
+    out property <bool> recording: first.recording;
+    out property <bool> focused: first.recorder-focused;
+    public function finish(ticket: ShortcutTicket) -> bool { return first.finish(ticket); }
+    public function retry(ticket: ShortcutTicket) -> bool { return first.retry(ticket); }
+    public function focus-modal() { dialog-action.take-focus(); }
+    VerticalLayout {
+        padding: 12px; spacing: 8px; alignment: start;
+        VerticalLayout {
+            visible: root.panel-active;
+            first := KitShortcutField {
+                recording-label: root.multiline ? "Press a key\nto assign" : KitStrings.shortcut-recording-label;
+                enabled: root.panel-active;
+                label: "First"; value-label: root.value; access: root.access;
+                generation: root.generation; allow-modifier-only: root.modifier-only;
+                captured(ticket, event) => { root.presses += 1; root.proposal = ticket; root.event = event; }
+                modifier-released(ticket, event) => { root.releases += 1; root.proposal = ticket; root.event = event; }
+                clear-requested(ticket) => { root.clears += 1; root.proposal = ticket; }
+                cancelled => { root.cancels += 1; }
+            }
+        }
+        if root.mounted: KitShortcutField {
+            label: "Second";
+            captured(ticket, event) => { root.presses += 1; root.proposal = ticket; }
+            clear-requested(ticket) => { root.clears += 1; }
+        }
+    }
+    KitDialogSurface {
+        modal-layer: 1; state: {open: root.modal, topmost: root.modal};
+        KitDialogPanel { dialog-action := KitButton { text: "Dialog action"; modal-layer: 1; } }
+    }
+}

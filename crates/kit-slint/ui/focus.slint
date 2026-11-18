@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitModalContext } from "modal.slint";
 import { FocusRequest } from "contracts.slint";
 import { KitFocusRing, KitThemes, FocusRingStyle } from "theme.slint";
 export { FocusRequest } from "contracts.slint";
@@ -33,6 +34,19 @@ export component KitFocusTarget inherits Rectangle {
     changed request => { root.apply-request(); }
     changed eligible => { root.apply-request(); }
     init => { root.apply-request(); }
+    @children
+}
+
+// Later children paint above the background. Only a click reaching the
+// unhandled background transfers focus, and only within the active modal layer.
+export component KitFocusBackground inherits FocusScope {
+    in property <int> modal-layer;
+    focus-on-tab-navigation: false;
+    focus-on-click: false;
+    TouchArea {
+        enabled: !KitModalContext.inert(root.modal-layer);
+        clicked => { root.focus(); }
+    }
     @children
 }
 

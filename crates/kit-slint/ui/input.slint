@@ -355,6 +355,7 @@ export component KitTextField inherits KitField {
             }
         }
     }
+    protected pure function has-preedit() -> bool { return editor.preedit-text != ""; }
     public function blur() { text-menu.close(); editor.clear-focus(); }
     public function set-selection(anchor: int, cursor: int) { editor.set-selection-offsets(anchor, cursor); }
     public function insert-at-cursor(text: string) { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "" && root.insertion-allowed(text)) { root.take-focus(); KitFieldService.edit-selection(text); } }

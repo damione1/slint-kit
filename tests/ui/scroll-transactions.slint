@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitScrollArea, KitTabs, KitMenuBar, KitTheme, KitThemes, ScrollAxes, OptionRow } from "@kit";
+import { KitScrollArea, KitTabs, KitMenuBar, KitTheme, KitThemes, ScrollAxes, OptionRow, KitButton, ChoiceFlow, SelectionRef } from "@kit";
 
 export component ScrollTransactionsFixture inherits Window {
     width: 400px; height: 300px;
@@ -37,5 +37,27 @@ export component ScrollReversalFixture inherits Window {
     menu := KitMenuBar {
         x: 0px; y: 240px; width: root.width;
         theme: root.theme; options: root.options;
+    }
+}
+
+export component TabsMountFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <bool> mounted;
+    in property <[OptionRow]> options;
+    in property <SelectionRef> selected;
+    in property <Orientation> orientation;
+    in property <ChoiceFlow> flow;
+    in property <length> strip-width: 260px;
+    in property <length> strip-height: 120px;
+    out property <int> choices;
+    out property <bool> outside-focused: outside.has-focus;
+    public function focus-outside() { outside.take-focus(); }
+
+    outside := KitButton { x: 0px; y: 200px; text: "Outside"; }
+    if root.mounted: KitTabs {
+        x: 0px; y: 0px; width: root.strip-width; height: root.strip-height;
+        orientation: root.orientation; flow: root.flow; options: root.options;
+        ownership: controlled; selected: root.selected;
+        chosen(row) => { root.choices += 1; }
     }
 }

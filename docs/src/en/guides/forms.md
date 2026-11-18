@@ -214,8 +214,30 @@ DateTimeField checks its native date/time parts as well as whole-pair constraint
 
 `KitSelect`, `KitCombobox` and `KitMultiSelect` open and close from code with `open()` and `close()` and report the state through the read-only `is-open`; `open()` does nothing while the control is read-only or disabled and does not emit `open-requested()`. `KitMultiSelect` emits `limit-reached(OptionRow)` when an addition is refused at `selection-limit` and exposes `at-limit`; selected tokens whose option was replaced no longer count against the limit.
 
+Set `modal-layer` to the layer containing the field. An open list closes with `CloseReason.programmatic` when its layer becomes inert. The modal keeps focus and receives the first click. If you supply `state`, acknowledge the dismissal by setting `state.open` to false. The accepted selection remains under its existing ownership policy. While the owner keeps `state.open` true, each explicit change to read-only or disabled requests dismissal, including on an inert layer.
+
 ## Custom validation composition
 
 Import `FormConstraintState` from `@kit` when building a custom control skin. It is an invisible composition primitive, not an editor or a base class with inherited field properties. Bind its `kind`, `access`, `text` or `checked`, and intrinsic constraints; forward `check-validity()`, `report-validity()` and the validation outputs you expose. Initialize the shared validation service once per window through `install`, and retain the typed Rust submission guard. Prefer the kit’s existing controls when their behavior fits.
 
 Text editors use Slint 1.19 caret following through scrollable ancestors, including multiline editors and horizontal insets. Keep the native editor and selection/undo history when revealing a field; call `field.ensure-visible(KitThemes.scroll-behavior(theme))` for a user action instead of rewriting viewport offsets.
+
+### Place a control alongside its caption
+
+Use `KitFieldRow` for a preference with help on one side and a switch, selector or group of actions on the other. The control keeps its preferred width. Bind `orientation: vertical` when the caption and control need separate lines, for example at a narrow window width or a large text scale. The slot keeps the existing editor as the layout changes. For several actions put one `KitInline` or `KitWrap` in the slot.
+
+Give a switch or selector the row's accessible name, bind the same access state on both elements, and connect `focus-requested` to the control's `take-focus()`. Set the switch's `accessible-description` when the row supplies its help. A choice can bind the row's `error-message` to its presented validation message. A text area already renders its own label, help and validation. Place it directly in a vertical row and leave the row caption and error empty. See the [form row example](/components/field-row/).
+
+In a short window, put the rows in a `KitScrollArea`. To reveal the entire outside focus ring on Tab, include its `KitThemes.focus-outset(theme.focus)` and the desired margin in the row padding, then call `ensure-visible` on that row when the editor gains focus.
+
+### Capture a keyboard shortcut
+
+Place `KitShortcutField` in a `KitFieldRow`. Bind the row’s label, description and access to the recorder. Set `value-label` from the accepted value and change `generation` when rebinding a retained field to another record. The record button handles a click, Enter, Space or its accessible default action. Escape cancels. The separately named clear button proposes removal. Backspace and Delete, including modified combinations, are recordable keys.
+
+Handle `captured(ticket, event)` for a logical key press. With `allow-modifier-only`, a lone modifier produces `modifier-released(ticket, event)` on its matching release. Both callbacks carry Slint’s original `KeyEvent`. Text follows the current keyboard layout. Slint maps Command to the control modifier on macOS. Physical scan codes, layout conversion, permitted accelerators, conflicts and system registration belong to the host.
+
+Before accepting a proposal, resolve its ticket on the originating field with `finish(ticket)`. Publish the accepted value only if it returns true. For an invalid combination, call `retry(ticket)` and show the reason in the row. A successful retry keeps focus and captures the next key immediately. A delayed response uses the same guard and a weak handle to the originating window. Focus loss, a covering modal, target removal and a newer capture retire the old proposal.
+
+For a retained window, use `slint_kit::hide_window(&app)` when hiding it programmatically. This invalidates the window’s capture before the native hide, even for an immediate hide/show pair. In an existing close handler that returns `HideWindow`, call `app.global::<KitFieldService>().invoke_invalidate_shortcut_session()` before returning that verdict. Slint 1.19’s raw `hide()` does not notify every backend of a focus loss. Bind the recorder’s `enabled` to the retained panel’s active state so events and ticket resolution are guarded immediately. For a retained panel whose visibility may change twice in one event, call the field’s `cancel()` when leaving the panel. See the [two-field example](/components/shortcut-field/).
+
+If a retained window currently uses Slint’s default close behavior, install an `on_close_requested` handler that invalidates the shortcut session and returns `slint::CloseRequestResponse::HideWindow`. If the application already handles close requests, add the invalidation to its accepted-hide branch. A veto that keeps the window open can keep the session.

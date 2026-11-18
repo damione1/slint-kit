@@ -1,0 +1,161 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitText } from "display.slint";
+import { KitWrap } from "layout.slint";
+import { KitPressable } from "button.slint";
+import { KitFocusTarget } from "focus.slint";
+import { KitSelectKeyboard } from "select.slint";
+import { KitSelectionService } from "selection-service.slint";
+import { KitKeyResult } from "keyboard.slint";
+import { KitModalContext } from "modal.slint";
+import { KitTheme, KitThemes, KitThemeContext, ChoiceFlow } from "theme.slint";
+import { PopoverAnchor } from "field-service.slint";
+import { FocusRequest, OptionRow, TextFragment } from "contracts.slint";
+export { TextFragment } from "contracts.slint";
+
+// Slint exposes the native shaped caret through TextInput. The difference
+// between trailing and leading alignment is the unused width of its last
+// line, independent of the script's direction or the final bidi run.
+component LastLineMeasure inherits TextInput {
+    enabled: false; read-only: true; visible: false; accessible-role: none;
+    single-line: false; wrap: word-wrap; text-cursor-width: 0px;
+    private property <length> end-x;
+    callback measured(length);
+    cursor-position-changed(position) => { root.end-x = position.x; }
+    function measure() {
+        if (root.width <= 0px || root.height <= 0px) { return; }
+        root.horizontal-alignment = left;
+        root.select-all();
+        let left = root.end-x;
+        root.horizontal-alignment = right;
+        root.select-all();
+        root.clear-selection();
+        root.measured(clamp(root.width - (root.end-x - left), 0px, root.width));
+    }
+    init => { root.measure(); }
+    changed text => { root.measure(); }
+    changed width => { root.measure(); }
+    changed height => { root.measure(); }
+    changed font-size => { root.measure(); }
+    changed font-family => { root.measure(); }
+    changed font-weight => { root.measure(); }
+}
+
+// A materialized paragraph. Virtualize paragraphs in the enclosing document.
+export component KitTextFlow inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <[TextFragment]> fragments;
+    in property <int> modal-layer;
+    in property <bool> enabled: true;
+    callback activated(PopoverAnchor);
+    private property <FocusRequest> request;
+    private property <bool> live: root.enabled && root.visible && !KitModalContext.inert(root.modal-layer);
+    private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
+    private property <[OptionRow]> options: KitSelectionService.fragment-options(root.fragments);
+    min-width: 0px;
+    preferred-height: flow.preferred-height;
+    vertical-stretch: 0;
+    public pure function available(token: int, generation: int) -> bool {
+        let row = KitSelectionService.source(root.options, token);
+        return root.live && generation > 0 && keyboard.state.generation > 0
+            && row.token == token && row.generation == generation && !row.disabled;
+    }
+    public function take-focus() {
+        if (root.live && keyboard.state.active.present) {
+            let row = root.options[keyboard.state.active-index];
+            root.request = {present: true, token: row.token, generation: row.generation,
+                request: KitSelectionService.next-generation(root.request.request)};
+        }
+    }
+    public function focus-fragment(token: int, generation: int) -> bool {
+        if (!root.available(token, generation)) { return false; }
+        keyboard.choose-option(token, keyboard.state.generation);
+        root.take-focus();
+        return true;
+    }
+    // Only the active fragment enters native tab traversal. Its pressable owns
+    // Return/Space, AX and pointer gestures; the shared translator owns arrows.
+    keyboard := KitSelectKeyboard {
+        width: 0px; height: 0px;
+        options: root.options; navigation-direction: horizontal; flow: root.theme.direction;
+        typeahead-enabled: false; dismiss-on-system-back: false; dismiss-on-escape: false;
+    }
+    flow := KitWrap {
+        theme: root.theme; gap: none; width: root.width;
+        y: 0px; height: self.preferred-height;
+        flex-direction: root.rtl ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
+        cross-axis-alignment: start;
+        cross-axis-line-alignment: start;
+        for fragment in root.fragments: group := KitFocusTarget {
+            token: fragment.item.token; generation: fragment.item.generation;
+            request: root.request; eligible: root.live && !fragment.item.disabled;
+            focus-applied(token, generation, request) => { root.request.present = false; }
+            private property <bool> show-focus;
+            focus-requested => { group.show-focus = true; action.take-focus(); }
+            width: min(root.width, word.preferred-width + suffix.preferred-width);
+            height: max(word.preferred-height, suffix.preferred-height);
+            private property <length> suffix-width: min(root.width, suffix.preferred-width);
+            private property <length> word-width: min(word.preferred-width, max(0px,root.width - self.suffix-width));
+            private property <bool> wrapped-word: word.preferred-width > group.word-width;
+            private property <length> measured-last-line;
+            private property <length> last-width: group.wrapped-word ? group.measured-last-line : group.word-width;
+            if group.wrapped-word: LastLineMeasure {
+                width: word.width; height: word.height; text: word.text;
+                font-family: word.font-family; font-weight: word.font-weight; font-size: word.font-size;
+                measured(advance) => { group.measured-last-line = advance; }
+            }
+            word := KitText {
+                theme: root.theme; text: fragment.item.label;
+                width: group.word-width; height: self.preferred-height;
+                x: root.rtl ? group.suffix-width : 0px; y: 0px;
+                color: action.pressed ? root.theme.accent-pressed : action.hovered ? root.theme.accent-hover
+                    : fragment.item.disabled ? root.theme.text-primary : root.theme.accent;
+                accessible-role: none;
+                if fragment.item.disabled: Rectangle {
+                    accessible-role: text; accessible-label: fragment.item.label;
+                }
+            }
+            suffix := KitText {
+                theme: root.theme; text: fragment.suffix;
+                x: root.rtl ? group.width - group.last-width - self.width : group.last-width; y: group.height - self.height;
+                width: group.suffix-width; height: self.preferred-height; wrap: no-wrap;
+            }
+            action := KitPressable {
+                theme: root.theme; modal-layer: root.modal-layer; intent: link;
+                visible: !fragment.item.disabled;
+                disabled: !root.live || fragment.item.disabled;
+                x: word.x; y: word.y; width: word.width; height: word.height;
+                accessible-name: fragment.item.label; description: fragment.item.description;
+                tab-stop: keyboard.state.active.present && keyboard.state.active.token == fragment.item.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
+                focus-indicated: group.show-focus && self.has-focus;
+                focus-observed(focused) => { if (!focused) { group.show-focus = false; } }
+                private property <OptionRow> armed;
+                activation-started => { group.show-focus = false; self.armed = fragment.item; }
+                activated => {
+                    if (self.armed.token == fragment.item.token && self.armed.generation == fragment.item.generation
+                        && root.available(self.armed.token, self.armed.generation)) {
+                        keyboard.choose-option(self.armed.token, keyboard.state.generation);
+                        root.activated({ token: self.armed.token, generation: self.armed.generation,
+                            bounds: {x: self.absolute-position.x, y: self.absolute-position.y, width: self.width, height: self.height} });
+                    }
+                }
+                key-event(event) => {
+                    if (event.text == Key.LeftArrow || event.text == Key.RightArrow || event.text == Key.Home || event.text == Key.End) {
+                        let result = keyboard.handle-key(event);
+                        if (result == KitKeyResult.accept) { root.take-focus(); }
+                        return result;
+                    }
+                    return KitKeyResult.reject;
+                }
+            }
+            // The word's upper lines span the action rectangle. On the last
+            // line the suffix and the space beyond it are ordinary prose.
+            if group.wrapped-word: TouchArea {
+                x: root.rtl ? 0px : group.last-width;
+                y: suffix.y; height: suffix.height;
+                width: group.width - group.last-width;
+                clicked => { }
+            }
+        }
+    }
+}

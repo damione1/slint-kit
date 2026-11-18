@@ -961,6 +961,18 @@ impl KeyedRow for ui::FileViewEntry {
     }
 }
 
+impl KeyedRow for ui::TextFragment {
+    fn stamp(&mut self, token: i32, generation: i32) {
+        self.item.token = token;
+        self.item.generation = generation;
+    }
+    fn enabled(&self) -> bool {
+        !self.item.disabled
+    }
+    fn label(&self) -> String {
+        self.item.label.to_string()
+    }
+}
 impl KeyedRow for ui::NotificationRow {
     fn stamp(&mut self, token: i32, generation: i32) {
         self.item.token = token;

@@ -40,9 +40,15 @@ mod journeys;
 mod keyboard_scope;
 mod localized_labels;
 mod modal_context;
+mod modal_select;
 mod multi_popup;
 mod notification_center;
 mod option_items;
+mod fragment_window {
+    include!(concat!(env!("OUT_DIR"), "/fragment-editor.rs"));
+}
+use fragment_window::Example as FragmentFixture;
+mod fragments;
 mod popover;
 mod preview;
 mod scroll_keys;
@@ -50,6 +56,7 @@ mod select_search;
 mod selection_names;
 mod selection_search_session;
 mod selection_service;
+mod shortcut_field;
 mod slider_recovery;
 mod table_actions;
 mod table_cells;

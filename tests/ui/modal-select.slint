@@ -1,0 +1,114 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelect, KitMultiSelect, KitCombobox, KitPopover, KitDropdownMenu, KitContextMenu, KitDialog, KitModalContext, KitTheme, KitThemes,
+    FieldAccess, Ownership, CloseReason, OptionRow, SelectionRef, SelectState } from "@kit";
+
+export component ModalSelectFixture inherits Window {
+    preferred-width: 680px; preferred-height: 560px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in-out property <bool> dialog-open;
+    in property <bool> host-tabs;
+    in property <int> field-layer;
+    in property <FieldAccess> access;
+    in property <Ownership> ownership;
+    in property <[OptionRow]> options: [{token: 1, generation: 1, label: "Alpha"}, {token: 2, generation: 1, label: "Beta"}];
+    out property <bool> inert: KitModalContext.inert(root.field-layer);
+    in-out property <SelectionRef> accepted <=> picker.selected;
+    out property <bool> picker-open: picker.is-open;
+    out property <bool> picker-visible: picker.popup-visible;
+    out property <bool> multi-open: multi.is-open;
+    in property <int> min-query-length;
+    out property <string> combo-text: combo.text;
+    out property <bool> combo-open: combo.is-open;
+    out property <bool> background-focused: picker.has-focus || multi.has-focus || combo.has-focus;
+    out property <bool> close-focused;
+    out property <int> actions;
+    out property <int> tabs;
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    public function open-picker() { picker.open(); }
+    public function open-multi() { multi.open(); }
+    public function open-combo() { combo.open(); }
+    public function clear-combo() { combo.clear(); }
+    in-out property <SelectionRef> combo-selected <=> combo.selected;
+    picker := KitSelect {
+        x: 20px; y: 20px; width: 220px; height: self.preferred-height;
+        theme: root.theme; options: root.options; label: "Single"; modal-layer: root.field-layer;
+        access: root.access; ownership: root.ownership;
+        chosen(row) => { root.chosen(row); }
+        dismiss(reason) => { root.dismissed(reason); }
+    }
+    multi := KitMultiSelect {
+        x: 20px; y: 85px; width: 220px;
+        theme: root.theme; options: root.options; label: "Multiple"; modal-layer: root.field-layer;
+        access: root.access; ownership: root.ownership;
+        selection-changed(row, added) => { root.chosen(row); }
+        dismiss(reason) => { root.dismissed(reason); }
+    }
+    combo := KitCombobox {
+        x: 20px; y: 160px; width: 220px;
+        theme: root.theme; options: root.options; label: "Suggestions"; modal-layer: root.field-layer;
+        access: root.access; ownership: root.ownership; allow-custom-value: true; min-query-length: root.min-query-length;
+        chosen(row) => { root.chosen(row); }
+        custom-chosen(text) => { root.chosen({label: text}); }
+        dismiss(reason) => { root.dismissed(reason); }
+    }
+    in property <bool> projected-open;
+    out property <bool> projected-visible: projected.popup-visible;
+    projected := KitSelect {
+        x: 20px; y: 240px; width: 220px; height: self.preferred-height; theme: root.theme; label: "Projected";
+        access: root.access; rows: root.options; ownership: controlled; state: {open: root.projected-open, generation: 1};
+        dismiss(reason) => { root.dismissed(reason); }
+    }
+    in property <bool> external-popover;
+    out property <bool> popover-visible: popover.open;
+    out property <bool> popover-focused: popover.has-focus;
+    public function open-popover() {
+        if (root.external-popover) { popover.show-at({token: 7, generation: 1, bounds: {x: 20px, y: 320px}}); }
+        else { popover.show(); }
+    }
+    popover := KitPopover {
+        x: 20px; y: 320px; width: 180px; height: self.preferred-height;
+        modal-layer: root.field-layer; text: "Details";
+        trigger-kind: root.external-popover ? external : button;
+        viewport: {width: root.width, height: root.height};
+        anchor-available(token, generation) => { return token == 7 && generation == 1; }
+        dismissed(reason) => { root.dismissed(reason); }
+        Text { text: "Panel content"; }
+    }
+    in property <bool> test-menus;
+    in-out property <int> menu-choices;
+    callback menu-opened();
+    public function close-menus() { dropdown.dismiss(CloseReason.programmatic); context.dismiss(CloseReason.programmatic); }
+    out property <bool> menu-visible: dropdown.open || context.open;
+    out property <bool> menu-focused: dropdown.has-focus || context.has-focus;
+    public function open-dropdown() { dropdown.show(); }
+    public function open-context() { context.show-at(10px, 10px); }
+    dropdown := KitDropdownMenu {
+        visible: root.test-menus; disabled: !root.test-menus;
+        x: 20px; y: 20px; width: 220px; height: self.preferred-height;
+        text: "Actions"; options: root.options; modal-layer: root.field-layer;
+        opened => { root.menu-opened(); }
+        chosen(row) => { root.menu-choices += 1; }
+        dismissed(reason) => { root.dismissed(reason); }
+    }
+    context := KitContextMenu {
+        visible: root.test-menus; disabled: !root.test-menus;
+        x: 20px; y: 90px; width: 220px; height: 50px;
+        options: root.options; modal-layer: root.field-layer;
+        opened => { root.menu-opened(); }
+        chosen(row) => { root.menu-choices += 1; }
+        dismissed(reason) => { root.dismissed(reason); }
+        Text { text: "Document"; }
+    }
+    KitDialog {
+        theme: root.theme; modal-layer: 1;
+        tab-policy: root.host-tabs ? host : native;
+        focus-next(reverse) => { root.tabs += 1; self.take-scope-focus(); }
+        state: {open: root.dialog-open, topmost: root.dialog-open};
+        title: "Modal"; actions: [{token: 1, text: "Close"}];
+        close-focus-observed(focused) => { root.close-focused = focused; }
+        action-activated(token) => { root.actions += 1; root.dialog-open = false; }
+        dismiss(reason) => { root.dialog-open = false; }
+    }
+}

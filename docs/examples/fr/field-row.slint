@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitTheme, KitThemes, KitMetrics, KitText, KitFieldRow, KitSwitch, KitSelect, KitTextArea, KitScrollArea, FieldAccess } from "@kit";
+
+export component Example inherits Window {
+    in-out property <KitTheme> theme: KitThemes.light;
+    default-font-family: InterFont.family;
+    background: root.theme.canvas;
+    preferred-width: 680px;
+    preferred-height: 420px;
+    max-width: 100000px;
+    max-height: 100000px;
+    in property <FieldAccess> access: FieldAccess.editable;
+    KitScrollArea {
+        theme: root.theme; inset: regular;
+        KitText { theme: root.theme; role: title; text: "Choix de lecture"; }
+        alerts := KitFieldRow {
+            orientation: root.width < 300px * root.theme.text-scale ? vertical : horizontal;
+            theme: root.theme; label: "Résumé hebdomadaire"; access: root.access;
+            description: "Recevez un seul message regroupant toutes les suggestions de lecture enregistrées pendant la semaine.";
+            focus-requested => { toggle.take-focus(); }
+            toggle := KitSwitch {
+                theme: root.theme; access: alerts.access; accessible-name: alerts.label;
+                accessible-description: alerts.description; label-position: start; control-width: intrinsic;
+                checked: true;
+                focus-observed(focused) => { if (focused) { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); } }
+            }
+        }
+        catalogue := KitFieldRow {
+            theme: root.theme; label: "Catalogue"; show-divider: true;
+            orientation: root.width < 520px * root.theme.text-scale ? vertical : horizontal;
+            access: root.access; focus-requested => { choices.take-focus(); }
+            error-message: choices.error-visible ? choices.validation-message : "";
+            choices := KitSelect {
+                theme: root.theme; label: catalogue.label; access: catalogue.access;
+                preferred-width: KitMetrics.select-popup-min-width(root.theme);
+                changed has-focus => { if (self.has-focus) { self.ensure-visible(KitThemes.scroll-behavior(root.theme)); } }
+                placeholder: "Choisir une collection";
+                options: [
+                    { token: 10, generation: 1, label: "Toutes les publications" },
+                    { token: 20, generation: 1, label: "Histoire locale et archives historiques" }
+                ];
+                selected: { present: true, token: 20 };
+            }
+        }
+        notes-row := KitFieldRow {
+            theme: root.theme; orientation: vertical; show-divider: true;
+            // Inclure l’anneau extérieur dans la région révélée par Tab.
+            padding-bottom: KitThemes.focus-outset(root.theme.focus) + KitMetrics.help-gap(root.theme);
+            notes := KitTextArea {
+                theme: root.theme; label: "Notes de lecture"; access: root.access;
+                focus-observed(focused) => { if (focused) { notes-row.ensure-visible(KitThemes.scroll-behavior(root.theme)); } }
+                placeholder: "Ajouter une note"; min-lines: 2;
+            }
+        }
+    }
+}
