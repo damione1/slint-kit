@@ -199,8 +199,10 @@ fn exercise_list(window: &WrapSwitchList) {
         window.invoke_reveal(0);
         frame();
         assert!(switches().len() < 20);
-        window.invoke_reveal(count - 1);
-        frame();
+        for _ in 0..2 {
+            window.invoke_reveal(count - 1);
+            frame();
+        }
         let find = |label: &str| {
             switches()
                 .into_iter()

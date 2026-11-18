@@ -552,6 +552,7 @@ fn field_rows_reflow_without_losing_native_edits_or_control_semantics() {
                         bottom(&ring)
                     );
                     assert!(bottom(&notes) < bottom(&ring));
+                    key(&app, Key::End);
                     press("x".into());
                     assert_eq!(notes.accessible_value().as_deref(), Some("Brouillonx"));
                     key(&app, Key::Backspace);
