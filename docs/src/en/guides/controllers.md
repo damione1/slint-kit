@@ -420,3 +420,38 @@ Mount one `KitPopover` outside the paragraph repeater. Use `trigger-kind: extern
 Implement `anchor-available(token, generation)` against the originating document. Tokens must be unique across all documents sharing the editor, or their generations must distinguish replacements. A stale form keeps its drafts until dismissed. Enable Save only while the original target remains eligible. Snapshot the ticket and both values, call `finish(ticket)`, and publish once on success. In a Rust handler, resolve the same token and generation through `KeyedModel::accept` before writing. Opening a different session, including from a dismissal callback, retires the old ticket.
 
 Bind `disabled` to route inactivity on retained popovers and `enabled` to route activity on their text flows. When leaving and returning inside one event, set the inactive state and call `dismiss(CloseReason.programmatic)` on departure. Use `slint_kit::hide_window` to synchronously retire tickets before hiding a retained window. In a custom accepted window-close path, invalidate both sessions through `KitFieldService.invalidate-popover-session()` and `invalidate-shortcut-session()` before returning `HideWindow`. Raw window hiding has no kit-boundary notification. Give all controls the layer of their enclosing modal. A new topmost modal receives the first click when it interrupts a background popover. [Composed example](/components/popover/)
+
+## Long lists and read-only logs
+
+Compose a long list from public parts; there is no separate list component. Put the `for` loop directly under `ListView` (not under a layout), give the `ListView` a bounded height, and bind each row's width to `list.visible-width`. A row is any `KitStack` of `KitText`, `KitInline` buttons and fields; its height follows its content at that width, so long help text and larger text scales need no row-height constant.
+
+```slint
+import { KitStack, KitInline, KitText, KitButton, KitTextField, ListView, ContentItem } from "@kit";
+export component Rows inherits Window {
+    in property <[ContentItem]> rows;
+    callback note-edited(int, string);
+    list := ListView {
+        height: 360px;
+        for row in root.rows: KitStack {
+            width: list.visible-width;
+            gap: compact; inset: regular;
+            KitText { role: subtitle; text: row.title; }
+            KitText { role: caption; text: row.excerpt; }
+            KitInline { KitButton { text: "Open"; } }
+            note := KitTextField {
+                label: "Note for " + row.title;
+                edited(text) => { root.note-edited(row.token, text); }
+                init => { self.text = row.metadata; }
+            }
+        }
+    }
+}
+```
+
+Only the rows near the viewport are instantiated, whatever the model size. Keep three rules:
+
+- A row that leaves the viewport is destroyed, with its native editor, selection, undo history and focus. Store drafts in the host under the row's key, as `note-edited` does above, and restore them when the delegate is created. Removing a key discards its draft; a new lifecycle of the same key starts empty, because `KeyedModel` never reuses a token.
+- With rows of different heights the content height is an estimate that changes while you scroll. Seek with `list.ensure-row-visible(index, behavior)`, resolving the index from the key at that moment; a content-y computed from an earlier content height can land on another row.
+- A `ListView` consumes the wheel until its own edge and does not hand the remainder to a scroller around it, as Slint's `Flickable` does not. Avoid nesting vertical scrollers, or leave room outside the child where the wheel reaches the parent.
+
+For a log, use one read-only `KitTextArea` per line in the same `ListView`: set `access: FieldAccess.read-only`, `min-lines: 1` and a `max-lines` large enough never to cap the line. The line wraps to its real height, the native editor selects and copies any substring (Ctrl+C), including across a visual wrap, and `text-font-family` selects the monospace face. The copy of the whole log stays a host command over the host's own text, independent of the mounted lines. On refresh, keep the reader's place by identity: append without moving, and call `ensure-row-visible` for the anchored line after lines are removed above it. Follow the tail only when the reader was already at the end. A selection lives in its line's editor, so it persists across appends but not after that line leaves the viewport. Headless tests exercise Ctrl+C; qualify Cmd+C, VoiceOver and IME on the target platform.

@@ -963,5 +963,6 @@ fn settle_scroll(window: &impl slint::ComponentHandle) {
     }
     slint::platform::update_timers_and_animations();
 }
+mod long_lists;
 mod reduced_motion;
 mod scroll_transactions;

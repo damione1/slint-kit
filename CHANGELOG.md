@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Documented long virtualized lists and read-only selectable logs as public composition: a direct `ListView` repeater of `KitStack` rows, host-owned drafts, identity-based seeking and one read-only `KitTextArea` per log line. No API change.
+- Documentation des longues listes virtualisées et des journaux sélectionnables en lecture seule par composition publique : répéteur direct dans `ListView` de rangées `KitStack`, brouillons gérés par l'hôte, positionnement par identité et un `KitTextArea` en lecture seule par ligne de journal. Aucun changement d'API.
+
 - Fixed #441. An intrinsic switch or checkbox and a horizontal radio group can render directly in `KitWrap`. Wrapped labels and descriptions determine the row height, including in virtualized lists.
 - Correction de #441. Un interrupteur ou une case à cocher de largeur intrinsèque et un groupe radio horizontal peuvent être placés directement dans `KitWrap`. Les libellés et descriptions sur plusieurs lignes déterminent la hauteur de la rangée, y compris dans une liste virtualisée.
 

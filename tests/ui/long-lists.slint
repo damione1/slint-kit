@@ -1,0 +1,218 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitStack, KitInline, KitText, KitButton, KitTextField, KitTextArea, ListView, ScrollFrame, ContentItem, TextLine, FieldAccess, TypographyRole } from "@kit";
+
+// The delegate is shared by the virtualized list and by an unvirtualized witness.
+// A disabled Timer per instance lets the test observe which delegates are alive.
+component RichRow inherits KitStack {
+    in property <ContentItem> record;
+    in property <KitTheme> row-theme;
+    in property <length> row-width;
+    in property <bool> pulse;
+    callback mounted(int);
+    callback pulsed(int);
+    callback opened(int);
+    callback draft-edited(int, string);
+    theme: root.row-theme;
+    gap: compact;
+    inset: regular;
+    width: root.row-width;
+    init => { editor.text = root.record.metadata; root.mounted(root.record.token); }
+    Timer { interval: 20ms; running: root.pulse; triggered => { root.pulsed(root.record.token); } }
+    KitText { theme: root.row-theme; role: subtitle; text: root.record.title; }
+    KitText { theme: root.row-theme; role: caption; text: root.record.excerpt; }
+    KitInline {
+        theme: root.row-theme;
+        KitButton { theme: root.row-theme; text: "Open"; accessible-name: "Open " + root.record.title; activated => { root.opened(root.record.token); } }
+        KitButton { theme: root.row-theme; text: "Remove"; accessible-name: "Remove " + root.record.title; }
+    }
+    editor := KitTextField {
+        theme: root.row-theme; label: "Note for " + root.record.title;
+        edited(text) => { root.draft-edited(root.record.token, text); }
+    }
+}
+
+component LogLine inherits KitTextArea {
+    in property <TextLine> line;
+    in property <KitTheme> row-theme;
+    in property <length> row-width;
+    in property <bool> pulse;
+    callback mounted(int);
+    callback pulsed(int);
+    callback selection-changed(int, int, int);
+    changed cursor-position => { root.selection-changed(root.line.token, root.selection-anchor, root.cursor-position); }
+    theme: root.row-theme;
+    width: root.row-width;
+    access: FieldAccess.read-only;
+    text: root.line.text;
+    label: "Line " + root.line.number;
+    min-lines: 1;
+    max-lines: 100000;
+    text-font-family: root.row-theme.typography.family-monospace;
+    init => { root.mounted(root.line.token); }
+    Timer { interval: 20ms; running: root.pulse; triggered => { root.pulsed(root.line.token); } }
+}
+
+export component LongListFixture inherits Window {
+    preferred-width: 480px; preferred-height: 640px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[ContentItem]> rows;
+    in property <length> list-height: 360px;
+    in property <bool> pulse;
+    callback mounted(int);
+    callback pulsed(int);
+    callback opened(int);
+    callback draft-edited(int, string);
+    out property <length> viewport-width: list.visible-width;
+    out property <length> viewport-height: list.visible-height;
+    out property <length> content-height: list.content-height;
+    out property <length> content-y: list.content-y;
+    public function scroll-to-y(y: length) { list.scroll-to({x: 0px, y: y}, ScrollBehavior.instant); }
+    public function reveal-row(index: int) { list.ensure-row-visible(index, ScrollBehavior.instant); }
+    background: root.theme.canvas;
+    list := ListView {
+        x: 0px; y: 0px; width: root.width; height: root.list-height; theme: root.theme;
+        for row in root.rows: RichRow {
+            record: row; row-theme: root.theme; row-width: list.visible-width; pulse: root.pulse;
+            mounted(token) => { root.mounted(token); }
+            pulsed(token) => { root.pulsed(token); }
+            opened(token) => { root.opened(token); }
+            draft-edited(token, text) => { root.draft-edited(token, text); }
+        }
+    }
+}
+
+// The same delegate under a regular ScrollFrame: every row is instantiated.
+export component UnvirtualizedWitness inherits Window {
+    preferred-width: 480px; preferred-height: 360px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <[ContentItem]> rows;
+    in property <bool> pulse;
+    callback pulsed(int);
+    frame := ScrollFrame {
+        theme: root.theme; width: root.width; height: root.height;
+        content-height: stack.preferred-height; content-width: self.visible-width;
+        stack := KitStack {
+            width: frame.visible-width;
+            for row in root.rows: RichRow {
+                record: row; row-theme: root.theme; row-width: frame.visible-width; pulse: root.pulse;
+                pulsed(token) => { root.pulsed(token); }
+            }
+        }
+    }
+}
+
+export component LogFixture inherits Window {
+    preferred-width: 360px; preferred-height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[TextLine]> lines;
+    in property <length> log-height: 240px;
+    in property <bool> pulse;
+    callback mounted(int);
+    callback pulsed(int);
+    callback selection-changed(int, int, int);
+    out property <length> viewport-width: log.visible-width;
+    out property <length> content-height: log.content-height;
+    out property <length> content-y: log.content-y;
+    in-out property <string> clipboard-text;
+    public function scroll-to-y(y: length) { log.scroll-to({x: 0px, y: y}, ScrollBehavior.instant); }
+    public function reveal-line(index: int) { log.ensure-row-visible(index, ScrollBehavior.instant); }
+    public function seed-clipboard(text: string) { probe.text = text; probe.focus(); probe.select-all(); probe.copy(); }
+    public function select-probe(text: string) { probe.text = text; probe.focus(); probe.select-all(); }
+    public function read-clipboard() { probe.text = ""; probe.focus(); probe.paste(); root.clipboard-text = probe.text; }
+    background: root.theme.canvas;
+    log := ListView {
+        x: 0px; y: 0px; width: root.width; height: root.log-height; theme: root.theme;
+        for line in root.lines: LogLine {
+            line: line; row-theme: root.theme; row-width: log.visible-width; pulse: root.pulse;
+            mounted(token) => { root.mounted(token); }
+            pulsed(token) => { root.pulsed(token); }
+            selection-changed(token, anchor, cursor) => { root.selection-changed(token, anchor, cursor); }
+        }
+    }
+    probe := TextInput { x: 0px; y: 300px; width: 10px; height: 10px; color: transparent; single-line: false; wrap: word-wrap; }
+}
+
+
+export component NestedListsFixture inherits Window {
+    preferred-width: 480px; preferred-height: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <[ContentItem]> rows;
+    out property <length> outer-y: outer.content-y;
+    out property <length> inner-y: inner.content-y;
+    out property <length> inner-travel: inner.content-height - inner.visible-height;
+    out property <length> outer-travel: outer.content-height - outer.visible-height;
+    callback opened(int);
+    background: root.theme.canvas;
+    outer := ScrollFrame {
+        theme: root.theme; x: 0px; y: 0px; width: root.width; height: root.height;
+        content-height: stack.preferred-height; content-width: self.visible-width;
+        stack := KitStack {
+            width: outer.visible-width;
+            KitText { theme: root.theme; text: "Section above the list"; height: 120px; }
+            inner := ListView {
+                theme: root.theme; height: 240px; width: outer.visible-width;
+                for row in root.rows: RichRow {
+                    record: row; row-theme: root.theme; row-width: inner.visible-width;
+                    opened(token) => { root.opened(token); }
+                }
+            }
+            KitText { theme: root.theme; text: "Section below the list"; height: 700px; }
+        }
+    }
+}
+
+export component PlainNestedFixture inherits Window {
+    preferred-width: 480px; preferred-height: 480px;
+    out property <length> outer-y: outer.content-y;
+    out property <length> inner-y: inner.content-y;
+    outer := Flickable {
+        width: root.width; height: root.height; content-height: 1060px;
+        Text { y: 0px; text: "above"; height: 120px; }
+        inner := Flickable {
+            y: 120px; height: 240px; width: root.width; content-height: 1500px;
+            Rectangle { height: 1500px; background: #8884; }
+        }
+        Rectangle { y: 360px; height: 700px; background: #4884; }
+    }
+}
+
+export component FrameNestedFixture inherits Window {
+    preferred-width: 480px; preferred-height: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <length> outer-y: outer.content-y;
+    out property <length> inner-y: inner.content-y;
+    outer := ScrollFrame {
+        theme: root.theme; width: root.width; height: root.height;
+        content-height: 1060px; content-width: self.visible-width;
+        Rectangle { y: 0px; height: 120px; }
+        inner := ScrollFrame {
+            theme: root.theme; y: 120px; height: 240px; width: outer.visible-width;
+            content-height: 1500px; content-width: self.visible-width;
+            Rectangle { height: 1500px; background: #8884; }
+        }
+        Rectangle { y: 360px; height: 700px; }
+    }
+}
+
+// The snippet published in the controllers guide, compiled verbatim.
+export component GuideRows inherits Window {
+    in property <[ContentItem]> rows;
+    callback note-edited(int, string);
+    list := ListView {
+        height: 360px;
+        for row in root.rows: KitStack {
+            width: list.visible-width;
+            gap: compact; inset: regular;
+            KitText { role: subtitle; text: row.title; }
+            KitText { role: caption; text: row.excerpt; }
+            KitInline { KitButton { text: "Open"; } }
+            note := KitTextField {
+                label: "Note for " + row.title;
+                edited(text) => { root.note-edited(row.token, text); }
+                init => { self.text = row.metadata; }
+            }
+        }
+    }
+}

@@ -422,3 +422,38 @@ Montez un seul `KitPopover` en dehors du répéteur. Réglez `trigger-kind: exte
 Implémentez `anchor-available(token, generation)` sur le document d’origine. Les tokens doivent être uniques entre les documents qui partagent l’éditeur, ou leurs générations doivent distinguer les remplacements. Un formulaire devenu périmé conserve ses brouillons jusqu’à fermeture. Activez la validation seulement si la cible d’origine reste admissible. Copiez le ticket et les deux valeurs, appelez `finish(ticket)` et publiez une fois en cas de succès. Dans un gestionnaire Rust, retrouvez la clé avec `KeyedModel::accept` avant l’écriture. L’ouverture d’une autre session, même depuis le callback de fermeture, périme l’ancien ticket.
 
 Liez `disabled` à l’inactivité de la route conservée et `enabled` de son flux à l’activité de la route. Pour un aller-retour dans le même événement, rendez la route inactive puis appelez `dismiss(CloseReason.programmatic)` dès le départ. Utilisez `slint_kit::hide_window` pour invalider les tickets avant le masquage d’une fenêtre conservée. Dans un chemin de fermeture accepté personnalisé, appelez `KitFieldService.invalidate-popover-session()` et `invalidate-shortcut-session()` avant de retourner `HideWindow`. Un masquage brut de fenêtre ne notifie pas le kit. Attribuez à chaque contrôle la couche de la modale qui le contient. Une modale qui interrompt un popover de fond reçoit le premier clic. [Exemple composé](/fr/components/popover/)
+
+## Listes longues et journaux en lecture seule
+
+Composez une longue liste avec les briques publiques ; il n'existe pas de composant de liste séparé. Placez la boucle `for` directement sous `ListView` (pas sous un layout), donnez au `ListView` une hauteur bornée et liez la largeur de chaque rangée à `list.visible-width`. Une rangée est un `KitStack` de `KitText`, de boutons dans un `KitInline` et de champs ; sa hauteur suit son contenu à cette largeur, donc une aide longue ou un texte agrandi n'exigent aucune constante de hauteur.
+
+```slint
+import { KitStack, KitInline, KitText, KitButton, KitTextField, ListView, ContentItem } from "@kit";
+export component Rows inherits Window {
+    in property <[ContentItem]> rows;
+    callback note-edited(int, string);
+    list := ListView {
+        height: 360px;
+        for row in root.rows: KitStack {
+            width: list.visible-width;
+            gap: compact; inset: regular;
+            KitText { role: subtitle; text: row.title; }
+            KitText { role: caption; text: row.excerpt; }
+            KitInline { KitButton { text: "Ouvrir"; } }
+            note := KitTextField {
+                label: "Note pour " + row.title;
+                edited(text) => { root.note-edited(row.token, text); }
+                init => { self.text = row.metadata; }
+            }
+        }
+    }
+}
+```
+
+Seules les rangées proches de la zone visible sont instanciées, quelle que soit la taille du modèle. Trois règles :
+
+- Une rangée qui quitte la zone visible est détruite avec son éditeur natif, sa sélection, son historique d'annulation et son focus. Conservez les brouillons côté hôte sous la clé de la rangée, comme `note-edited` ci-dessus, et restituez-les à la création du délégué. Retirer une clé supprime son brouillon ; une nouvelle vie de la même clé démarre vide, car `KeyedModel` ne réutilise jamais un jeton.
+- Avec des rangées de hauteurs différentes, la hauteur du contenu est une estimation qui évolue pendant le défilement. Positionnez-vous avec `list.ensure-row-visible(index, behavior)` en résolvant l'index depuis la clé à cet instant ; un content-y calculé avec une ancienne hauteur peut tomber sur une autre rangée.
+- Un `ListView` garde la molette jusqu'à son propre bord et ne transmet pas le reste au défilement qui l'entoure, comme le `Flickable` de Slint. Évitez d'imbriquer des défilements verticaux, ou laissez une zone hors de l'enfant où la molette atteint le parent.
+
+Pour un journal, utilisez un `KitTextArea` en lecture seule par ligne dans le même `ListView` : `access: FieldAccess.read-only`, `min-lines: 1` et un `max-lines` assez grand pour ne jamais plafonner la ligne. La ligne se replie à sa hauteur réelle, l'éditeur natif sélectionne et copie toute sous-chaîne (Ctrl+C), y compris à cheval sur un retour à la ligne visuel, et `text-font-family` choisit la police à chasse fixe. La copie de tout le journal reste une commande de l'hôte sur son propre texte, indépendante des lignes montées. À chaque rafraîchissement, conservez la position de lecture par identité : ajoutez sans déplacer, et appelez `ensure-row-visible` pour la ligne ancrée après un retrait au-dessus d'elle. Ne suivez la fin que si le lecteur y était déjà. Une sélection vit dans l'éditeur de sa ligne : elle survit aux ajouts mais pas à la sortie de cette ligne de la zone visible. Les tests sans fenêtre exercent Ctrl+C ; qualifiez Cmd+C, VoiceOver et l'IME sur la plateforme cible.
