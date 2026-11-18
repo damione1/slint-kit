@@ -930,6 +930,7 @@ mod slider_marks;
 
 mod choice_description;
 mod choice_validity;
+mod wrap_switch;
 
 mod menu_active_focus;
 

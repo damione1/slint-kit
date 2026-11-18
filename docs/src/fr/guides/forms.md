@@ -97,6 +97,8 @@ Les champs incluent déjà `label`, `description`, `error`, validation et nom ac
 
 [KitFieldLabel](/fr/components/field-label/), [KitFieldDescription](/fr/components/field-description/) et [KitFieldError](/fr/components/field-error/) sont des primitives de composition. Leurs liens de compatibilité proviennent des API effectivement héritées. Elles ne fournissent ni éditeur, ni analyse métier, ni contrôleur de validation indépendant. `KitInputGroup` et ses parties start/end/text organisent un champ existant.
 
+Placez `KitSwitch` et `KitCheckbox` directement dans `KitWrap` pour que les actions passent à la ligne. Utilisez `control-width: ControlWidth.intrinsic` pour un contrôle compact. Le libellé et sa description éventuelle déterminent la hauteur à partir de la largeur laissée par l’indicateur. Cette composition fonctionne aussi dans une rangée virtualisée de `ListView`.
+
 ## Soumission et réinitialisation
 
 `KitSubmitButton` et `KitFormButton` expriment les actions du formulaire. Avant de soumettre, appelez `report-validity()` sur les champs et focalisez le premier champ invalide. La commande Rust doit aussi recevoir des valeurs métier vérifiées ou valider sa charge utile ; désactiver un bouton ne protège pas la soumission. Les exemples conservent commande et validation métier dans Rust. `KitResetButton` déclenche une action applicative qui réinitialise explicitement les champs et l’état métier.

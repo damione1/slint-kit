@@ -50,10 +50,14 @@ component ChoiceOption inherits KitPressable {
     activated => { if (root.access == FieldAccess.editable) { root.activate(root.press-token,root.press-generation); } }
     // Read-only keeps the value legible and focusable without press affordance.
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+    // As in KitButton, measure wrapped text at the width assigned by layout.
+    private property <length> measured-width;
+    init => { root.measured-width = root.width; }
+    changed width => { root.measured-width = root.width; }
     min-width: 0px;
     min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
     measure := Text {
-        visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.content-reserve);
+        visible: false; width: max(1px,root.measured-width - 2 * root.padding-inline - root.content-reserve);
         text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap;
     }
     @children
@@ -167,17 +171,30 @@ component SwitchTrackSlot inherits Rectangle {
 export enum ChoiceLabelPosition { end, start }
 
 // The label and optional helper text of a checkbox or switch.
-component ChoiceCaption inherits VerticalLayout {
+component ChoiceCaption inherits Rectangle {
     in property <KitTheme> theme;
     in property <string> label;
     in property <string> description;
     in property <length> text-size;
     in property <int> text-weight;
     in property <bool> disabled;
-    spacing: KitMetrics.label-gap(root.theme) / 2;
-    alignment: center;
-    Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
-    if root.description != "": Text { text: root.description; color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    // As with a wrapped KitButton, the assigned width is an input to native
+    // text measurement. Keep it out of the binding that supplies flex height.
+    private property <length> measured-width;
+    init => { root.measured-width = root.width; }
+    changed width => { root.measured-width = root.width; }
+    out property <length> measured-height: body.preferred-height;
+    min-width: 0px;
+    preferred-width: body.preferred-width;
+    preferred-height: root.measured-height;
+    horizontal-stretch: 1;
+    body := VerticalLayout {
+        width: root.measured-width;
+        spacing: KitMetrics.label-gap(root.theme) / 2;
+        alignment: center;
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        if root.description != "": Text { text: root.description; color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    }
 }
 
 // All boolean skins use the same Pressable activation and cancellation machine.
@@ -224,8 +241,7 @@ export component KitCheckbox inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    // Edition 1.19 includes the caption’s conditional description in its layout.
-    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.preferred-height + 2 * root.padding-block);
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.measured-height + 2 * root.padding-block);
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checkable: true;
@@ -281,8 +297,7 @@ export component KitSwitch inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    // Edition 1.19 includes the caption’s conditional description in its layout.
-    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.preferred-height + 2 * root.padding-block);
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.measured-height + 2 * root.padding-block);
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checkable: true;

@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ChoiceDirection, ChoiceRow, KitCheckbox, KitRadioGroup, KitDialogSurface, DialogState, KitButton, KitFieldRow, ListView, ChoiceLabelPosition, ControlWidth, FieldAccess, KitInline, KitMetrics, KitSwitch, KitTheme, KitThemes, KitWrap, Ownership, TypographyRole } from "@kit";
+
+export component WrapSwitchFirstFrame inherits Window {
+    in property <bool> wrap;
+    in property <string> caption;
+    width: 400px;
+    height: 220px;
+    if root.wrap: KitWrap {
+        KitSwitch { label: root.caption; control-width: ControlWidth.intrinsic; }
+    }
+    if !root.wrap: KitInline {
+        KitSwitch { label: root.caption; control-width: ControlWidth.intrinsic; }
+    }
+}
+
+export component SwitchPreferredHeight inherits Window {
+    width: 360px; height: 200px;
+    out property <length> actual: toggle.height;
+    out property <length> requested: toggle.preferred-height;
+    KitInline {
+        toggle := KitSwitch {
+            label: "Tap";
+            preferred-height: self.recipe.height * 2;
+        }
+    }
+}
+
+export component WrapSwitchGeometry inherits Window {
+    width: 540px;
+    height: 640px;
+    in property <length> available: 360px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <ControlWidth> policy: ControlWidth.intrinsic;
+    in property <ChoiceLabelPosition> side: ChoiceLabelPosition.end;
+    in property <string> caption: "Tap to see all";
+    in property <string> help;
+    out property <length> ring-outset: KitThemes.focus-outset(toggle.focus-ring);
+    in property <DialogState> dialog;
+    in property <bool> accepted;
+    in property <FieldAccess> access: FieldAccess.editable;
+    callback proposed(bool);
+    out property <bool> focused: toggle.has-focus;
+    out property <length> control-width: toggle.width;
+    out property <length> control-height: toggle.height;
+    out property <bool> new-line: marker.y >= toggle.y + toggle.height - 1px;
+    public function focus-switch() { toggle.take-focus(); }
+
+    KitWrap {
+        x: 12px; y: 12px; width: root.available; alignment: stretch;
+        height: self.preferred-height;
+        theme: root.theme;
+        toggle := KitSwitch {
+            theme: root.theme; label: root.caption; description: root.help;
+            control-width: root.policy; label-position: root.side;
+            ownership: Ownership.controlled; checked: root.accepted; access: root.access;
+            toggled(next) => { root.proposed(next); }
+        }
+        marker := KitButton { theme: root.theme; text: "Next"; width: 72px; }
+    }
+
+    KitDialogSurface { state: root.dialog; modal-layer: 1; }
+
+    // Measure native text at the space actually left after the track and gap.
+    // Only the assertions read these items, after the frame has been rendered.
+    private property <length> caption-width: max(1px, toggle.width - 2 * toggle.padding-inline
+        - KitThemes.choice-recipe(root.theme, toggle.control-size).track-width
+        - KitThemes.choice-recipe(root.theme, toggle.control-size).label-gap);
+    plain := Text {
+        visible: false; width: root.caption-width; text: root.caption;
+        font-family: root.theme.typography.family; font-size: toggle.text-size;
+        font-weight: toggle.text-weight; wrap: word-wrap;
+    }
+    helper := Text {
+        visible: false; width: root.caption-width; text: root.help;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+        wrap: word-wrap;
+    }
+    out property <length> expected-height: max(toggle.recipe.height, toggle.text-size * 1.4 + 2 * toggle.padding-block,
+        plain.preferred-height + (root.help == "" ? 0px : helper.preferred-height + KitMetrics.label-gap(root.theme) / 2)
+        + 2 * toggle.padding-block);
+}
+
+export component WrapSwitchList inherits Window {
+    in property <[ChoiceRow]> rows;
+    in property <length> viewport-width: 360px;
+    width: root.viewport-width; height: 320px;
+    callback proposed(int, bool);
+    public function reveal(row: int) { list.ensure-row-visible(row, ScrollBehavior.instant); }
+    list := ListView {
+        content-width: self.visible-width;
+        for entry in root.rows: KitFieldRow {
+            width: list.visible-width; height: self.preferred-height;
+            label: entry.label; description: "Preferences";
+            KitWrap {
+                KitButton { text: "Details"; }
+                KitSwitch {
+                    label: entry.label; control-width: ControlWidth.intrinsic;
+                    ownership: Ownership.controlled; checked: entry.selected;
+                    toggled(next) => { root.proposed(entry.token, next); }
+                }
+            }
+        }
+    }
+}
+
+export component WrappedChoices inherits Window {
+    width: 360px; height: 250px;
+    KitWrap {
+        KitCheckbox { label: "Include archived items"; control-width: ControlWidth.intrinsic; }
+        KitRadioGroup {
+            direction: ChoiceDirection.horizontal;
+            options: [{token: 1, generation: 1, label: "Show archived items", disabled: false, description: ""}];
+        }
+    }
+}
+
+export component WrapOverrides inherits Window {
+    width: 320px; height: 160px;
+    out property <length> control-width: toggle.width;
+    out property <length> control-height: toggle.height;
+    out property <length> reduced-height: small.height;
+    KitWrap {
+        toggle := KitSwitch {
+            label: "Settings"; control-width: ControlWidth.fill;
+            min-width: 90px; preferred-width: 180px; max-width: 140px;
+            min-height: 12px; preferred-height: 66px; max-height: 48px;
+            padding-inline: 5px; padding-block: 3px;
+        }
+        small := KitSwitch { min-height: 16px; }
+    }
+}

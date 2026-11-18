@@ -97,6 +97,8 @@ Fields already include `label`, `description`, `error`, validation and accessibl
 
 [KitFieldLabel](/components/field-label/), [KitFieldDescription](/components/field-description/) and [KitFieldError](/components/field-error/) are composition primitives for custom layouts. Their compatibility links come from actual inherited APIs. They do not supply an editor, domain parsing or an independent validation controller. `KitInputGroup` and its start/end/text parts arrange an existing field.
 
+Place `KitSwitch` and `KitCheckbox` directly in `KitWrap` when a row of actions should wrap. Set `control-width: ControlWidth.intrinsic` for a compact control. The label and optional description determine the height at the width left by the indicator. The same composition works inside a virtualized `ListView` row.
+
 ## Submit and reset
 
 `KitSubmitButton` and `KitFormButton` express form actions. Before dispatching a submission, call each field's `report-validity()` and focus the first invalid field. The Rust command must also accept checked domain values or validate its incoming payload; a disabled button is not a submission guard. Form examples keep the command and domain validation in Rust. `KitResetButton` invokes the application's reset action, which calls field resets and clears business state deliberately.

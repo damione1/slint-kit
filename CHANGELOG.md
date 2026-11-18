@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed #441. An intrinsic switch or checkbox and a horizontal radio group can render directly in `KitWrap`. Wrapped labels and descriptions determine the row height, including in virtualized lists.
+- Correction de #441. Un interrupteur ou une case à cocher de largeur intrinsèque et un groupe radio horizontal peuvent être placés directement dans `KitWrap`. Les libellés et descriptions sur plusieurs lignes déterminent la hauteur de la rangée, y compris dans une liste virtualisée.
+
 - Fixed #440. A topmost modal receives its first click when it interrupts an open KitPopover, KitDropdownMenu or KitContextMenu.
 - Correction de #440. Une modale au premier plan reçoit son premier clic lorsqu’elle interrompt un KitPopover, KitDropdownMenu ou KitContextMenu ouvert.
 - Added external window-local anchors and one-shot edit tickets to `KitPopover`. Added `KitTextFlow` for wrapping keyed fragments with attached suffixes, directional navigation and one Tab stop per paragraph.
