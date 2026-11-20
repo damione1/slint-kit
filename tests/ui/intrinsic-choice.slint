@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ChoiceLabelPosition, ControlWidth, KitCheckbox, KitInline, KitSwitch, KitTheme, KitThemes, KitThemeContext } from "@kit";
+
+// Intrinsic-width choice controls in an unconstrained row.
+export component IntrinsicChoiceFixture inherits Window {
+    width: 1800px; height: 160px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> caption: "Hide";
+    in property <ChoiceLabelPosition> side: ChoiceLabelPosition.end;
+    out property <length> switch-width: toggle.width;
+    out property <length> switch-natural: toggle.preferred-width;
+    out property <length> checkbox-width: box.width;
+    out property <length> empty-switch-width: bare.width;
+    out property <length> switch-padding: toggle.padding-inline;
+    out property <length> track-width: KitThemes.choice-recipe(root.theme, toggle.control-size).track-width;
+    out property <length> box-size: KitThemes.choice-recipe(root.theme, box.control-size).box-size;
+    out property <length> label-natural: measure.preferred-width;
+    out property <length> label-gap: KitThemes.choice-recipe(root.theme, toggle.control-size).label-gap;
+    measure := Text {
+        visible: false; text: root.caption;
+        font-family: root.theme.typography.family; font-size: toggle.text-size; font-weight: toggle.text-weight;
+    }
+    KitInline {
+        theme: root.theme;
+        toggle := KitSwitch { theme: root.theme; label: root.caption; label-position: root.side; control-width: ControlWidth.intrinsic; }
+        box := KitCheckbox { theme: root.theme; label: root.caption; label-position: root.side; control-width: ControlWidth.intrinsic; }
+        bare := KitSwitch { theme: root.theme; label-position: root.side; control-width: ControlWidth.intrinsic; }
+    }
+}

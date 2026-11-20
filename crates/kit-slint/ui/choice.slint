@@ -185,14 +185,15 @@ component ChoiceCaption inherits Rectangle {
     changed width => { root.measured-width = root.width; }
     out property <length> measured-height: body.preferred-height;
     min-width: 0px;
-    preferred-width: body.preferred-width;
+    // The label alone sets the natural width; a description wraps beneath it.
+    preferred-width: root.label == "" ? 0px : title.preferred-width;
     preferred-height: root.measured-height;
     horizontal-stretch: 1;
     body := VerticalLayout {
         width: root.measured-width;
         spacing: KitMetrics.label-gap(root.theme) / 2;
         alignment: center;
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        title := Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
         if root.description != "": Text { text: root.description; color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     }
 }
@@ -242,6 +243,12 @@ export component KitCheckbox inherits KitPressable {
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
     min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.measured-height + 2 * root.padding-block);
+    // An intrinsic control is as wide as its indicator and its label on one
+    // line, and never narrower than the pressable default unless it has no
+    // caption at all. A control that fills keeps the pressable default.
+    preferred-width: root.control-width == ControlWidth.intrinsic
+        ? (root.label == "" && root.description == "" ? row.preferred-width + 2 * root.padding-inline : max(120px, row.preferred-width + 2 * root.padding-inline))
+        : 120px;
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checkable: true;
@@ -249,8 +256,8 @@ export component KitCheckbox inherits KitPressable {
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? (root.description != "" ? root.mixed-label + ". " + root.description : root.mixed-label) : root.description;
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = root.state == CheckState.checked ? CheckState.unchecked : CheckState.checked; if (root.ownership == Ownership.local) { root.state = next; } root.toggled(next); } }
-    HorizontalLayout {
-        spacing: root.choice.label-gap;
+    row := HorizontalLayout {
+        spacing: root.label == "" && root.description == "" ? 0px : root.choice.label-gap;
         if root.label-position == ChoiceLabelPosition.end: CheckBoxSlot { theme: root.theme; control-size: root.control-size; state: root.state; invalid: checks.show-error; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
         label := ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
         if root.label-position == ChoiceLabelPosition.start: CheckBoxSlot { theme: root.theme; control-size: root.control-size; state: root.state; invalid: checks.show-error; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
@@ -298,6 +305,12 @@ export component KitSwitch inherits KitPressable {
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
     min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block, label.measured-height + 2 * root.padding-block);
+    // An intrinsic control is as wide as its indicator and its label on one
+    // line, and never narrower than the pressable default unless it has no
+    // caption at all. A control that fills keeps the pressable default.
+    preferred-width: root.control-width == ControlWidth.intrinsic
+        ? (root.label == "" && root.description == "" ? row.preferred-width + 2 * root.padding-inline : max(120px, row.preferred-width + 2 * root.padding-inline))
+        : 120px;
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checkable: true;
@@ -305,8 +318,8 @@ export component KitSwitch inherits KitPressable {
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-description: checks.show-error ? checks.validation-message : root.description;
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = !root.checked; if (root.ownership == Ownership.local) { root.checked = next; } root.toggled(next); } }
-    HorizontalLayout {
-        spacing: root.choice.label-gap;
+    row := HorizontalLayout {
+        spacing: root.label == "" && root.description == "" ? 0px : root.choice.label-gap;
         if root.label-position == ChoiceLabelPosition.end: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
         label := ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
         if root.label-position == ChoiceLabelPosition.start: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }

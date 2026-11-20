@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed #444. An intrinsic `KitSwitch` or `KitCheckbox` is as wide as its indicator and label on one line, so a label no longer breaks inside a word at large text sizes, and a switch without a caption reserves only its track. A control that fills keeps its width.
+- Correction de #444. Un `KitSwitch` ou `KitCheckbox` de largeur intrinsèque est aussi large que son indicateur et son libellé sur une ligne : un libellé ne se coupe plus au milieu d’un mot à grande taille de texte, et un interrupteur sans légende ne réserve que sa piste. Un contrôle qui remplit garde sa largeur.
+
 - Fixed #443. Added `tab-stop` to `KitTextField` and its variants. A field with `tab-stop: false`, such as one read-only `KitTextArea` per log line, leaves the Tab order in both directions while keeping pointer focus, selection, copy and `take-focus()`.
 - Correction de #443. Ajout de `tab-stop` à `KitTextField` et à ses variantes. Un champ avec `tab-stop: false`, par exemple un `KitTextArea` en lecture seule par ligne de journal, quitte l’ordre de tabulation dans les deux sens et garde le focus au pointeur, la sélection, la copie et `take-focus()`.
 

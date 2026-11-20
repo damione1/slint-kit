@@ -97,7 +97,7 @@ Fields already include `label`, `description`, `error`, validation and accessibl
 
 [KitFieldLabel](/components/field-label/), [KitFieldDescription](/components/field-description/) and [KitFieldError](/components/field-error/) are composition primitives for custom layouts. Their compatibility links come from actual inherited APIs. They do not supply an editor, domain parsing or an independent validation controller. `KitInputGroup` and its start/end/text parts arrange an existing field.
 
-Place `KitSwitch` and `KitCheckbox` directly in `KitWrap` when a row of actions should wrap. Set `control-width: ControlWidth.intrinsic` for a compact control. The label and optional description determine the height at the width left by the indicator. The same composition works inside a virtualized `ListView` row.
+Place `KitSwitch` and `KitCheckbox` directly in `KitWrap` when a row of actions should wrap. Set `control-width: ControlWidth.intrinsic` for a compact control: it is as wide as its indicator and label on one line (never narrower than the default control width when it has a caption) and a switch without a caption is only as wide as its track. The label and optional description determine the height at the width left by the indicator. The same composition works inside a virtualized `ListView` row.
 
 ## Submit and reset
 

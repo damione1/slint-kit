@@ -97,7 +97,7 @@ Les champs incluent déjà `label`, `description`, `error`, validation et nom ac
 
 [KitFieldLabel](/fr/components/field-label/), [KitFieldDescription](/fr/components/field-description/) et [KitFieldError](/fr/components/field-error/) sont des primitives de composition. Leurs liens de compatibilité proviennent des API effectivement héritées. Elles ne fournissent ni éditeur, ni analyse métier, ni contrôleur de validation indépendant. `KitInputGroup` et ses parties start/end/text organisent un champ existant.
 
-Placez `KitSwitch` et `KitCheckbox` directement dans `KitWrap` pour que les actions passent à la ligne. Utilisez `control-width: ControlWidth.intrinsic` pour un contrôle compact. Le libellé et sa description éventuelle déterminent la hauteur à partir de la largeur laissée par l’indicateur. Cette composition fonctionne aussi dans une rangée virtualisée de `ListView`.
+Placez `KitSwitch` et `KitCheckbox` directement dans `KitWrap` pour que les actions passent à la ligne. Utilisez `control-width: ControlWidth.intrinsic` pour un contrôle compact : il est aussi large que son indicateur et son libellé sur une ligne (jamais plus étroit que la largeur par défaut d’un contrôle lorsqu’il a une légende), et un interrupteur sans légende n’est que la largeur de sa piste. Le libellé et sa description éventuelle déterminent la hauteur à partir de la largeur laissée par l’indicateur. Cette composition fonctionne aussi dans une rangée virtualisée de `ListView`.
 
 ## Soumission et réinitialisation
 

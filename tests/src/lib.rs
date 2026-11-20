@@ -38,6 +38,7 @@ mod focus_target;
 mod foundation_render;
 mod foundations;
 mod journeys;
+mod intrinsic_choice;
 mod keyboard_scope;
 mod log_tab_order;
 mod localized_labels;
