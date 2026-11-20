@@ -27,6 +27,7 @@ mod collapse_group;
 mod column_widths;
 mod context_menu;
 mod day_periods;
+mod dialog_adaptive_row;
 mod dialog_composition;
 mod dialog_high_level;
 mod direction;

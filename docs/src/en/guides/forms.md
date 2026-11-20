@@ -226,7 +226,7 @@ Text editors use Slint 1.19 caret following through scrollable ancestors, includ
 
 ### Place a control alongside its caption
 
-Use `KitFieldRow` for a preference with help on one side and a switch, selector or group of actions on the other. The control keeps its preferred width. Bind `orientation: vertical` when the caption and control need separate lines, for example at a narrow window width or a large text scale. The slot keeps the existing editor as the layout changes. For several actions put one `KitInline` or `KitWrap` in the slot.
+Use `KitFieldRow` for a preference with help on one side and a switch, selector or group of actions on the other. The control keeps its preferred width. Bind `orientation: vertical` when the caption and control need separate lines, for example at a narrow window width or a large text scale. The orientation may depend on the row’s own width, including as content of a `KitDialog` body. The slot keeps the existing editor as the layout changes. For several actions put one `KitInline` or `KitWrap` in the slot.
 
 Give a switch or selector the row's accessible name, bind the same access state on both elements, and connect `focus-requested` to the control's `take-focus()`. Set the switch's `accessible-description` when the row supplies its help. A choice can bind the row's `error-message` to its presented validation message. A text area already renders its own label, help and validation. Place it directly in a vertical row and leave the row caption and error empty. See the [form row example](/components/field-row/).
 

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed #442. A `KitFieldRow` whose `orientation` depends on its own width compiles in a `KitDialog` body, as it does in a scrolled page, and follows the dialog body width.
+- Correction de #442. Une `KitFieldRow` dont l’`orientation` dépend de sa propre largeur se compile dans le corps d’un `KitDialog`, comme dans une page défilante, et suit la largeur du corps de la boîte de dialogue.
+
 - Documented long virtualized lists and read-only selectable logs as public composition: a direct `ListView` repeater of `KitStack` rows, host-owned drafts, identity-based seeking and one read-only `KitTextArea` per log line. No API change.
 - Documentation des longues listes virtualisées et des journaux sélectionnables en lecture seule par composition publique : répéteur direct dans `ListView` de rangées `KitStack`, brouillons gérés par l'hôte, positionnement par identité et un `KitTextArea` en lecture seule par ligne de journal. Aucun changement d'API.
 

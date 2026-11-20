@@ -226,7 +226,7 @@ Les éditeurs utilisent le suivi natif du curseur de Slint 1.19 dans les ancêtr
 
 ### Placer un contrôle à côté de sa légende
 
-Utilisez `KitFieldRow` pour placer une aide à gauche et un interrupteur, une sélection ou plusieurs actions à droite. Le contrôle garde sa largeur préférée. Choisissez `orientation: vertical` lorsque la largeur de fenêtre ou le grossissement du texte impose de placer le contrôle sous la légende. Le changement de disposition conserve l’éditeur. Pour plusieurs actions, insérez un seul `KitInline` ou `KitWrap` dans la rangée.
+Utilisez `KitFieldRow` pour placer une aide à gauche et un interrupteur, une sélection ou plusieurs actions à droite. Le contrôle garde sa largeur préférée. Choisissez `orientation: vertical` lorsque la largeur de fenêtre ou le grossissement du texte impose de placer le contrôle sous la légende. L’orientation peut dépendre de la largeur de la rangée elle-même, y compris dans le corps d’un `KitDialog`. Le changement de disposition conserve l’éditeur. Pour plusieurs actions, insérez un seul `KitInline` ou `KitWrap` dans la rangée.
 
 Donnez à l’interrupteur ou au sélecteur le nom accessible de la rangée, liez le même état d’accès sur les deux éléments et relayez `focus-requested` vers `take-focus()`. Renseignez `accessible-description` sur l’interrupteur si la rangée fournit son aide. Pour un choix, liez `error-message` au message de validation visible. Un éditeur multilignes affiche déjà son libellé, son aide et ses erreurs. Placez-le directement dans une rangée verticale en laissant vides la légende et l’erreur de cette rangée. Voir [l’exemple de rangée de formulaire](/fr/components/field-row/).
 

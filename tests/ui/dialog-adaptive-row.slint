@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ButtonIntent, DialogSize, KitButton, KitDialog, KitFieldRow } from "@kit";
+
+// A settings row that stacks its control when its own width is narrow, as the
+// only content of a dialog body.
+export component DialogAdaptiveRowFixture inherits Window {
+    width: 640px; height: 480px;
+    in property <length> threshold: 440px;
+    out property <bool> stacked: row.orientation == Orientation.vertical;
+    out property <length> row-width: row.width;
+    out property <length> control-x: control.absolute-position.x - row.absolute-position.x;
+    KitDialog {
+        width: 100%; height: 100%;
+        state: { open: true, topmost: true, busy: false };
+        title: "Permissions";
+        size: DialogSize.medium;
+        row := KitFieldRow {
+            orientation: self.width < root.threshold ? Orientation.vertical : Orientation.horizontal;
+            label: "Notifications";
+            description: "Show a banner when a reminder is due.";
+            control := KitButton { text: "Allow"; intent: ButtonIntent.secondary; }
+        }
+    }
+}
