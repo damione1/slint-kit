@@ -1783,6 +1783,9 @@ export component KitSlider inherits Rectangle {
     callback gesture-started();
     callback committed();
     callback cancelled();
+    out property <bool> has-focus: keyboard.has-focus;
+    callback focus-observed(bool);
+    changed has-focus => { root.focus-observed(root.has-focus); }
     private property <bool> gesture-active;
     private property <bool> vertical: root.direction == ChoiceDirection.vertical;
     private property <bool> rtl: !root.vertical && root.flow == ChoiceFlow.right-to-left;

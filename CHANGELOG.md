@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed #445. `KitSlider` exposes `has-focus` and `focus-observed(bool)` for its keyboard focus. `chosen` is documented as reported for every committed gesture and step, including one that leaves the value unchanged.
+- Correction de #445. `KitSlider` expose `has-focus` et `focus-observed(bool)` pour son focus clavier. `chosen` est documenté comme émis pour chaque geste validé et chaque pas, y compris lorsque la valeur reste inchangée.
+
 - Fixed #444. An intrinsic `KitSwitch` or `KitCheckbox` is as wide as its indicator and label on one line, so a label no longer breaks inside a word at large text sizes, and a switch without a caption reserves only its track. A control that fills keeps its width.
 - Correction de #444. Un `KitSwitch` ou `KitCheckbox` de largeur intrinsèque est aussi large que son indicateur et son libellé sur une ligne : un libellé ne se coupe plus au milieu d’un mot à grande taille de texte, et un interrupteur sans légende ne réserve que sa piste. Un contrôle qui remplit garde sa largeur.
 

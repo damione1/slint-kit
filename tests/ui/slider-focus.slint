@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitSlider } from "@kit";
+
+export component SliderFocusFixture inherits Window {
+    width: 320px; height: 140px;
+    out property <int> focus-events;
+    out property <bool> observed-focus;
+    out property <bool> slider-focused: level.has-focus;
+    out property <int> chosen-count;
+    in-out property <string> level-value: "50";
+    public function focus-outside() { outside.take-focus(); }
+    outside := KitButton { x: 20px; y: 8px; text: "Outside"; }
+    level := KitSlider {
+        x: 20px; y: 60px; width: 240px; label: "Level";
+        value <=> root.level-value;
+        focus-observed(focused) => { root.focus-events += 1; root.observed-focus = focused; }
+        chosen(value) => { root.chosen-count += 1; }
+    }
+}
