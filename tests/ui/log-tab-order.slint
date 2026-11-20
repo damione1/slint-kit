@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { FieldAccess, KitButton, KitTextArea, ListView } from "@kit";
+
+// A read-only log made of one text area per line, followed by an action.
+export component LogTabOrderFixture inherits Window {
+    preferred-width: 480px; preferred-height: 360px;
+    in property <bool> tab-stop: true;
+    in property <[string]> lines: ["first entry", "second entry", "third entry", "fourth entry"];
+    out property <bool> after-focused: after.has-focus;
+    out property <bool> before-focused: before.has-focus;
+    out property <int> cursor-first: first-line.cursor-position;
+    out property <int> anchor-first: first-line.selection-anchor;
+    out property <bool> first-focused: first-line.has-focus;
+    public function focus-before() { before.take-focus(); }
+    public function focus-line() { first-line.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 12px;
+        before := KitButton { text: "Before the log"; }
+        first-line := KitTextArea {
+            access: FieldAccess.read-only; tab-stop: root.tab-stop;
+            min-lines: 1; max-lines: 100000;
+            text: "selectable entry";
+            accessible-name: "Pinned entry";
+        }
+        log := ListView {
+            height: 180px;
+            for line[index] in root.lines: KitTextArea {
+                width: log.visible-width;
+                access: FieldAccess.read-only;
+                tab-stop: root.tab-stop;
+                min-lines: 1; max-lines: 100000;
+                text: line;
+                accessible-name: "Journal";
+            }
+        }
+        after := KitButton { text: "After the log"; }
+    }
+}

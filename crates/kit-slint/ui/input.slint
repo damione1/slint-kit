@@ -339,7 +339,20 @@ export component KitTextField inherits KitField {
     callback commit-requested(string);
     callback cancelled();
     callback focus-observed(bool);
-    public function take-focus() { if (root.access != FieldAccess.disabled) { if (root.menu-opened) { text-menu.close(); } editor.focus(); } }
+    // Whether Tab reaches the field. A field outside the Tab order, such as one of
+    // many read-only log lines, still takes focus from the pointer and from
+    // take-focus(): its editor only accepts focus while pointed at or already focused.
+    in property <bool> tab-stop: true;
+    private property <bool> focus-requested;
+    private property <bool> reachable: root.tab-stop || context-area.has-hover || root.has-focus || root.focus-requested;
+    public function take-focus() {
+        if (root.access != FieldAccess.disabled) {
+            if (root.menu-opened) { text-menu.close(); }
+            root.focus-requested = true;
+            editor.focus();
+            root.focus-requested = false;
+        }
+    }
     public function select-all() { editor.select-all(); }
     public function copy-selection() { if (!root.hidden-password) { editor.copy(); } }
     public function cut-selection() { if (root.access == FieldAccess.editable && root.mask-ready && !root.hidden-password) { editor.cut(); } }
@@ -495,7 +508,7 @@ export component KitTextField inherits KitField {
                 }
                 context-area := TouchArea {
                     layout-order: 2 * root.flow-sign;
-                    enabled: root.context-menu == TextContextMenu.standard && root.access != FieldAccess.disabled;
+                    enabled: (root.context-menu == TextContextMenu.standard || !root.tab-stop) && root.access != FieldAccess.disabled;
                     horizontal-stretch: 1;
                     // Bound intrinsic measurement independently of child viewport
                     // geometry, then let the native hit area fill the complete row.
@@ -503,7 +516,7 @@ export component KitTextField inherits KitField {
                     preferred-height: root.editor-height;
                     mouse-cursor: MouseCursor.text;
                     pointer-event(event) => {
-                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.open-text-menu({x: self.mouse-x, y: self.mouse-y}); }
+                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right && root.context-menu == TextContextMenu.standard) { root.open-text-menu({x: self.mouse-x, y: self.mouse-y}); }
                     }
                     // Opt-in wheel stepping on the focused editor only; an unfocused
                     // field leaves the wheel to the surrounding scroll view.
@@ -564,7 +577,7 @@ export component KitTextField inherits KitField {
                             width: root.multiline ? viewport.width : root.decoration == FieldDecoration.cells ? Math.max(0px, viewport.width - root.text-inset - 2px) : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
                             height: viewport.content-height;
                             text <=> root.text;
-                            enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
+                            enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer) && root.reachable;
                             read-only: root.access == FieldAccess.read-only || !root.mask-ready || ((root.length-policy == TextLengthPolicy.limit || root.edit-filter.kind != TextFilterKind.unfiltered) && !root.length-limit-ready);
                             single-line: !root.multiline;
                             wrap: root.multiline ? word-wrap : no-wrap;

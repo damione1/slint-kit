@@ -39,6 +39,7 @@ mod foundation_render;
 mod foundations;
 mod journeys;
 mod keyboard_scope;
+mod log_tab_order;
 mod localized_labels;
 mod modal_context;
 mod modal_select;

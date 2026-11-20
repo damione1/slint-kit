@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed #443. Added `tab-stop` to `KitTextField` and its variants. A field with `tab-stop: false`, such as one read-only `KitTextArea` per log line, leaves the Tab order in both directions while keeping pointer focus, selection, copy and `take-focus()`.
+- Correction de #443. Ajout de `tab-stop` à `KitTextField` et à ses variantes. Un champ avec `tab-stop: false`, par exemple un `KitTextArea` en lecture seule par ligne de journal, quitte l’ordre de tabulation dans les deux sens et garde le focus au pointeur, la sélection, la copie et `take-focus()`.
+
 - Fixed #442. A `KitFieldRow` whose `orientation` depends on its own width compiles in a `KitDialog` body, as it does in a scrolled page, and follows the dialog body width.
 - Correction de #442. Une `KitFieldRow` dont l’`orientation` dépend de sa propre largeur se compile dans le corps d’un `KitDialog`, comme dans une page défilante, et suit la largeur du corps de la boîte de dialogue.
 

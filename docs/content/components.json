@@ -10214,6 +10214,12 @@
         "has-focus": {
           "effect": "Lecture seule : vrai tant que l’éditeur natif ou son menu contextuel possède le focus. L’ouverture du menu contextuel le maintient vrai, sans scintillement du style. Les autres boutons du champ sont des cibles de focus distinctes."
         },
+        "tab-stop": {
+          "effect": "Indique si Tab et Maj+Tab atteignent le champ. À `false`, le champ sort de l’ordre de tabulation, par exemple un `KitTextArea` en lecture seule par ligne de journal, tandis que l’appui au pointeur, `take-focus()` et la sélection et la copie au pointeur continuent de fonctionner. L’éditeur accepte de nouveau la navigation au clavier dès que le champ a le focus ou est survolé.",
+          "default": "`true`",
+          "states": "Les champs en lecture seule et modifiables se comportent de la même façon ; un champ désactivé ne prend jamais le focus.",
+          "example": "KitTextArea {\n    access: FieldAccess.read-only;\n    tab-stop: false;\n    text: line;\n}"
+        },
         "escape-behavior": {
           "effect": "Ce que fait Échap dans l’éditeur : `bubble` laisse le parent décider (un dialogue se ferme), `cancel` restaure le texte accepté via `cancel-edit()` et émet `cancelled`, `clear` vide un champ modifiable non vide. Les champs en lecture seule et désactivés ne modifient jamais.",
           "default": "`TextEscapeBehavior.clear` pour `TextPurpose.search` ; sinon `bubble`.",
@@ -10863,6 +10869,12 @@
         },
         "has-focus": {
           "effect": "Read-only: true while the native editor or its owned context menu has focus. Opening the context menu keeps it true, so styling does not flicker. Other buttons of the field are separate focus targets."
+        },
+        "tab-stop": {
+          "effect": "Whether Tab and Shift+Tab reach the field. With `false` the field leaves the Tab order, for example one read-only `KitTextArea` per line of a log, while a pointer press, `take-focus()` and the pointer selection and copy keep working. The editor accepts keyboard traversal again whenever the field is focused or pointed at.",
+          "default": "`true`",
+          "states": "Read-only and editable fields behave alike; disabled fields never take focus.",
+          "example": "KitTextArea {\n    access: FieldAccess.read-only;\n    tab-stop: false;\n    text: line;\n}"
         },
         "escape-behavior": {
           "effect": "What Escape does inside the editor: `bubble` leaves it to the parent (a dialog closes), `cancel` restores the accepted text through `cancel-edit()` and emits `cancelled`, `clear` empties a nonempty editable field. Read-only and disabled fields never edit.",
