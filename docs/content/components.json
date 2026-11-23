@@ -278,6 +278,21 @@
           "effect": "Fond sémantique et encre contrastée des initiales ou du glyphe ; neutral, accent, success, warning, danger et information conservent les mêmes interactions.",
           "default": "`Tone.accent`.",
           "example": "KitAvatar { tone: Tone.success; initials: \"EA\"; }"
+        },
+        "bordered": {
+          "effect": "Dessine le contour marqué autour de l'avatar. Désactivez-le pour une pastille à plat.",
+          "default": "`true`.",
+          "example": "KitAvatar { shape: AvatarShape.rounded; bordered: false; }"
+        },
+        "muted": {
+          "effect": "Avec `Tone.neutral`, utilise l'encre de texte secondaire sur un fond en creux au lieu de l'encre principale sur le fond de surface, pour une pastille d'icône discrète. Les autres tons ne changent pas.",
+          "default": "`false`.",
+          "example": "KitAvatar { shape: AvatarShape.rounded; size: 32px; tone: Tone.neutral; muted: true; bordered: false; fallback-icon: theme.icons.check; }"
+        },
+        "decorative": {
+          "effect": "Retire un avatar statique de l'arbre d'accessibilité lorsqu'il ne fait que décorer le texte voisin. Un avatar interactif conserve son nom.",
+          "default": "`false`.",
+          "example": "KitAvatar { decorative: true; fallback-icon: theme.icons.check; }"
         }
       }
     },
@@ -317,6 +332,21 @@
           "effect": "Semantic background and contrasting initials/fallback ink; neutral, accent, success, warning, danger and information share the same interaction contract.",
           "default": "`Tone.accent`.",
           "example": "KitAvatar { tone: Tone.success; initials: \"EA\"; }"
+        },
+        "bordered": {
+          "effect": "Draws the strong outline around the avatar. Turn it off for a flat tile.",
+          "default": "`true`.",
+          "example": "KitAvatar { shape: AvatarShape.rounded; bordered: false; }"
+        },
+        "muted": {
+          "effect": "With `Tone.neutral`, uses the secondary text ink on an inset fill instead of the primary ink on the surface fill, for a quiet icon tile. Other tones are unchanged.",
+          "default": "`false`.",
+          "example": "KitAvatar { shape: AvatarShape.rounded; size: 32px; tone: Tone.neutral; muted: true; bordered: false; fallback-icon: theme.icons.check; }"
+        },
+        "decorative": {
+          "effect": "Removes a static avatar from the accessibility tree when it only decorates adjacent text. An interactive avatar keeps its name.",
+          "default": "`false`.",
+          "example": "KitAvatar { decorative: true; fallback-icon: theme.icons.check; }"
         }
       }
     }
@@ -325,24 +355,48 @@
     "fr": {
       "summary": "Étiquette non interactive pour une catégorie, un compte ou un état.",
       "usage": "Définissez `text` et choisissez `Tone.neutral`, `.accent`, `.success`, `.warning`, `.danger` ou `.information`. Gardez un libellé explicite pour que la signification ne repose pas uniquement sur la couleur. La propriété optionnelle `leading-icon: IconGlyph` ajoute une icône décorative à côté du texte sans remplacer son libellé accessible.",
-      "behavior": "Le badge mesure sa taille à partir du texte et n’occupe pas l’espace restant. Les tons sémantiques utilisent les couleurs du thème sans créer de comportement de bouton. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint.",
+      "behavior": "Le badge mesure sa taille à partir du texte et n’occupe pas l’espace restant. Les tons sémantiques utilisent les couleurs du thème sans créer de comportement de bouton. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint. Un badge placé dans un parent plus étroit que son texte se réduit à la largeur disponible et tronque la fin du texte ; le nom accessible conserve le texte complet.",
       "label": "Badge",
       "seoTitle": "Badge pour Slint",
       "related": [
         "KitStat",
         "KitSteps"
-      ]
+      ],
+      "properties": {
+        "subtle": {
+          "effect": "Teinte le badge avec le fond subtil de son ton et supprime la bordure. `Tone.accent` utilise le fond accent-subtle avec l'encre d'accent au lieu du fond d'accent plein.",
+          "default": "`false`.",
+          "example": "KitBadge { text: \"En revue\"; tone: Tone.accent; subtle: true; }"
+        },
+        "dot": {
+          "effect": "Dessine un petit disque plein de la couleur du ton avant le texte, à la place de `leading-icon`. Le point est décoratif ; le texte porte le sens.",
+          "default": "`false`.",
+          "example": "KitBadge { text: \"Prêt\"; tone: Tone.success; subtle: true; dot: true; }"
+        }
+      }
     },
     "en": {
       "summary": "Non-interactive label for a category, count or status.",
       "usage": "Set `text` and choose `Tone.neutral`, `.accent`, `.success`, `.warning`, `.danger` or `.information`. Keep an explicit label so meaning does not depend on color alone. Optional `leading-icon: IconGlyph` adds a decorative icon beside the text without replacing its accessible label.",
-      "behavior": "The badge sizes itself from its text and does not consume remaining space. Semantic tones use theme colors without adding button behavior. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
+      "behavior": "The badge sizes itself from its text and does not consume remaining space. Semantic tones use theme colors without adding button behavior. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior. A badge in a parent narrower than its text shrinks to the available width and elides the end of the text; the accessible label keeps the full text.",
       "label": "Badge",
       "seoTitle": "Badge for Slint",
       "related": [
         "KitStat",
         "KitSteps"
-      ]
+      ],
+      "properties": {
+        "subtle": {
+          "effect": "Tints the badge with its tone's subtle fill and removes the border. `Tone.accent` uses the accent-subtle fill with accent ink instead of the solid accent fill.",
+          "default": "`false`.",
+          "example": "KitBadge { text: \"In review\"; tone: Tone.accent; subtle: true; }"
+        },
+        "dot": {
+          "effect": "Draws a small filled circle in the tone's color before the text, in place of `leading-icon`. The dot is decorative; the text carries the meaning.",
+          "default": "`false`.",
+          "example": "KitBadge { text: \"Ready\"; tone: Tone.success; subtle: true; dot: true; }"
+        }
+      }
     }
   },
   "KitBreadcrumbs": {
@@ -453,6 +507,11 @@
           "effect": "Politique de retour à la ligne TextWrap de Slint. no-wrap conserve l’élision monoligne. word-wrap et char-wrap augmentent la hauteur intrinsèque pour la largeur disponible du libellé, y compris les sauts de ligne explicites ; les réserves des icônes et le remplissage font partie de la géométrie.",
           "default": "`TextWrap.no-wrap`.",
           "example": "KitButton { text: \"Enregistrer toutes les modifications\"; text-wrap: word-wrap; control-width: ControlWidth.fill; }"
+        },
+        "text-alignment": {
+          "effect": "Alignement horizontal du libellé dans le bouton. `left` avec `padding-inline: 0px` et `control-width: ControlWidth.fill` donne un lien aligné sur le paragraphe qui le précède ; le soulignement suit le libellé.",
+          "default": "`TextHorizontalAlignment.center`.",
+          "example": "KitButton { intent: ButtonIntent.link; text: \"Toutes les notes de version\"; text-alignment: left; padding-inline: 0px; control-width: ControlWidth.fill; }"
         }
       }
     },
@@ -471,6 +530,11 @@
           "effect": "Text wrapping policy from Slint TextWrap. no-wrap preserves single-line elision. word-wrap and char-wrap grow intrinsic height to fit the available label width, including explicit line breaks; icon side reserves and padding remain part of the geometry.",
           "default": "`TextWrap.no-wrap`.",
           "example": "KitButton { text: \"Save all workspace changes\"; text-wrap: word-wrap; control-width: ControlWidth.fill; }"
+        },
+        "text-alignment": {
+          "effect": "Horizontal alignment of the label inside the button. `left` with `padding-inline: 0px` and `control-width: ControlWidth.fill` renders a link that lines up with the paragraph above it; the underline follows the label.",
+          "default": "`TextHorizontalAlignment.center`.",
+          "example": "KitButton { intent: ButtonIntent.link; text: \"All release notes\"; text-alignment: left; padding-inline: 0px; control-width: ControlWidth.fill; }"
         }
       }
     }
@@ -7494,6 +7558,11 @@
         "value-text": {
           "effect": "Lecture visible. Les technologies d’assistance reçoivent toujours la valeur numérique.",
           "default": "vide"
+        },
+        "caption": {
+          "effect": "Texte secondaire sous la barre, dans la couleur de texte secondaire. Il revient à la ligne et reste indépendant de `label` et de `value-text`.",
+          "default": "vide",
+          "example": "KitProgress { value: 0.4; caption: \"12 Mo sur 30 Mo\"; }"
         }
       }
     },
@@ -7519,6 +7588,11 @@
         "value-text": {
           "effect": "Visible reading. Assistive technology still receives the numeric value.",
           "default": "empty"
+        },
+        "caption": {
+          "effect": "Secondary text under the bar, in the secondary text color. It wraps and is independent of `label` and `value-text`.",
+          "default": "empty",
+          "example": "KitProgress { value: 0.4; caption: \"12 of 30 MB\"; }"
         }
       }
     }

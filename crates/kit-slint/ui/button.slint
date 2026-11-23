@@ -283,6 +283,7 @@ export component KitPressable inherits Rectangle {
 export component KitButton inherits KitPressable {
     in property <string> text;
     in property <TextWrap> text-wrap: no-wrap;
+    in property <TextHorizontalAlignment> text-alignment: center;
     in property <IconGlyph> leading-icon;
     in property <IconGlyph> trailing-icon;
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
@@ -318,7 +319,7 @@ export component KitButton inherits KitPressable {
         text: root.text;
         color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
-        horizontal-alignment: center;
+        horizontal-alignment: root.text-alignment;
         vertical-alignment: center;
         wrap: root.text-wrap;
         overflow: root.text-wrap == TextWrap.no-wrap ? TextOverflow.elide : TextOverflow.clip;
@@ -330,7 +331,7 @@ export component KitButton inherits KitPressable {
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
     }
     if root.recipe.underline && !root.busy: link-rule := Rectangle {
-        x: label.x + (label.width - self.width) / 2;
+        x: label.x + (root.text-alignment == TextHorizontalAlignment.left ? 0px : root.text-alignment == TextHorizontalAlignment.right ? label.width - self.width : (label.width - self.width) / 2);
         y: label.y + (label.height + (root.text-wrap == TextWrap.no-wrap ? root.text-size : label.preferred-height)) / 2 + root.theme.spacing.unit / 2;
         width: min(label.width, label.preferred-width);
         height: root.theme.shape.border-width;

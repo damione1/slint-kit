@@ -128,12 +128,14 @@ export component KitSpinner inherits Rectangle {
 
 // A bar for a known fraction, or, in `indeterminate` mode, a segment that runs
 // along the track (still at the start under reduced motion). `value-text` is
-// the visible reading beside the label; assistive technology gets the number.
+// the visible reading beside the label; `caption` is a secondary line under the
+// bar. Assistive technology gets the number.
 export component KitProgress inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
     in property <string> value-text;
+    in property <string> caption;
     in property <ProgressMode> mode: ProgressMode.determinate;
     in property <ProgressIntent> intent: ProgressIntent.accent;
     out property <float> bounded-value: min(1,max(0,root.value));
@@ -156,6 +158,7 @@ export component KitProgress inherits VerticalLayout {
             animate width { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }
         }
     }
+    if root.caption != "": Text { text: root.caption; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
 }
 // A ring for a known fraction, or, in `indeterminate` mode, a quarter arc that
 // turns. `diameter` sizes it, `thickness` its stroke, and the centre shows the

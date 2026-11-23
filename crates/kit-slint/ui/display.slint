@@ -58,24 +58,36 @@ export component KitBadge inherits Rectangle {
     in property <string> text;
     in property <Tone> tone: Tone.neutral;
     in property <IconGlyph> leading-icon;
-    private property <bool> has-icon: root.leading-icon.stroke != "" || root.leading-icon.fill != "";
+    // A tinted, borderless badge: every tone uses its subtle fill, `accent` included.
+    in property <bool> subtle;
+    // A filled status dot in the tone's color, drawn in place of `leading-icon`.
+    in property <bool> dot;
+    private property <bool> has-icon: !root.dot && (root.leading-icon.stroke != "" || root.leading-icon.fill != "");
     private property <length> icon-extent: KitMetrics.icon-size(root.theme, ControlSize.compact);
-    private property <length> icon-space: root.has-icon ? root.icon-extent + root.theme.spacing.unit : 0px;
+    private property <length> dot-extent: root.theme.spacing.unit * 2;
+    private property <length> lead-extent: root.dot ? root.dot-extent : root.has-icon ? root.icon-extent : 0px;
+    private property <length> icon-space: root.lead-extent > 0px ? root.lead-extent + root.theme.spacing.unit : 0px;
     private property <length> inset-x: root.theme.spacing.unit * 2;
     private property <length> inset-y: root.theme.spacing.unit;
+    private property <color> ink: root.tone == Tone.accent ? (root.subtle ? root.theme.accent : root.theme.on-accent) : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
+    private property <color> dot-ink: root.tone == Tone.accent ? (root.subtle ? root.theme.accent : root.theme.on-accent) : root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.information ? root.theme.information : root.theme.text-secondary;
     preferred-width: label.preferred-width + root.icon-space + 2 * root.inset-x;
-    min-width: self.preferred-width; max-width: self.preferred-width;
-    preferred-height: max(label.preferred-height,root.has-icon ? root.icon-extent : 0px) + 2 * root.inset-y;
+    min-width: min(self.preferred-width, root.icon-space + 2 * root.inset-x); max-width: self.preferred-width;
+    preferred-height: max(label.preferred-height, root.lead-extent) + 2 * root.inset-y;
     min-height: self.preferred-height; max-height: self.preferred-height;
     vertical-stretch: 0; horizontal-stretch: 0;
     border-radius: root.theme.shape.radius-control;
-    background: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.theme.surface;
-    border-width: root.theme.shape.border-width;
+    background: root.tone == Tone.accent ? (root.subtle ? root.theme.accent-subtle : root.theme.accent) : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.theme.surface;
+    border-width: root.subtle ? 0px : root.theme.shape.border-width;
     border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.information ? root.theme.information : root.theme.border-subtle;
     accessible-role: AccessibleRole.text; accessible-label: root.text;
-    if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - root.inset-x - self.width : root.inset-x; y: (parent.height - self.height) / 2; ink: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; }
-    label := Text { x: root.theme.direction == ChoiceFlow.right-to-left ? root.inset-x : root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2; text: root.text;
-        color: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
+    if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - root.inset-x - self.width : root.inset-x; y: (parent.height - self.height) / 2; ink: root.ink; }
+    if root.dot: Rectangle { width: root.dot-extent; height: self.width; border-radius: self.width / 2; background: root.dot-ink; accessible-role: none;
+        x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - root.inset-x - self.width : root.inset-x; y: (parent.height - self.height) / 2; }
+    label := Text { x: root.theme.direction == ChoiceFlow.right-to-left ? root.inset-x : root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2;
+        width: max(0px, root.width - root.icon-space - 2 * root.inset-x);
+        text: root.text; overflow: elide; accessible-role: none;
+        color: root.ink;
         font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-semibold;
     }
 }
@@ -86,7 +98,13 @@ export component KitAvatar inherits Rectangle {
     in property <string> initials;
     in property <string> accessible-name;
     in property <Tone> tone: Tone.accent;
-    private property <color> avatar-ink: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
+    // Draws the outline; turn it off for a flat tile.
+    in property <bool> bordered: true;
+    // A neutral tone uses the secondary text ink on an inset fill, for a quiet icon tile.
+    in property <bool> muted;
+    // Hides a static avatar from assistive technology when it only decorates its neighbours.
+    in property <bool> decorative;
+    private property <color> avatar-ink: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.muted && root.tone == Tone.neutral ? root.theme.text-secondary : root.theme.text-primary;
     in property <AvatarShape> shape: AvatarShape.circle;
     in property <AvatarInteraction> interaction: AvatarInteraction.static;
     in property <bool> disabled;
@@ -104,10 +122,10 @@ export component KitAvatar inherits Rectangle {
     height: self.width;
     horizontal-stretch: 0; vertical-stretch: 0;
     border-radius: root.shape == AvatarShape.circle ? self.width / 2 : root.shape == AvatarShape.rounded ? root.theme.shape.radius-control : 0px;
-    background: root.tone == Tone.accent ? root.theme.accent-subtle : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.theme.surface;
-    border-width: root.theme.shape.border-width; border-color: root.theme.border-strong;
+    background: root.tone == Tone.accent ? root.theme.accent-subtle : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.muted && root.tone == Tone.neutral ? root.theme.surface-inset : root.theme.surface;
+    border-width: root.bordered ? root.theme.shape.border-width : 0px; border-color: root.theme.border-strong;
     accessible-role: AccessibleRole.none;
-    if root.interaction == AvatarInteraction.static: Rectangle { accessible-role: image; accessible-label: root.effective-name; }
+    if root.interaction == AvatarInteraction.static && !root.decorative: Rectangle { accessible-role: image; accessible-label: root.effective-name; }
     Rectangle {
         clip: true; border-radius: root.border-radius;
         opacity: root.disabled ? 0.45 : 1;

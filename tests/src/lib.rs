@@ -31,6 +31,7 @@ mod dialog_adaptive_row;
 mod dialog_composition;
 mod dialog_high_level;
 mod direction;
+mod display_tones;
 mod document_guards;
 mod dropdown_collision;
 mod file_constraints;

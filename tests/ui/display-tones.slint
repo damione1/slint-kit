@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ButtonIntent, ControlWidth, KitBadge, KitButton, KitAvatar, AvatarShape, KitProgress, KitTheme, KitThemes, Tone } from "@kit";
+
+export component DisplayTonesFixture inherits Window {
+    width: 240px; height: 300px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> long-text: "A deliberately long status sentence that cannot fit inside this narrow column";
+    in property <bool> subtle;
+    in property <bool> dot;
+    in property <bool> decorative;
+    in property <bool> start-aligned;
+    in property <string> caption;
+    out property <length> short-width: short.width;
+    out property <length> short-natural: short.preferred-width;
+    out property <length> long-width: long.width;
+    out property <length> plain-width: plain.width;
+    out property <length> tile-width: tile.width;
+    out property <length> bar-height: bar.height;
+    out property <length> bar-natural: bar.preferred-height;
+    out property <length> short-y: short.y;
+    out property <length> short-height: short.height;
+    out property <length> link-y: link.y;
+    out property <length> link-height: link.height;
+    out property <color> accent-subtle: root.theme.accent-subtle;
+    out property <color> inset: root.theme.surface-inset;
+    out property <length> tile-y: tile.y;
+    out property <color> canvas: root.theme.canvas;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 8px; spacing: 8px; alignment: start;
+        short := KitBadge { theme: root.theme; text: "Ready"; tone: Tone.accent; subtle: root.subtle; dot: root.dot; }
+        plain := KitBadge { theme: root.theme; text: "Ready"; tone: Tone.accent; }
+        long := KitBadge { theme: root.theme; text: root.long-text; tone: Tone.information; }
+        tile := KitAvatar { theme: root.theme; shape: AvatarShape.rounded; size: 32px; tone: Tone.neutral; muted: true; bordered: false; decorative: root.decorative; fallback-icon: root.theme.icons.check; }
+        bar := KitProgress { theme: root.theme; value: 0.4; caption: root.caption; }
+        link := KitButton { theme: root.theme; intent: ButtonIntent.link; text: "All release notes"; text-alignment: root.start-aligned ? TextHorizontalAlignment.left : TextHorizontalAlignment.center; padding-inline: 0px; control-width: ControlWidth.fill; }
+    }
+}

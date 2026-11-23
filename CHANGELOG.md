@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added `subtle` and `dot` to `KitBadge`: a tinted borderless badge for every tone (`Tone.accent` included) and a filled status dot in the tone's color. A badge wider than its parent now shrinks and elides its text instead of overflowing.
+- Ajout de `subtle` et `dot` à `KitBadge` : un badge teinté sans bordure pour chaque ton (`Tone.accent` compris) et un point d'état plein de la couleur du ton. Un badge plus large que son parent se réduit et tronque son texte au lieu de déborder.
+
+- Added `bordered`, `muted` and `decorative` to `KitAvatar` for a flat, quiet icon tile that can stay out of the accessibility tree.
+- Ajout de `bordered`, `muted` et `decorative` à `KitAvatar` pour une pastille d'icône à plat et discrète, absente de l'arbre d'accessibilité.
+
+- Added `caption` to `KitProgress`, a secondary line under the bar.
+- Ajout de `caption` à `KitProgress`, une ligne secondaire sous la barre.
+
+- Added `text-alignment` to `KitButton`. A link button with `text-alignment: left`, no inline padding and a filling width lines up with surrounding text.
+- Ajout de `text-alignment` à `KitButton`. Un bouton lien avec `text-alignment: left`, sans marge intérieure et à largeur remplie s'aligne sur le texte voisin.
+
 - Fixed #445. `KitSlider` exposes `has-focus` and `focus-observed(bool)` for its keyboard focus. `chosen` is documented as reported for every committed gesture and step, including one that leaves the value unchanged.
 - Correction de #445. `KitSlider` expose `has-focus` et `focus-observed(bool)` pour son focus clavier. `chosen` est documenté comme émis pour chaque geste validé et chaque pas, y compris lorsque la valeur reste inchangée.
 
