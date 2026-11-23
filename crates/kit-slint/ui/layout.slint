@@ -136,6 +136,9 @@ export component KitSurface inherits Rectangle {
     in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
     // Draws the border in the tone's color; neutral keeps the recipe border.
     in property <Tone> tone: Tone.neutral;
+    // Takes the height the parent allocates and stretches its children into it,
+    // instead of sizing to the content and packing it at the top.
+    in property <bool> fill: false;
     border-radius: root.corner-radius;
     border-width: root.border == SurfaceBorder.subtle ? root.recipe.border-width : 0px;
     border-color: KitThemes.tone-border(root.theme, root.tone, root.recipe.border);
@@ -143,11 +146,11 @@ export component KitSurface inherits Rectangle {
     drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y;
     drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur;
     drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
-    vertical-stretch: 0;
+    vertical-stretch: root.fill ? 1 : 0;
     VerticalLayout {
         padding: KitLayoutMetrics.space(root.theme, root.inset);
         spacing: KitLayoutMetrics.space(root.theme, root.gap);
-        alignment: start;
+        alignment: root.fill ? LayoutAlignment.stretch : LayoutAlignment.start;
         @children
     }
 }
@@ -194,6 +197,10 @@ export component KitScrollArea inherits Rectangle {
     out property <bool> at-end: root.offset <= -root.range;
     out property <bool> keyboard-focus;
     callback scrolled <=> frame.scrolled;
+    // A press and release on the empty viewport or content background that no
+    // child handled and that did not scroll. Presses claimed by interactive
+    // content, including text editors, never reach it.
+    callback clicked();
     // Emitted once when the primary axis arrives at an edge of overflowing
     // content, whether by pointer, keyboard or a programmatic move.
     callback edge-reached(ScrollEdge);
@@ -213,6 +220,14 @@ export component KitScrollArea inherits Rectangle {
     changed at-start => { if (root.at-start && root.scrollable) { root.edge-reached(ScrollEdge.start); } }
     changed at-end => { if (root.at-end && root.scrollable) { root.edge-reached(ScrollEdge.end); } }
     public function take-focus() { keys.focus(); }
+    // A press on the background keeps the pointer-focus semantics of a plain
+    // focus-on-click scope: the viewport takes the keyboard, without a ring.
+    function press-background() {
+        if (root.focusable && root.enabled && !KitModalContext.inert(root.modal-layer)) {
+            keys.focus();
+            root.keyboard-focus = false;
+        }
+    }
     public function scroll-to-start() {
         frame.scroll-to({x: root.horizontal-primary ? 0px : -frame.content-x, y: root.horizontal-primary ? -frame.content-y : 0px}, KitThemes.scroll-behavior(root.theme));
     }
@@ -280,10 +295,18 @@ export component KitScrollArea inherits Rectangle {
             theme: root.theme;
             width: root.width;
             height: root.height;
+            background-clicked => { root.clicked(); }
+            background-pressed => { root.press-background(); }
             vertical-scrollbar-policy: root.axes == ScrollAxes.horizontal ? ScrollBarPolicy.always-off : root.vertical-scrollbar-policy;
             horizontal-scrollbar-policy: root.axes == ScrollAxes.vertical ? ScrollBarPolicy.always-off : root.horizontal-scrollbar-policy;
             content-width: root.axes == ScrollAxes.vertical ? self.visible-width : max(self.visible-width, body.preferred-width);
             content-height: root.axes == ScrollAxes.horizontal ? self.visible-height : max(self.visible-height, body.preferred-height);
+            background := TouchArea {
+                x: 0px; y: 0px; width: frame.content-width; height: frame.content-height;
+                enabled: root.enabled && root.pan-policy == ScrollPanPolicy.native;
+                pointer-event(event) => { if (event.kind == PointerEventKind.down) { root.press-background(); } }
+                clicked => { root.clicked(); }
+            }
             body := VerticalLayout {
                 y: 0px;
                 width: root.axes == ScrollAxes.vertical ? frame.visible-width : root.column-width;

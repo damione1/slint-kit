@@ -11,6 +11,8 @@ export { Tone, AvatarSize } from "theme.slint";
 export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
+// How a bubble is painted: `automatic` follows the side (accent for end, surface for start).
+export enum ChatBubbleTone { automatic, accent, accent-subtle, surface }
 export enum StepState { pending, current, complete, error }
 export struct TimelineEntry { title: string, description: string, metadata: string, tone: Tone, glyph: IconGlyph }
 export struct StepEntry { token: int, generation: int, label: string, description: string, state: StepState, enabled: bool }
@@ -253,12 +255,15 @@ export component KitCard inherits Rectangle {
     in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
     // Draws the border in the tone's color; neutral keeps the recipe border.
     in property <Tone> tone: Tone.neutral;
+    // Takes the height the parent allocates and stretches its children into it,
+    // instead of sizing to the content and packing it at the top.
+    in property <bool> fill: false;
     background: root.recipe.fill;
     border-color: KitThemes.tone-border(root.theme, root.tone, root.recipe.border); border-width: root.recipe.border-width; border-radius: root.corner-radius;
     drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
-    preferred-height: content.preferred-height; min-height: self.preferred-height;
-    vertical-stretch: 0;
-    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start; @children }
+    preferred-height: content.preferred-height; min-height: root.fill ? content.min-height : self.preferred-height;
+    vertical-stretch: root.fill ? 1 : 0;
+    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: root.fill ? max(root.height, self.min-height) : self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: root.fill ? LayoutAlignment.stretch : LayoutAlignment.start; @children }
 }
 export component KitCardHeader inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -332,27 +337,33 @@ export component KitStat inherits VerticalLayout {
 export component KitChatBubble inherits HorizontalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ChatSide> side: ChatSide.start;
+    in property <ChatBubbleTone> tone: ChatBubbleTone.automatic;
     in property <string> author;
+    // Plain message text. Children are laid out below it inside the bubble, so
+    // rich or interactive content can replace the text or follow it.
     in property <string> text;
     in property <string> metadata;
+    // Largest fraction of the row the bubble column may take; the rest stays empty on the far side.
+    in property <float> content-share: 0.8;
+    private property <ChatBubbleTone> resolved-tone: root.tone != ChatBubbleTone.automatic ? root.tone : root.side == ChatSide.end ? ChatBubbleTone.accent : ChatBubbleTone.surface;
     vertical-stretch: 0;
-    if (root.side == ChatSide.end) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
-    VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: 4;
+    if root.content-share < 1 && (root.side == ChatSide.end) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1 - root.content-share; min-width: root.theme.spacing.unit * 4; }
+    VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: root.content-share;
         Text { text: root.author; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
         bubble := Rectangle {
-            background: root.side == ChatSide.end ? root.theme.accent : root.theme.surface;
+            background: root.resolved-tone == ChatBubbleTone.accent ? root.theme.accent : root.resolved-tone == ChatBubbleTone.accent-subtle ? root.theme.accent-subtle : root.theme.surface;
             border-radius: root.theme.shape.radius-container;
-            // Received messages are surfaces, not hover states. Their edge
-            // also keeps them visible when a conversation sits on a panel.
-            border-width: root.side == ChatSide.start ? root.theme.shape.border-width : 0px;
-            border-color: root.side == ChatSide.start ? root.theme.border-subtle : transparent;
-            VerticalLayout { padding: root.theme.spacing.unit * 3.5;
-                Text { text: root.text; color: root.side == ChatSide.end ? root.theme.on-accent : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            // Surfaces keep their edge so they stay visible on a panel.
+            border-width: root.resolved-tone == ChatBubbleTone.surface ? root.theme.shape.border-width : 0px;
+            border-color: root.resolved-tone == ChatBubbleTone.surface ? root.theme.border-subtle : transparent;
+            VerticalLayout { padding: root.theme.spacing.unit * 3.5; spacing: root.theme.spacing.unit * 1.5;
+                if root.text != "": Text { text: root.text; color: root.resolved-tone == ChatBubbleTone.accent ? root.theme.on-accent : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                @children
             }
         }
         if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     }
-    if (root.side == ChatSide.start) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
+    if root.content-share < 1 && (root.side == ChatSide.start) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1 - root.content-share; min-width: root.theme.spacing.unit * 4; }
 }
 export component KitSkeleton inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;

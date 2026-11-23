@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Added `fill` to `KitSurface` and `KitCard`: the surface takes the height its parent allocates and stretches its children, so a `KitScrollArea` inside it fills the surface instead of collapsing to its preferred height.
+- Ajout de `fill` à `KitSurface` et `KitCard` : la surface prend la hauteur allouée par son parent et y étire ses enfants, de sorte qu'un `KitScrollArea` qu'elle contient la remplit au lieu de se réduire à sa hauteur préférée.
+
+- Added a content slot, `tone: ChatBubbleTone` (`automatic`, `accent`, `accent-subtle`, `surface`) and `content-share` to `KitChatBubble`. Children are laid out below `text` inside the bubble, so rich or interactive content can be hosted; `text` is no longer drawn when empty.
+- Ajout d'un emplacement de contenu, de `tone: ChatBubbleTone` (`automatic`, `accent`, `accent-subtle`, `surface`) et de `content-share` à `KitChatBubble`. Les enfants sont disposés sous `text` dans la bulle, ce qui permet d'accueillir un contenu riche ou interactif ; `text` n'est plus dessiné lorsqu'il est vide.
+
+- Added `clicked()` to `KitScrollArea`, emitted for a press and release on the empty background that no child handled and that did not scroll, with the `native` and `children-first` pan policies.
+- Ajout de `clicked()` à `KitScrollArea`, émis pour un appui suivi d'un relâchement sur le fond vide qu'aucun enfant n'a traité et qui n'a pas fait défiler, avec les politiques de panoramique `native` et `children-first`.
+
+- Added `appearance: TextFlowAppearance` (`link`, `plain`) and `role` to `KitTextFlow`, and `muted` to `TextFragment`. **Breaking for Rust:** `TextFragment` gains a field, so struct literals must set `muted` or use `..Default::default()`; Slint literals are unaffected.
+- Ajout de `appearance: TextFlowAppearance` (`link`, `plain`) et de `role` à `KitTextFlow`, et de `muted` à `TextFragment`. **Rupture pour Rust :** `TextFragment` gagne un champ, les littéraux de structure doivent donc renseigner `muted` ou utiliser `..Default::default()` ; les littéraux Slint ne changent pas.
+
+- Documented equal-width columns in `KitInline`: `alignment: stretch` on the row and `horizontal-stretch: 1`, `preferred-width: 0px`, `min-width: 0px` on each column.
+- Documentation des colonnes de largeur égale dans `KitInline` : `alignment: stretch` sur la ligne et `horizontal-stretch: 1`, `preferred-width: 0px`, `min-width: 0px` sur chaque colonne.
+
 - Added `fill` and `ink` to `KitAvatar` for an explicit tile tint the tones do not name, and `AvatarSize.small` (`geometry.avatar-small`, 32px) between `compact` and `medium`. Complete `KitGeometry` literals must now set `avatar-small`.
 - Ajout de `fill` et `ink` à `KitAvatar` pour une teinte de pastille explicite que les tons ne nomment pas, et de `AvatarSize.small` (`geometry.avatar-small`, 32 px) entre `compact` et `medium`. Les littéraux complets de `KitGeometry` doivent désormais définir `avatar-small`.
 

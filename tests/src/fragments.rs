@@ -80,6 +80,7 @@ fn fragment(token: i32, generation: i32, label: &str, disabled: bool) -> TextFra
             ..Default::default()
         },
         suffix: ", ".into(),
+        muted: false,
     }
 }
 fn rows(items: Vec<TextFragment>) -> ModelRc<TextFragment> {

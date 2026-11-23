@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTextFlow, TextFlowAppearance, TypographyRole, KitTheme, KitThemes } from "@kit";
+
+export component TextFlowAppearanceFixture inherits Window {
+    width: 320px; height: 320px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <color> accent: root.theme.accent;
+    out property <color> accent-hover: root.theme.accent-hover;
+    out property <color> primary: root.theme.text-primary;
+    out property <color> secondary: root.theme.text-secondary;
+    out property <color> canvas: root.theme.canvas;
+    out property <length> body-height: linked.preferred-height;
+    out property <length> title-height: titled.preferred-height;
+    out property <int> activations;
+    background: root.theme.canvas;
+    linked := KitTextFlow { theme: root.theme; x: 8px; y: 8px; width: 300px; height: 40px;
+        fragments: [{item: {token: 1, generation: 1, label: "WWWWWW"}, suffix: ""}];
+        activated(anchor) => { root.activations += 1; }
+    }
+    plain := KitTextFlow { theme: root.theme; x: 8px; y: 58px; width: 300px; height: 40px; appearance: TextFlowAppearance.plain;
+        fragments: [{item: {token: 2, generation: 1, label: "WWWWWW"}, suffix: ""}];
+        activated(anchor) => { root.activations += 1; }
+    }
+    muted := KitTextFlow { theme: root.theme; x: 8px; y: 108px; width: 300px; height: 40px; appearance: TextFlowAppearance.plain;
+        fragments: [{item: {token: 3, generation: 1, label: "WWWWWW", disabled: true}, suffix: "", muted: true}];
+    }
+    literal := KitTextFlow { theme: root.theme; x: 8px; y: 158px; width: 300px; height: 40px; appearance: TextFlowAppearance.plain;
+        fragments: [{item: {token: 4, generation: 1, label: "WWWWWW", disabled: true}, suffix: ""}];
+    }
+    titled := KitTextFlow { theme: root.theme; x: 8px; y: 208px; width: 300px; role: TypographyRole.title;
+        fragments: [{item: {token: 5, generation: 1, label: "Heading"}, suffix: ""}];
+    }
+}

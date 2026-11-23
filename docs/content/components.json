@@ -1088,6 +1088,11 @@
           "effect": "Dessine la bordure dans la couleur du ton du thème (accent, success, warning, danger ou information). `Tone.neutral` conserve la bordure du recipe.",
           "default": "`Tone.neutral`.",
           "example": "KitCard { tone: Tone.warning; }"
+        },
+        "fill": {
+          "effect": "Prend la hauteur allouée par le parent et y étire ses enfants, au lieu de se dimensionner sur le contenu et de le plaquer en haut. Permet à un `KitScrollArea` ou à un autre enfant extensible de remplir la carte.",
+          "default": "`false`.",
+          "example": "KitCard { fill: true; KitScrollArea { } }"
         }
       }
     },
@@ -1117,6 +1122,11 @@
           "effect": "Draws the border in the tone's color from the theme (accent, success, warning, danger or information). `Tone.neutral` keeps the recipe border.",
           "default": "`Tone.neutral`.",
           "example": "KitCard { tone: Tone.warning; }"
+        },
+        "fill": {
+          "effect": "Takes the height the parent allocates and stretches its children into it, instead of sizing to the content and packing it at the top. Use it to let a `KitScrollArea` or another stretching child fill the card.",
+          "default": "`false`.",
+          "example": "KitCard { fill: true; KitScrollArea { } }"
         }
       }
     }
@@ -1264,25 +1274,49 @@
   "KitChatBubble": {
     "fr": {
       "summary": "Message de conversation avec auteur et métadonnées.",
-      "usage": "Définissez `author`, `text` et `metadata`, puis `ChatSide.start` ou `.end` selon l’origine du message. Composez plusieurs bulles dans une liste adaptée à la taille de l’historique.",
+      "usage": "Renseignez `author`, `text` et `metadata`, puis choisissez `ChatSide.start` ou `.end` selon l'origine du message. Composez les bulles dans une liste adaptée à la taille de l'historique. Placez des enfants dans la bulle pour accueillir un contenu riche ou interactif : ils sont disposés sous `text`, laissez donc `text` vide pour le remplacer. Choisissez `tone` pour peindre la bulle en accent, en accent discret ou en couleur de surface quel que soit le côté, et `content-share` pour modifier la fraction de la ligne que la bulle peut occuper.",
       "behavior": "Le côté final utilise la couleur d’accent et le côté initial un fond secondaire. Les textes reviennent à la ligne ; aucune gestion de conversation ou de réseau n’est intégrée. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint.",
       "label": "Bulle de conversation",
       "seoTitle": "Bulle de conversation pour Slint",
       "related": [
         "KitContentList",
         "KitAvatar"
-      ]
+      ],
+      "properties": {
+        "tone": {
+          "effect": "Peint la bulle. `automatic` suit le côté : accent pour `ChatSide.end`, surface pour `ChatSide.start`. `accent-subtle` et `surface` utilisent une encre sombre ; `accent` utilise l'encre on-accent.",
+          "default": "`ChatBubbleTone.automatic`.",
+          "example": "KitChatBubble { side: ChatSide.end; tone: ChatBubbleTone.accent-subtle; }"
+        },
+        "content-share": {
+          "effect": "Plus grande fraction de la ligne que la colonne de la bulle peut occuper ; le reste demeure vide du côté opposé. Une valeur de 1 supprime cet espace.",
+          "default": "`0.8`.",
+          "example": "KitChatBubble { content-share: 1; }"
+        }
+      }
     },
     "en": {
       "summary": "Conversation message with author and metadata.",
-      "usage": "Set `author`, `text` and `metadata`, then choose `ChatSide.start` or `.end` according to message origin. Compose bubbles in a list suited to the history size.",
-      "behavior": "The end side uses the accent color and the start side a secondary background. Text wraps; no conversation or networking logic is included. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
+      "usage": "Set `author`, `text` and `metadata`, then choose `ChatSide.start` or `.end` according to message origin. Compose bubbles in a list suited to the history size. Place children inside the bubble to host rich or interactive content: they are laid out below `text`, so leave `text` empty to replace it. Choose `tone` to paint the bubble in the accent, a subtle accent or the surface color regardless of side, and `content-share` to change the fraction of the row the bubble may take.",
+      "behavior": "By default the end side uses the accent color and the start side a secondary background. Text wraps; no conversation or networking logic is included. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
       "label": "Chat Bubble",
       "seoTitle": "Chat Bubble for Slint",
       "related": [
         "KitContentList",
         "KitAvatar"
-      ]
+      ],
+      "properties": {
+        "tone": {
+          "effect": "Paints the bubble. `automatic` follows the side: accent for `ChatSide.end`, surface for `ChatSide.start`. `accent-subtle` and `surface` use dark ink; `accent` uses on-accent ink.",
+          "default": "`ChatBubbleTone.automatic`.",
+          "example": "KitChatBubble { side: ChatSide.end; tone: ChatBubbleTone.accent-subtle; }"
+        },
+        "content-share": {
+          "effect": "Largest fraction of the row the bubble column may take; the remainder stays empty on the far side. A value of 1 removes that gap.",
+          "default": "`0.8`.",
+          "example": "KitChatBubble { content-share: 1; }"
+        }
+      }
     }
   },
   "KitCheckbox": {
@@ -5620,7 +5654,7 @@
   "KitInline": {
     "fr": {
       "summary": "Ligne unique pour des contrôles et contenus adjacents.",
-      "usage": "Choisissez `gap`, `inset` et l’alignement hérité du `HorizontalLayout`. Définissez l’étirement horizontal des enfants qui doivent absorber l’espace.",
+      "usage": "Choisissez `gap`, `inset` et l’alignement hérité du `HorizontalLayout`. Définissez l’étirement horizontal des enfants qui doivent absorber l’espace. Pour des colonnes de largeur égale, définissez `alignment: stretch` sur la ligne, puis `horizontal-stretch: 1`, `preferred-width: 0px` et `min-width: 0px` sur chaque colonne : l'étirement est partagé à parts égales dès que les largeurs naturelles et minimales ne diffèrent plus, et les colonnes conditionnelles (`if`) continuent de se partager la ligne. L'`alignment: start` par défaut ignore `horizontal-stretch`.",
       "behavior": "La ligne conserve une hauteur naturelle et ne revient pas à la ligne. Utilisez `KitWrap` lorsque les enfants doivent se redistribuer sur plusieurs lignes.",
       "related": [
         "KitWrap",
@@ -5631,7 +5665,7 @@
     },
     "en": {
       "summary": "Single row for adjacent controls and content.",
-      "usage": "Choose `gap`, `inset` and the inherited `HorizontalLayout` alignment. Set horizontal stretch on children that should consume extra space.",
+      "usage": "Choose `gap`, `inset` and the inherited `HorizontalLayout` alignment. Set horizontal stretch on children that should consume extra space. For equal-width columns, set `alignment: stretch` on the row and `horizontal-stretch: 1`, `preferred-width: 0px` and `min-width: 0px` on each column: the stretch is shared equally once the natural and minimum widths no longer differ, and conditional columns (`if`) keep sharing the row. The default `alignment: start` ignores `horizontal-stretch`.",
       "behavior": "The row keeps a natural height and does not wrap. Use `KitWrap` when children should reflow onto multiple lines.",
       "related": [
         "KitWrap",
@@ -8210,7 +8244,7 @@
   "KitScrollArea": {
     "fr": {
       "summary": "Zone de défilement pour une colonne de contenu, verticale par défaut.",
-      "usage": "Allouez un viewport fini depuis le parent et ajoutez les enfants dans l’ordre de lecture. Utilisez `reveal(top, bottom)` pour rendre un élément visible, et `scroll-to-start()` ou `scroll-to-end()` pour amener l’axe principal à une extrémité. Choisissez `axes: ScrollAxes.horizontal` ou `.both` pour un défilement horizontal ou à deux axes ; la colonne prend alors la largeur de son enfant le plus large. Activez `focusable: true` avec un `label` pour faire du viewport un arrêt de tabulation défilant au clavier. Observez `at-start`, `at-end` et `scrollable`, et chargez du contenu depuis `edge-reached(ScrollEdge)`. Importez ScrollFrame depuis @kit. Donnez une largeur/hauteur finie, liez content-width/content-height au canevas et placez les enfants dedans. KitScrollArea reste le conteneur vertical complet.",
+      "usage": "Allouez un viewport fini depuis le parent et ajoutez les enfants dans l’ordre de lecture. Utilisez `reveal(top, bottom)` pour rendre un élément visible, et `scroll-to-start()` ou `scroll-to-end()` pour amener l’axe principal à une extrémité. Choisissez `axes: ScrollAxes.horizontal` ou `.both` pour un défilement horizontal ou à deux axes ; la colonne prend alors la largeur de son enfant le plus large. Activez `focusable: true` avec un `label` pour faire du viewport un arrêt de tabulation défilant au clavier. Observez `at-start`, `at-end` et `scrollable`, et chargez du contenu depuis `edge-reached(ScrollEdge)`. Importez ScrollFrame depuis @kit. Donnez une largeur/hauteur finie, liez content-width/content-height au canevas et placez les enfants dedans. KitScrollArea reste le conteneur vertical complet. Écoutez `clicked()` pour réagir à un appui sur le fond vide du viewport ou du contenu, par exemple pour retirer le focus d'un champ extérieur au défilement.",
       "behavior": "Par défaut la colonne suit la largeur visible et grandit verticalement ; la barre horizontale est désactivée. Avec `axes: horizontal` ou `both`, la barre horizontale suit `horizontal-scrollbar-policy` et `content-x` est modifiable ; un axe non permis n’affiche jamais de barre. L’axe principal est vertical, ou horizontal quand `axes` vaut `horizontal` ; il pilote `scroll-to-start`, `scroll-to-end`, `at-start`, `at-end` et `edge-reached`. Un viewport dont le contenu tient est aux deux extrémités et n’en signale aucune. `edge-reached` se déclenche une fois quand un contenu débordant atteint une extrémité, par pointeur, clavier ou code. Ce conteneur ne virtualise pas ses enfants. Par défaut, la barre verticale réserve un espace stable même quand la politique as-needed la masque ; visible-width exclut cet espace. Activez overlay-scrollbars uniquement si le contenu protège lui-même son bord de fin. Choisissez `pan-policy: children-first` pour des contrôles glissables dans le viewport : un enfant qui capture l’appui garde tout le geste ; glisser le fond ou le texte déplace directement le contenu, sans inertie. Molette, barres et révélation du focus restent disponibles. La politique `native` par défaut conserve l’arbitrage tactile et l’inertie Slint ; `mouse-drag-pan-enabled` règle le glissement du fond à la souris dans les deux modes. Pour la primitive publique distincte ScrollFrame : La gouttière verticale stable suit theme.direction ; viewport-x est son origine physique relative à la primitive et visible-width/height excluent les gouttières réservées. content-x/y sont les décalages natifs négatifs. Les politiques de barres, overlay-scrollbars et pan-policy règlent la composition. enabled désactive les barres et le déplacement direct du fond ; la molette native du Flickable reste disponible. La primitive ScrollFrame n’a ni action clavier de viewport ni rôle accessible : composez-les explicitement ou utilisez une collection complète. KitScrollArea l’active sur demande : avec `focusable: true`, c’est un arrêt de tabulation avec l’anneau de focus encastré du thème (visible au focus clavier seulement) et un groupe nommé. Les flèches avancent de `line-step` sur les axes défilants ; Page précédente/suivante et Espace avancent d’une page moins un pas (Maj+Espace inverse) ; Début et Fin vont aux extrémités de l’axe principal. Les touches remontées du contenu focalisé défilent aussi, sauf si le contenu les accepte. Une touche qui ne peut pas déplacer le viewport n’est pas consommée, ce qui laisse un défilement parent s’en servir ; les combinaisons Contrôle, Alt et Méta sont laissées intactes. Appuyer sur le fond donne le clavier au viewport. Lecteur d’écran et IME natif non encore qualifiés. Les révélations programmatiques utilisent le défilement natif animé, immédiat si theme.reduced-motion ou la préférence système le demande. Pour un élément imbriqué, appelez element.ensure-visible(KitThemes.scroll-behavior(theme)) ; il ne doit pas être un enfant direct du Flickable. La primitive distincte ScrollFrame expose scroll-to(Point, ScrollBehavior) en coordonnées de contenu positives et reveal-horizontal(start, end, behavior)/reveal-vertical(start, end, behavior) pour une région ; content-x/y et set-scroll des collections restent des décalages négatifs. Sa spécialisation ListView expose ensure-row-visible(index, behavior) natif, y compris pour une ligne virtuelle non montée ; les indices invalides ne font rien. La révélation d’une région trop grande conserve son bord initial déjà visible, sans modifier l’étendue du contenu ni la position sur l’autre axe. Les flèches, Page, Espace et Home/End défilent immédiatement et conservent chaque répétition. Les fonctions explicites scroll-to-start/end et reveal sont animées sauf avec réduction des animations. Une commande clavier annule une révélation animée antérieure même si sa destination est déjà atteinte ; le pointeur et une restauration directe de content-x/y gardent la priorité. La primitive distincte ScrollFrame expose content-translation-y pour l’origine native du contenu : sa valeur par défaut suit content-y, tandis que ListView la fixe à zéro car les lignes virtualisées sont placées directement dans le viewport. Conservez ces valeurs lors de la composition de ces primitives ; ce n’est pas une propriété de KitScrollArea.",
       "label": "Zone de défilement",
       "seoTitle": "Zone de défilement pour Slint",
@@ -8224,11 +8258,14 @@
           "default": "`0` (la fenêtre).",
           "example": "KitScrollArea {\n    modal-layer: 1;\n}"
         }
+      },
+      "callbacks": {
+        "clicked": "Un appui suivi d'un relâchement sur le fond vide du viewport ou du contenu, que aucun enfant n'a traité et qui n'a pas fait défiler. Les appuis capturés par un contenu interactif, éditeurs de texte compris, ne l'atteignent jamais."
       }
     },
     "en": {
       "summary": "Scrolling area for a content column, vertical by default.",
-      "usage": "Allocate a finite viewport from the parent and add children in reading order. Use `reveal(top, bottom)` to show a region, and `scroll-to-start()` or `scroll-to-end()` to move the primary axis to an edge. Set `axes` to `ScrollAxes.horizontal` or `.both` for horizontal or two-axis scrolling; the column then takes the width of its widest child. Set `focusable: true` and a `label` to make the viewport a tab stop that scrolls by keyboard. Observe `at-start`, `at-end` and `scrollable`, and load more content from `edge-reached(ScrollEdge)`. Import ScrollFrame from @kit. Give it a finite width/height, bind content-width/content-height to your canvas and place children in it. KitScrollArea remains the complete vertical content wrapper.",
+      "usage": "Allocate a finite viewport from the parent and add children in reading order. Use `reveal(top, bottom)` to show a region, and `scroll-to-start()` or `scroll-to-end()` to move the primary axis to an edge. Set `axes` to `ScrollAxes.horizontal` or `.both` for horizontal or two-axis scrolling; the column then takes the width of its widest child. Set `focusable: true` and a `label` to make the viewport a tab stop that scrolls by keyboard. Observe `at-start`, `at-end` and `scrollable`, and load more content from `edge-reached(ScrollEdge)`. Import ScrollFrame from @kit. Give it a finite width/height, bind content-width/content-height to your canvas and place children in it. KitScrollArea remains the complete vertical content wrapper. Listen to `clicked()` to react to a press on the empty viewport or content background, for example to drop focus from a field outside the scroller.",
       "behavior": "By default the column follows the visible width and grows vertically; horizontal scrolling is disabled. With `axes: horizontal` or `both` the horizontal bar follows `horizontal-scrollbar-policy` and `content-x` is writable; a disallowed axis never shows a bar. The primary axis is vertical, or horizontal when `axes` is `horizontal`; it drives `scroll-to-start`, `scroll-to-end`, `at-start`, `at-end` and `edge-reached`. A viewport whose content fits is at both edges and reports none. `edge-reached` fires once when overflowing content arrives at an edge, by pointer, keyboard or code. This container does not virtualize its children. By default, the vertical scrollbar reserves a stable gutter even when hidden by the as-needed policy; visible-width excludes this space. Set overlay-scrollbars to true only when content independently protects its trailing edge. Select `pan-policy: children-first` for draggable controls inside the viewport: a child that claims the press keeps the whole gesture, while dragging background or text pans directly without inertia. Wheel scrolling, scrollbars and focus reveal remain available. The default `native` policy keeps Slint touch arbitration and inertia; `mouse-drag-pan-enabled` applies to background mouse dragging in either mode. For the separate public ScrollFrame composition primitive: The stable vertical gutter follows theme.direction; viewport-x is the physical origin relative to this frame and visible-width/height exclude reserved gutters. content-x/y are native negative offsets. Scrollbar policy, overlay-scrollbars and pan-policy configure composition. enabled disables bars and direct background panning; native Flickable wheel handling remains available. The ScrollFrame primitive has no viewport keyboard action or accessible role: compose those explicitly or use a complete collection. KitScrollArea is opt-in: with `focusable: true` it is a tab stop with the theme’s inset focus ring (shown for keyboard focus only) and a named group. Arrow keys move by `line-step` on the axes the area scrolls; Page Up/Down and Space move a page minus one step (Shift+Space reverses); Home and End jump to the primary axis edges. Keys bubbling from focused content scroll too, unless the content accepts them. A key that cannot move the viewport is not consumed, so an outer scroller can use it; Control, Alt and Meta chords are left alone. Pressing the background gives the viewport the keyboard. Not qualified yet with a screen reader or native IME. Programmatic reveals use native smooth scrolling, with immediate motion when theme.reduced-motion or the system preference requests it. For a nested element, call element.ensure-visible(KitThemes.scroll-behavior(theme)); the element need not be a direct Flickable child. The separate ScrollFrame primitive exposes scroll-to(Point, ScrollBehavior) in positive content coordinates and reveal-horizontal(start, end, behavior)/reveal-vertical(start, end, behavior) for coordinate regions; content-x/y and collection set-scroll remain negative offsets. Its ListView specialization exposes native ensure-row-visible(index, behavior), including unmounted virtual rows; invalid indices do nothing. Coordinate reveal preserves the visible leading edge of an oversized region without changing its content extent or orthogonal position. Keyboard arrows, Page keys, Space and Home/End scroll immediately, preserving every repeated step. Explicit scroll-to-start/end and reveal helpers animate unless motion is reduced. A keyboard command cancels an older animated reveal even when its destination is already reached; pointer input and direct content-x/y restoration remain authoritative. The separate ScrollFrame primitive exposes content-translation-y for the native content origin: its default follows content-y, while ListView sets it to zero because the virtualized rows are placed directly in the viewport. Keep these defaults when composing either primitive; this is not a KitScrollArea property.",
       "label": "Scroll Area",
       "seoTitle": "Scroll Area for Slint",
@@ -8242,6 +8279,9 @@
           "default": "`0` (window).",
           "example": "KitScrollArea {\n    modal-layer: 1;\n}"
         }
+      },
+      "callbacks": {
+        "clicked": "A press and release on the empty viewport or content background that no child handled and that did not scroll. Presses claimed by interactive content, including text editors, never reach it."
       }
     }
   },
@@ -9424,6 +9464,11 @@
           "effect": "Dessine la bordure dans la couleur du ton du thème (accent, success, warning, danger ou information). `Tone.neutral` conserve la bordure du recipe.",
           "default": "`Tone.neutral`.",
           "example": "KitSurface { tone: Tone.warning; }"
+        },
+        "fill": {
+          "effect": "Prend la hauteur allouée par le parent et y étire ses enfants, au lieu de se dimensionner sur le contenu et de le plaquer en haut. Permet à un `KitScrollArea` ou à un autre enfant extensible de remplir la carte.",
+          "default": "`false`.",
+          "example": "KitSurface { fill: true; KitScrollArea { } }"
         }
       }
     },
@@ -9447,6 +9492,11 @@
           "effect": "Draws the border in the tone's color from the theme (accent, success, warning, danger or information). `Tone.neutral` keeps the recipe border.",
           "default": "`Tone.neutral`.",
           "example": "KitSurface { tone: Tone.warning; }"
+        },
+        "fill": {
+          "effect": "Takes the height the parent allocates and stretches its children into it, instead of sizing to the content and packing it at the top. Use it to let a `KitScrollArea` or another stretching child fill the card.",
+          "default": "`false`.",
+          "example": "KitSurface { fill: true; KitScrollArea { } }"
         }
       }
     }
@@ -13060,7 +13110,7 @@
       "label": "Interactive text flow",
       "seoTitle": "Interactive text flow for Slint",
       "summary": "A wrapping paragraph of named actions and literal text with attached punctuation.",
-      "usage": "Supply TextFragment rows. item.label carries the text, item.disabled marks a literal, and suffix stays with the fragment. Use positive source generations and unique stable tokens. KeyedModel<K, TextFragment> stamps both fields. Connect activated to KitPopover.show-at. Use available(token, generation) for synchronous admission, focus-fragment(token, generation) to return to an exact opener, and take-focus() for the current action.",
+      "usage": "Supply TextFragment rows. item.label carries the text, item.disabled marks a literal, and suffix stays with the fragment. Use positive source generations and unique stable tokens. KeyedModel<K, TextFragment> stamps both fields. Connect activated to KitPopover.show-at. Use available(token, generation) for synchronous admission, focus-fragment(token, generation) to return to an exact opener, and take-focus() for the current action. Set `appearance: TextFlowAppearance.plain` to keep actionable words in the paragraph ink, showing the accent only on hover and press, and `role` to choose the paragraph typography. Set `muted` on a fragment to draw it and its suffix in the secondary text color.",
       "behavior": "One native Tab stop per actionable paragraph. Left/Right follow theme direction. Home/End move to the first/last action. Return or Space activates. The suffix is outside the hit rectangle. For a long document, virtualize its paragraphs.",
       "accessibility": "Actionable text has the button role and full label. Literals expose text. Arrow navigation skips literals. The active action uses an inset focus outline.",
       "related": [
@@ -13075,13 +13125,23 @@
       },
       "properties": {
         "fragments": {
-          "effect": "The model in logical reading order."
+          "effect": "The model in logical reading order. `muted` on a fragment draws it and its suffix in the secondary text color."
         },
         "enabled": {
           "effect": "Bind to the activity of a retained route."
         },
         "modal-layer": {
           "effect": "Layer containing the paragraph."
+        },
+        "appearance": {
+          "effect": "`link` draws actionable words in the accent color. `plain` keeps the paragraph ink and shows the accent only while hovered or pressed.",
+          "default": "`TextFlowAppearance.link`.",
+          "example": "KitTextFlow { appearance: TextFlowAppearance.plain; }"
+        },
+        "role": {
+          "effect": "Typography role of every word and suffix.",
+          "default": "`TypographyRole.body`.",
+          "example": "KitTextFlow { role: TypographyRole.caption; }"
         }
       },
       "states": "Literal, actionable, hovered, pressed, keyboard-focused and inert. Changes to the model preserve logical navigation by token. A suffix on a wrapped token follows the shaped advance of its final line."
@@ -13090,7 +13150,7 @@
       "label": "Texte interactif",
       "seoTitle": "Texte interactif pour Slint",
       "summary": "Paragraphe repliable avec actions nommées, texte littéral et ponctuation solidaire.",
-      "usage": "Fournissez des lignes TextFragment. item.label contient le texte, item.disabled indique un littéral et suffix accompagne son fragment. Utilisez des générations positives et des tokens uniques et stables. KeyedModel<K, TextFragment> attribue ces deux champs. Reliez activated à KitPopover.show-at. Utilisez available(token, generation) pour vérifier la cible immédiatement, focus-fragment(token, generation) pour rendre le focus à l’élément exact et take-focus() pour l’action courante.",
+      "usage": "Fournissez des lignes TextFragment. item.label contient le texte, item.disabled indique un littéral et suffix accompagne son fragment. Utilisez des générations positives et des tokens uniques et stables. KeyedModel<K, TextFragment> attribue ces deux champs. Reliez activated à KitPopover.show-at. Utilisez available(token, generation) pour vérifier la cible immédiatement, focus-fragment(token, generation) pour rendre le focus à l’élément exact et take-focus() pour l’action courante. Définissez `appearance: TextFlowAppearance.plain` pour garder les mots actionnables à l'encre du paragraphe, l'accent n'apparaissant qu'au survol et à l'appui, et `role` pour choisir la typographie du paragraphe. Définissez `muted` sur un fragment pour le dessiner, avec son suffixe, dans la couleur de texte secondaire.",
       "behavior": "Un arrêt Tab natif par paragraphe avec action. Gauche/Droite suivent le sens du thème. Début/Fin atteignent la première ou dernière action. Entrée ou Espace active. Le suffixe est hors de la cible. Virtualisez les paragraphes des longs documents.",
       "accessibility": "Le texte activable expose le rôle bouton et son libellé entier. Les littéraux exposent du texte. Les flèches sautent les littéraux. L’action active reçoit un anneau intérieur.",
       "related": [
@@ -13112,6 +13172,16 @@
         },
         "modal-layer": {
           "effect": "Couche qui contient le paragraphe."
+        },
+        "appearance": {
+          "effect": "`link` dessine les mots actionnables en couleur d'accent. `plain` garde l'encre du paragraphe et n'affiche l'accent qu'au survol ou à l'appui.",
+          "default": "`TextFlowAppearance.link`.",
+          "example": "KitTextFlow { appearance: TextFlowAppearance.plain; }"
+        },
+        "role": {
+          "effect": "Rôle typographique de chaque mot et suffixe.",
+          "default": "`TypographyRole.body`.",
+          "example": "KitTextFlow { role: TypographyRole.caption; }"
         }
       },
       "states": "Littéral, activable, survolé, pressé, focalisé au clavier ou inerte. La navigation logique suit le token lors des mutations du modèle. Le suffixe d’un mot replié suit l’avance réellement composée de sa dernière ligne."

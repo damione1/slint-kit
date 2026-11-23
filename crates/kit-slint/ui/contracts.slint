@@ -5,7 +5,8 @@ import { IconGlyph } from "icons/glyph.slint";
 export { NavigationStep, CloseReason, SelectionAvailability, SelectionRetention, FieldAccess, CommitPolicy, ValidationPresentation, TextPurpose, SecretVisibility, StepDirection, NumberStepStatus } from "shared-contracts.slint";
 export struct OptionRow { token: int, generation: int, label: string, description: string, disabled: bool }
 // The item owns the stable identity, spoken label and action availability.
-export struct TextFragment { item: OptionRow, suffix: string }
+// `muted` draws the fragment and its suffix in the secondary text color.
+export struct TextFragment { item: OptionRow, suffix: string, muted: bool }
 // What an option row is. Group and separator rows are decoration: they take no
 // pointer, focus or activation, and the model must mark them `disabled` so the
 // shared navigation skips them.

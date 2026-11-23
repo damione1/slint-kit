@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCard, KitSurface, KitScrollArea, KitInline, KitStack, KitText, LayoutSpace } from "@kit";
+
+export component LayoutFillFixture inherits Window {
+    width: 320px; height: 520px;
+    out property <length> surface-height: surface.height;
+    out property <length> surface-scroll-height: surface-scroll.height;
+    out property <length> card-height: card.height;
+    out property <length> card-scroll-height: card-scroll.height;
+    out property <length> packed-surface-height: packed-surface.height;
+    out property <length> packed-surface-natural: packed-surface.preferred-height;
+    out property <length> packed-card-height: packed-card.height;
+    out property <length> packed-card-natural: packed-card.preferred-height;
+    out property <length> a-width: a.width;
+    out property <length> b-width: b.width;
+    out property <length> c-width: c.width;
+    VerticalLayout {
+        alignment: start;
+        VerticalLayout { height: 150px;
+            surface := KitSurface { fill: true;
+                surface-scroll := KitScrollArea { KitText { text: "Short"; } }
+            }
+        }
+        VerticalLayout { height: 150px;
+            card := KitCard { fill: true;
+                card-scroll := KitScrollArea { KitText { text: "Short"; } }
+            }
+        }
+        VerticalLayout { height: 60px; alignment: start;
+            packed-surface := KitSurface { KitText { text: "Short"; } }
+        }
+        VerticalLayout { height: 60px; alignment: start;
+            packed-card := KitCard { KitText { text: "Short"; } }
+        }
+        KitInline { gap: compact; alignment: stretch;
+            a := KitStack { horizontal-stretch: 1; preferred-width: 0px; min-width: 0px; KitText { text: "One"; } }
+            b := KitStack { horizontal-stretch: 1; preferred-width: 0px; min-width: 0px; KitText { text: "A considerably longer piece of wrapped text"; } }
+            c := KitStack { horizontal-stretch: 1; preferred-width: 0px; min-width: 0px; KitText { text: "Mid length text"; } }
+        }
+    }
+}

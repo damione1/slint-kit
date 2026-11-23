@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitScrollArea, ScrollPanPolicy } from "@kit";
+
+export component ScrollClickFixture inherits Window {
+    width: 300px; height: 200px;
+    in property <ScrollPanPolicy> policy: ScrollPanPolicy.native;
+    out property <int> background-clicks;
+    out property <int> button-clicks;
+    area := KitScrollArea {
+        x: 0px; y: 0px; width: 300px; height: 200px;
+        pan-policy: root.policy; mouse-drag-pan-enabled: true;
+        clicked => { root.background-clicks += 1; }
+        KitButton { text: "Inside"; activated => { root.button-clicks += 1; } }
+        Rectangle { height: 400px; }
+    }
+}

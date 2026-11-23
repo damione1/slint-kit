@@ -969,6 +969,10 @@ fn settle_scroll(window: &impl slint::ComponentHandle) {
     }
     slint::platform::update_timers_and_animations();
 }
+mod chat_bubble_content;
+mod layout_fill;
 mod long_lists;
 mod reduced_motion;
+mod scroll_click;
 mod scroll_transactions;
+mod text_flow_appearance;

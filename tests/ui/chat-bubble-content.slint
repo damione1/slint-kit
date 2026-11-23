@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitChatBubble, ChatSide, ChatBubbleTone, KitTheme, KitThemes } from "@kit";
+
+export component ChatBubbleContentFixture inherits Window {
+    width: 400px; height: 320px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <int> opened;
+    out property <color> subtle: root.theme.accent-subtle;
+    out property <color> accent: root.theme.accent;
+    out property <color> surface: root.theme.surface;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 8px; spacing: 8px; alignment: start;
+        KitChatBubble { theme: root.theme; side: ChatSide.end; tone: ChatBubbleTone.accent-subtle; author: "You"; text: "Mine"; metadata: "09:30"; }
+        KitChatBubble { theme: root.theme; author: "Alex";
+            KitButton { theme: root.theme; text: "Open"; activated => { root.opened += 1; } }
+        }
+        KitChatBubble { theme: root.theme; content-share: 1; text: "Full width"; }
+        KitChatBubble { theme: root.theme; text: "Default"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.end; text: "Sent"; }
+    }
+}

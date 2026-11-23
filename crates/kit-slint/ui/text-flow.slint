@@ -7,7 +7,7 @@ import { KitSelectKeyboard } from "select.slint";
 import { KitSelectionService } from "selection-service.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitModalContext } from "modal.slint";
-import { KitTheme, KitThemes, KitThemeContext, ChoiceFlow } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, ChoiceFlow, TypographyRole } from "theme.slint";
 import { PopoverAnchor } from "field-service.slint";
 import { FocusRequest, OptionRow, TextFragment } from "contracts.slint";
 export { TextFragment } from "contracts.slint";
@@ -40,12 +40,18 @@ component LastLineMeasure inherits TextInput {
     changed font-weight => { root.measure(); }
 }
 
+// How activatable fragments read at rest. `link` draws them in the accent color;
+// `plain` keeps the paragraph's ink and shows the accent only on hover and press.
+export enum TextFlowAppearance { link, plain }
+
 // A materialized paragraph. Virtualize paragraphs in the enclosing document.
 export component KitTextFlow inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[TextFragment]> fragments;
     in property <int> modal-layer;
     in property <bool> enabled: true;
+    in property <TextFlowAppearance> appearance: TextFlowAppearance.link;
+    in property <TypographyRole> role: TypographyRole.body;
     callback activated(PopoverAnchor);
     private property <FocusRequest> request;
     private property <bool> live: root.enabled && root.visible && !KitModalContext.inert(root.modal-layer);
@@ -90,6 +96,7 @@ export component KitTextFlow inherits Rectangle {
             request: root.request; eligible: root.live && !fragment.item.disabled;
             focus-applied(token, generation, request) => { root.request.present = false; }
             private property <bool> show-focus;
+            private property <color> ink: fragment.muted || root.role == TypographyRole.caption ? root.theme.text-secondary : root.theme.text-primary;
             focus-requested => { group.show-focus = true; action.take-focus(); }
             width: min(root.width, word.preferred-width + suffix.preferred-width);
             height: max(word.preferred-height, suffix.preferred-height);
@@ -104,18 +111,18 @@ export component KitTextFlow inherits Rectangle {
                 measured(advance) => { group.measured-last-line = advance; }
             }
             word := KitText {
-                theme: root.theme; text: fragment.item.label;
+                theme: root.theme; role: root.role; text: fragment.item.label;
                 width: group.word-width; height: self.preferred-height;
                 x: root.rtl ? group.suffix-width : 0px; y: 0px;
                 color: action.pressed ? root.theme.accent-pressed : action.hovered ? root.theme.accent-hover
-                    : fragment.item.disabled ? root.theme.text-primary : root.theme.accent;
+                    : fragment.item.disabled || root.appearance == TextFlowAppearance.plain ? group.ink : root.theme.accent;
                 accessible-role: none;
                 if fragment.item.disabled: Rectangle {
                     accessible-role: text; accessible-label: fragment.item.label;
                 }
             }
             suffix := KitText {
-                theme: root.theme; text: fragment.suffix;
+                theme: root.theme; role: root.role; text: fragment.suffix; color: group.ink;
                 x: root.rtl ? group.width - group.last-width - self.width : group.last-width; y: group.height - self.height;
                 width: group.suffix-width; height: self.preferred-height; wrap: no-wrap;
             }

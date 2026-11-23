@@ -152,6 +152,10 @@ export component ScrollFrame {
     // Background panning is bounded and direct; wheel/focus/bars remain native.
     in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.native;
     callback scrolled <=> flickable.flicked;
+    // A press and release on the pan surface that no child handled and that did not pan.
+    callback background-clicked();
+    // Down on the pan surface that no child claimed.
+    callback background-pressed();
     // Positive content coordinates; the native Flickable clamps both axes.
     public function scroll-to(position: Point, behavior: ScrollBehavior) {
         flickable.scroll-to(position, root.theme.reduced-motion ? ScrollBehavior.instant : behavior);
@@ -199,9 +203,11 @@ export component ScrollFrame {
         enabled: root.enabled && root.pan-policy == ScrollPanPolicy.children-first;
         private property <bool> dragging;
         private property <int> finger;
+        private property <bool> panned;
         private property <length> start-x;
         private property <length> start-y;
         pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) { self.panned = false; root.background-pressed(); }
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left && (event.touch-finger-id != 0 || root.mouse-drag-pan-enabled)) {
                 self.dragging = true; self.finger = event.touch-finger-id;
                 self.start-x = flickable.content-x; self.start-y = flickable.content-y;
@@ -213,10 +219,11 @@ export component ScrollFrame {
                 let next-x = clamp(self.start-x + self.mouse-x - self.pressed-x,-max(0px,flickable.content-width - self.width),0px);
                 let next-y = clamp(self.start-y + self.mouse-y - self.pressed-y,-max(0px,flickable.content-height - self.height),0px);
                 if (next-x != flickable.content-x || next-y != flickable.content-y) {
-                    flickable.content-x = next-x; flickable.content-y = next-y; root.scrolled();
+                    flickable.content-x = next-x; flickable.content-y = next-y; self.panned = true; root.scrolled();
                 }
             }
         }
+        clicked => { if (!self.panned) { root.background-clicked(); } }
         flickable := Flickable {
             x: 0px; y: 0px;
             interactive: root.pan-policy == ScrollPanPolicy.native;
