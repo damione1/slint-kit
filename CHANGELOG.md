@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added `KitOverline`, a small uppercase section label in the caption size, semibold and letter-spaced. `label` keeps its source case for assistive technology. `KitTypography` gains `tracking-overline` (a fraction of the font size, 0.08 in both shipped themes), so complete `KitTypography` literals must now set it.
+- Ajout de `KitOverline`, un petit libellé de section en capitales, à la taille de légende, semi-gras et espacé. `label` garde sa casse d'origine pour les technologies d'assistance. `KitTypography` gagne `tracking-overline` (une fraction de la taille de police, 0,08 dans les deux thèmes fournis) : les littéraux complets de `KitTypography` doivent désormais le définir.
+
 - Added `fill` to `KitSurface` and `KitCard`: the surface takes the height its parent allocates and stretches its children, so a `KitScrollArea` inside it fills the surface instead of collapsing to its preferred height.
 - Ajout de `fill` à `KitSurface` et `KitCard` : la surface prend la hauteur allouée par son parent et y étire ses enfants, de sorte qu'un `KitScrollArea` qu'elle contient la remplit au lieu de se réduire à sa hauteur préférée.
 

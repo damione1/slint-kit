@@ -341,6 +341,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         size_title,
         size_display,
         line_height_control,
+        tracking_overline,
     } = typography;
     tokens.push(("typography.family".into(), Token::Text(family)));
     tokens.push((
@@ -373,6 +374,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         medium,
         comfortable,
     } = spacing;
+    tokens.push((
+        "typography.tracking-overline".into(),
+        Token::Float(tracking_overline),
+    ));
     tokens.push(("spacing.unit".into(), Token::Length(unit)));
     density(&mut tokens, "compact", compact);
     density(&mut tokens, "medium", medium);

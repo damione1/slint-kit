@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { AvatarShape, AvatarSize, ButtonIntent, ControlWidth, IconGlyph, KitAvatar, KitButton, KitCard, KitEmptyState, KitKeycap, KitSurface, KitTheme, KitThemes, Tone } from "@kit";
+import { AvatarShape, AvatarSize, ButtonIntent, ControlWidth, IconGlyph, KitAvatar, KitButton, KitCard, KitEmptyState, KitKeycap, KitOverline, KitSurface, KitText, KitTheme, KitThemes, Tone, TypographyRole } from "@kit";
 
 export component DisplayVariantsFixture inherits Window {
-    width: 320px; height: 520px;
+    width: 320px; height: 600px;
     in property <KitTheme> theme: KitThemes.light;
     in property <color> custom-fill: #123456;
     in property <color> custom-ink: #fedcba;
@@ -17,6 +17,11 @@ export component DisplayVariantsFixture inherits Window {
     out property <length> key-y: key.y;
     out property <length> key-width: key.width;
     out property <length> key-height: key.height;
+    out property <string> overline-text: overline.text;
+    out property <string> overline-label: overline.accessible-label;
+    out property <length> overline-width: overline.preferred-width;
+    out property <length> plain-width: plain.preferred-width;
+    out property <length> overline-font-size: overline.font-size;
     out property <length> card-y: card.y;
     out property <length> surface-y: surface.y;
     out property <length> soft-y: soft.y;
@@ -40,5 +45,7 @@ export component DisplayVariantsFixture inherits Window {
         surface := KitSurface { theme: root.theme; tone: root.card-tone; height: 40px; }
         soft := KitButton { theme: root.theme; intent: ButtonIntent.destructive-soft; text: "Delete"; control-width: ControlWidth.fill; padding-inline: 0px; }
         empty := KitEmptyState { theme: root.theme; title: "Nothing here"; description: "Come back later"; icon: root.with-icon ? root.theme.icons.check : root.no-glyph; centered: root.centered; }
+        overline := KitOverline { theme: root.theme; label: "Calendars"; }
+        plain := KitText { theme: root.theme; role: TypographyRole.caption; text: "CALENDARS"; wrap: no-wrap; font-weight: root.theme.typography.weight-semibold; }
     }
 }

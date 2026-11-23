@@ -38,6 +38,17 @@ export component KitText inherits Text {
     accessible-label: root.text;
 }
 
+// A small uppercase section label in the caption size, semibold and tracked out.
+// `label` keeps its source case for assistive technology.
+export component KitOverline inherits KitText {
+    in property <string> label;
+    role: TypographyRole.caption;
+    text: root.label.to-uppercase();
+    font-weight: root.theme.typography.weight-semibold;
+    letter-spacing: KitMetrics.font-size(root.theme, TypographyRole.caption) * root.theme.typography.tracking-overline;
+    accessible-label: root.label;
+}
+
 // An unmasked source image, fitted inside a theme-sized box. The host owns the asset.
 export component KitImage inherits Image {
     in property <KitTheme> theme: KitThemeContext.current;

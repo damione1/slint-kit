@@ -128,3 +128,16 @@ fn empty_state_draws_an_icon_tile_and_centres_its_content_on_request() {
         channels(window.get_inset())
     );
 }
+
+#[test]
+fn overline_is_uppercase_tracked_and_keeps_its_source_label() {
+    let window = software_window();
+    assert_eq!(window.get_overline_text(), "CALENDARS");
+    assert_eq!(window.get_overline_label(), "Calendars");
+    assert_eq!(window.get_overline_font_size(), 12.);
+    let extra = window.get_overline_width() - window.get_plain_width();
+    assert!(
+        (extra - 9. * 12. * 0.08).abs() < 1.,
+        "tracking adds {extra}"
+    );
+}

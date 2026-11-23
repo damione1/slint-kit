@@ -136,6 +136,7 @@ for name in ['KitContainer','KitStack','KitInline','KitWrap','KitGrid','KitSecti
 add('KitScrollBar', 'HorizontalLayout { height: 120px; spacing: 8px; notes := Flickable { content-height: column.preferred-height; column := VerticalLayout { width: notes.width; spacing: 8px; alignment: start; '+''.join(txt(s) for s in ['Team workspace','Keep observations and decisions together.','Monday: kickoff with the design team.','Tuesday: review the onboarding flow.','Wednesday: draft the release notes.','Thursday: test the import on large files.','Friday: publish the weekly summary.','Ready to publish your changes?'])+' } } KitScrollBar { theme: root.theme; maximum: notes.content-height - notes.height; page-size: notes.height; value <=> notes.content-y; scrolled => { root.status = "Notes scrolled"; } } }', 260)
 add('KitBadge', 'HorizontalLayout { alignment: start; spacing: 12px; KitBadge { theme: root.theme; text: "Draft"; } KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; } KitBadge { theme: root.theme; text: "3 updates"; tone: Tone.accent; } }')
 add('KitKeycap', 'HorizontalLayout { alignment: start; spacing: 8px; KitKeycap { theme: root.theme; text: "⌘ K"; } KitKeycap { theme: root.theme; text: "⌥ Space"; } }')
+add('KitOverline', 'VerticalLayout { alignment: start; spacing: 4px; KitOverline { theme: root.theme; label: "Calendars"; } '+txt('All calendars are included.')+' }')
 add('KitAvatar', 'HorizontalLayout { alignment: start; spacing: 16px; KitAvatar { theme: root.theme; initials: "EA"; accessible-name: "Elliot Alderson"; size: 56px; } KitAvatar { theme: root.theme; initials: "DA"; accessible-name: "Darlene Alderson"; shape: AvatarShape.rounded; size: 56px; } }')
 add('KitCard', 'KitCard { theme: root.theme; KitCardHeader { theme: root.theme; title: "Field notes"; description: "Your team’s shared research workspace."; } KitCardBody { '+txt('Keep observations and decisions together.')+' } KitCardFooter { '+button('Open project')+' } }',340)
 add('KitCardHeader', 'KitCardHeader { theme: root.theme; title: "Project settings"; description: "Manage your workspace and collaborators."; }')
@@ -240,7 +241,7 @@ geometry.update({
     'KitCard': (480, 300), 'KitCardBody': (440, 260),
     'KitCardFooter': (480, 220), 'KitHero': (520, 300),
     'KitFooter': (480, 240), 'KitDivider': (420, 270),
-    'KitStat': (360, 210), 'KitKeycap': (360, 160), 'KitChatBubble': (440, 230),
+    'KitStat': (360, 210), 'KitKeycap': (360, 160), 'KitOverline': (360, 160), 'KitChatBubble': (440, 230),
     'KitSkeleton': (420, 200), 'KitEmptyState': (480, 310),
     'KitTimeline': (480, 350), 'KitSteps': (420, 280),
     'KitAlert': (480, 220), 'KitRadialProgress': (320, 230),

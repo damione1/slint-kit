@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitCard, KitOverline, KitText, KitTheme, KitThemes } from "@kit";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    title: "Overline";
+    preferred-width: 480px; preferred-height: 260px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Settings, grouped by label"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "An overline names a group of rows; the label stays in its natural case."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCard { theme: root.theme;
+            VerticalLayout { spacing: 4px; KitOverline { theme: root.theme; label: "Calendars"; } KitText { theme: root.theme; text: "All calendars are included; clear the ones to hide."; } }
+            VerticalLayout { spacing: 4px; KitOverline { theme: root.theme; label: "Notifications"; } KitText { theme: root.theme; text: "Choose which alerts reach you."; } }
+        }
+    }
+}
