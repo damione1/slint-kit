@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { AvatarShape, AvatarSize, ButtonIntent, ControlWidth, IconGlyph, KitAvatar, KitButton, KitCard, KitEmptyState, KitKeycap, KitSurface, KitTheme, KitThemes, Tone } from "@kit";
+
+export component DisplayVariantsFixture inherits Window {
+    width: 320px; height: 520px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <color> custom-fill: #123456;
+    in property <color> custom-ink: #fedcba;
+    in property <Tone> card-tone: Tone.neutral;
+    in property <IconGlyph> no-glyph;
+    in property <bool> with-icon;
+    in property <bool> centered;
+    out property <length> tile-x: tile.x;
+    out property <length> tile-y: tile.y;
+    out property <length> tile-width: tile.width;
+    out property <length> key-x: key.x;
+    out property <length> key-y: key.y;
+    out property <length> key-width: key.width;
+    out property <length> key-height: key.height;
+    out property <length> card-y: card.y;
+    out property <length> surface-y: surface.y;
+    out property <length> soft-y: soft.y;
+    out property <length> soft-height: soft.height;
+    out property <length> empty-y: empty.y;
+    out property <length> empty-height: empty.height;
+    out property <color> canvas: root.theme.canvas;
+    out property <color> inset: root.theme.surface-inset;
+    out property <color> border-strong: root.theme.border-strong;
+    out property <color> raised: root.theme.surface-raised;
+    out property <color> danger-subtle: root.theme.danger-subtle;
+    out property <color> card-border: root.theme.border-subtle;
+    out property <color> warning: root.theme.warning;
+    out property <color> danger: root.theme.danger;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 8px; spacing: 8px; alignment: start;
+        tile := KitAvatar { theme: root.theme; shape: AvatarShape.rounded; avatar-size: AvatarSize.small; bordered: false; fill: root.custom-fill; ink: root.custom-ink; fallback-icon: root.theme.icons.check; }
+        key := KitKeycap { theme: root.theme; text: "Alt Space"; }
+        card := KitCard { theme: root.theme; tone: root.card-tone; height: 40px; }
+        surface := KitSurface { theme: root.theme; tone: root.card-tone; height: 40px; }
+        soft := KitButton { theme: root.theme; intent: ButtonIntent.destructive-soft; text: "Delete"; control-width: ControlWidth.fill; padding-inline: 0px; }
+        empty := KitEmptyState { theme: root.theme; title: "Nothing here"; description: "Come back later"; icon: root.with-icon ? root.theme.icons.check : root.no-glyph; centered: root.centered; }
+    }
+}

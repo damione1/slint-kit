@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Added `fill` and `ink` to `KitAvatar` for an explicit tile tint the tones do not name, and `AvatarSize.small` (`geometry.avatar-small`, 32px) between `compact` and `medium`. Complete `KitGeometry` literals must now set `avatar-small`.
+- Ajout de `fill` et `ink` à `KitAvatar` pour une teinte de pastille explicite que les tons ne nomment pas, et de `AvatarSize.small` (`geometry.avatar-small`, 32 px) entre `compact` et `medium`. Les littéraux complets de `KitGeometry` doivent désormais définir `avatar-small`.
+
+- Added `KitKeycap`, a non-interactive monospace key cap with a thicker bottom rim for showing a shortcut.
+- Ajout de `KitKeycap`, une touche de clavier non interactive à chasse fixe, au liseré inférieur plus épais, pour afficher un raccourci.
+
+- Added `icon`, `icon-tone` and `centered` to `KitEmptyState`: a decorative 64px tile above the title, and centred title and description.
+- Ajout de `icon`, `icon-tone` et `centered` à `KitEmptyState` : une pastille décorative de 64 px au-dessus du titre, et un titre et une description centrés.
+
+- Added `tone` to `KitCard` and `KitSurface`, which draws the border in the theme color of the tone. `Tone` now lives in the theme module and is still exported from `@kit`.
+- Ajout de `tone` à `KitCard` et `KitSurface`, qui dessine la bordure dans la couleur du ton du thème. `Tone` vit désormais dans le module du thème et reste exporté par `@kit`.
+
+- Added `ButtonIntent.destructive-soft`: a flat danger-subtle button with danger ink. Code that matches `ButtonIntent` exhaustively must handle the new variant.
+- Ajout de `ButtonIntent.destructive-soft` : un bouton à plat danger-subtle avec encre danger. Le code qui énumère `ButtonIntent` de façon exhaustive doit traiter la nouvelle variante.
+
 - Added `subtle` and `dot` to `KitBadge`: a tinted borderless badge for every tone (`Tone.accent` included) and a filled status dot in the tone's color. A badge wider than its parent now shrinks and elides its text instead of overflowing.
 - Ajout de `subtle` et `dot` à `KitBadge` : un badge teinté sans bordure pour chaque ton (`Tone.accent` compris) et un point d'état plein de la couleur du ton. Un badge plus large que son parent se réduit et tronque son texte au lieu de déborder.
 

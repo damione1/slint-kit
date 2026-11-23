@@ -3,7 +3,7 @@ import { ScrollFrame, ScrollPanPolicy } from "scroll.slint";
 import { NavigationStep } from "contracts.slint";
 import { FocusOutline } from "focus.slint";
 import { KitModalContext } from "modal.slint";
-import { ElevationLevel, KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
+import { ElevationLevel, KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext, Tone } from "theme.slint";
 export { SurfaceLevel } from "theme.slint";
 
 // Presentation-only contracts: Rust consumers use the generated Slint enums.
@@ -134,9 +134,11 @@ export component KitSurface inherits Rectangle {
     in property <length> corner-radius: root.recipe.radius;
     in property <ElevationLevel> elevation: root.recipe.elevation;
     in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
+    // Draws the border in the tone's color; neutral keeps the recipe border.
+    in property <Tone> tone: Tone.neutral;
     border-radius: root.corner-radius;
     border-width: root.border == SurfaceBorder.subtle ? root.recipe.border-width : 0px;
-    border-color: root.recipe.border;
+    border-color: KitThemes.tone-border(root.theme, root.tone, root.recipe.border);
     background: root.recipe.fill;
     drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y;
     drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur;

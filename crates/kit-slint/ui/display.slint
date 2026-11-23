@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { TextViewFont } from "theme.slint";
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
-import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
+import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe, ChoiceFlow, Tone } from "theme.slint";
 import { KitIcon, KitGlyphs, IconGlyph, IconPurpose } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
 import { KitStrings } from "strings.slint";
 
-export enum Tone { neutral, accent, success, warning, danger, information }
-export { AvatarSize } from "theme.slint";
+export { Tone, AvatarSize } from "theme.slint";
 export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
@@ -92,6 +91,37 @@ export component KitBadge inherits Rectangle {
     }
 }
 
+// A keyboard key cap for a shortcut: monospace text on a raised face whose
+// bottom rim is thicker than the other edges.
+export component KitKeycap inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <string> text;
+    private property <length> rim: root.theme.shape.border-width;
+    private property <length> lift: root.theme.shape.border-width-strong;
+    private property <length> inset-x: root.theme.spacing.unit * 1.5;
+    preferred-width: label.preferred-width + 2 * (root.inset-x + root.rim);
+    min-width: min(self.preferred-width, 2 * (root.inset-x + root.rim)); max-width: self.preferred-width;
+    preferred-height: label.preferred-height + root.theme.spacing.unit + root.rim + root.lift;
+    min-height: self.preferred-height; max-height: self.preferred-height;
+    vertical-stretch: 0; horizontal-stretch: 0;
+    border-radius: root.theme.shape.radius-control;
+    background: root.theme.border-strong;
+    accessible-role: AccessibleRole.text; accessible-label: root.text;
+    Rectangle {
+        x: root.rim; y: root.rim;
+        width: max(0px, root.width - 2 * root.rim); height: max(0px, root.height - root.rim - root.lift);
+        border-radius: max(0px, root.theme.shape.radius-control - root.rim);
+        background: root.theme.surface-raised;
+        label := Text {
+            width: max(0px, parent.width - 2 * root.inset-x); height: self.preferred-height;
+            x: root.inset-x; y: (parent.height - self.height) / 2;
+            text: root.text; overflow: elide; accessible-role: none; horizontal-alignment: center;
+            color: root.theme.text-secondary;
+            font-family: root.theme.typography.family-monospace; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-medium;
+        }
+    }
+}
+
 export component KitAvatar inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <image> source;
@@ -104,7 +134,10 @@ export component KitAvatar inherits Rectangle {
     in property <bool> muted;
     // Hides a static avatar from assistive technology when it only decorates its neighbours.
     in property <bool> decorative;
-    private property <color> avatar-ink: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.muted && root.tone == Tone.neutral ? root.theme.text-secondary : root.theme.text-primary;
+    // Explicit tile fill and ink for a tint the tones do not name; `transparent` defers to `tone`.
+    in property <color> fill: transparent;
+    in property <color> ink: transparent;
+    private property <color> avatar-ink: root.ink != transparent ? root.ink : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.muted && root.tone == Tone.neutral ? root.theme.text-secondary : root.theme.text-primary;
     in property <AvatarShape> shape: AvatarShape.circle;
     in property <AvatarInteraction> interaction: AvatarInteraction.static;
     in property <bool> disabled;
@@ -122,7 +155,7 @@ export component KitAvatar inherits Rectangle {
     height: self.width;
     horizontal-stretch: 0; vertical-stretch: 0;
     border-radius: root.shape == AvatarShape.circle ? self.width / 2 : root.shape == AvatarShape.rounded ? root.theme.shape.radius-control : 0px;
-    background: root.tone == Tone.accent ? root.theme.accent-subtle : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.muted && root.tone == Tone.neutral ? root.theme.surface-inset : root.theme.surface;
+    background: root.fill != transparent ? root.fill : root.tone == Tone.accent ? root.theme.accent-subtle : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.muted && root.tone == Tone.neutral ? root.theme.surface-inset : root.theme.surface;
     border-width: root.bordered ? root.theme.shape.border-width : 0px; border-color: root.theme.border-strong;
     accessible-role: AccessibleRole.none;
     if root.interaction == AvatarInteraction.static && !root.decorative: Rectangle { accessible-role: image; accessible-label: root.effective-name; }
@@ -218,8 +251,10 @@ export component KitCard inherits Rectangle {
     in property <length> corner-radius: root.recipe.radius;
     in property <ElevationLevel> elevation: root.recipe.elevation;
     in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
+    // Draws the border in the tone's color; neutral keeps the recipe border.
+    in property <Tone> tone: Tone.neutral;
     background: root.recipe.fill;
-    border-color: root.recipe.border; border-width: root.recipe.border-width; border-radius: root.corner-radius;
+    border-color: KitThemes.tone-border(root.theme, root.tone, root.recipe.border); border-width: root.recipe.border-width; border-radius: root.corner-radius;
     drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     vertical-stretch: 0;
@@ -334,13 +369,23 @@ export component KitEmptyState inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
+    // A decorative tile above the title; empty draws none.
+    in property <IconGlyph> icon;
+    in property <Tone> icon-tone: Tone.neutral;
+    // Centres the tile, the title and the description; children keep their own alignment.
+    in property <bool> centered;
     private property <length> inset: root.theme.spacing.unit * 6;
+    private property <bool> has-icon: root.icon.stroke != "" || root.icon.fill != "";
+    private property <TextHorizontalAlignment> text-alignment: root.centered ? TextHorizontalAlignment.center : TextHorizontalAlignment.left;
     preferred-height: content.preferred-height;
     min-height: self.preferred-height;
     vertical-stretch: 0;
     content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: root.inset; spacing: root.theme.spacing.unit * 3; alignment: start;
-        Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        if root.description != "": Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        if root.has-icon: HorizontalLayout { alignment: root.centered ? LayoutAlignment.center : LayoutAlignment.start;
+            KitAvatar { theme: root.theme; shape: AvatarShape.rounded; tone: root.icon-tone; muted: true; bordered: false; decorative: true; fallback-icon: root.icon; size: root.theme.spacing.unit * 16 * root.theme.text-scale; }
+        }
+        Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; horizontal-alignment: root.text-alignment; }
+        if root.description != "": Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; horizontal-alignment: root.text-alignment; }
         @children
     }
 }

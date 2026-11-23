@@ -210,6 +210,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         busy_mark,
         avatar_size,
         avatar_compact,
+        avatar_small,
         avatar_large,
         avatar_initials_ratio,
         step_marker_minimum,
@@ -240,6 +241,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("geometry.busy-mark", busy_mark),
         ("geometry.avatar-size", avatar_size),
         ("geometry.avatar-compact", avatar_compact),
+        ("geometry.avatar-small", avatar_small),
         ("geometry.avatar-large", avatar_large),
         ("geometry.step-marker-minimum", step_marker_minimum),
         ("geometry.step-marker-scaled", step_marker_scaled),
@@ -666,7 +668,10 @@ fn recipes_reproduce_the_default_geometry() {
                 | ButtonIntent::Success
                 | ButtonIntent::Warning
                 | ButtonIntent::Information => true,
-                ButtonIntent::Outline | ButtonIntent::Quiet | ButtonIntent::Link => false,
+                ButtonIntent::Outline
+                | ButtonIntent::Quiet
+                | ButtonIntent::DestructiveSoft
+                | ButtonIntent::Link => false,
             };
             assert_eq!(
                 recipe.elevation,
@@ -680,6 +685,11 @@ fn recipes_reproduce_the_default_geometry() {
             let (border_width, hover, pressed) = match intent {
                 ButtonIntent::Primary => (0., theme.accent_hover, theme.accent_pressed),
                 ButtonIntent::Destructive => (0., theme.danger_hover, theme.danger_pressed),
+                ButtonIntent::DestructiveSoft => (
+                    0.,
+                    theme.danger.mix(&theme.danger_subtle, 0.08),
+                    theme.danger.mix(&theme.danger_subtle, 0.15),
+                ),
                 ButtonIntent::Success => (0., theme.success_hover, theme.success_pressed),
                 ButtonIntent::Warning => (0., theme.warning_hover, theme.warning_pressed),
                 ButtonIntent::Information => {
@@ -1412,7 +1422,10 @@ fn default_themes_use_tailwind_role_radii_density_and_shadows() {
                 | ButtonIntent::Success
                 | ButtonIntent::Warning
                 | ButtonIntent::Information => true,
-                ButtonIntent::Outline | ButtonIntent::Quiet | ButtonIntent::Link => false,
+                ButtonIntent::Outline
+                | ButtonIntent::Quiet
+                | ButtonIntent::DestructiveSoft
+                | ButtonIntent::Link => false,
             };
             if lifted {
                 assert_eq!(recipe.elevation, ElevationLevel::Xs, "{intent:?}");
@@ -1875,6 +1888,7 @@ fn secondary_buttons_read_the_control_tokens_and_other_intents_ignore_them() {
                 | ButtonIntent::Outline
                 | ButtonIntent::Quiet
                 | ButtonIntent::Destructive
+                | ButtonIntent::DestructiveSoft
                 | ButtonIntent::Success
                 | ButtonIntent::Warning
                 | ButtonIntent::Information

@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit-fonts/inter.slint";
+import { KitCard, KitKeycap, KitTheme, KitThemes } from "@kit";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    title: "Keycap";
+    preferred-width: 480px; preferred-height: 260px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Shortcuts, shown as keys"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "A key cap names the chord next to the action it triggers."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCard { theme: root.theme;
+            HorizontalLayout { spacing: 8px; alignment: start; KitKeycap { theme: root.theme; text: "⌘ K"; } Text { text: "Open the command palette"; color: root.theme.text-primary; vertical-alignment: center; } }
+            HorizontalLayout { spacing: 8px; alignment: start; KitKeycap { theme: root.theme; text: "⌥ Space"; } KitKeycap { theme: root.theme; text: "Esc"; } Text { text: "Start dictation, then cancel"; color: root.theme.text-primary; vertical-alignment: center; } }
+            HorizontalLayout { spacing: 8px; alignment: start; KitKeycap { theme: root.theme; text: "⇧ ⌘ P"; } Text { text: "Switch project"; color: root.theme.text-primary; vertical-alignment: center; } }
+        }
+    }
+}

@@ -8,7 +8,8 @@ export enum ControlSize { compact, medium, comfortable }
 // The user's appearance choice. `system` follows the operating system's color
 // scheme, which the host reads and passes to `KitThemes.resolve`.
 export enum ThemeMode { light, dark, system }
-export enum AvatarSize { compact, medium, large }
+export enum AvatarSize { compact, small, medium, large }
+export enum Tone { neutral, accent, success, warning, danger, information }
 export enum ChoiceFlow { left-to-right, right-to-left }
 export enum ChoiceDirection { horizontal, vertical }
 export enum ControlWidth { intrinsic, fill }
@@ -17,8 +18,9 @@ export enum ControlWidth { intrinsic, fill }
 export enum TextViewFont { proportional, monospace }
 export enum TypographyRole { caption, control, body, subtitle, title, display }
 // secondary is a filled neutral surface; outline is a transparent bordered
-// control; quiet is borderless (the web's ghost).
-export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information, link }
+// control; quiet is borderless (the web's ghost); destructive-soft is a flat
+// danger-subtle fill with danger ink.
+export enum ButtonIntent { primary, secondary, outline, quiet, destructive, destructive-soft, success, warning, information, link }
 // Width preset of a KitDialog; the metrics derive the extent from the spacing unit.
 export enum DialogSize { small, medium, large }
 // Presentation-only token vocabulary: Rust consumers use the generated Slint
@@ -70,7 +72,7 @@ export struct KitGeometry {
     choice-compact: length, choice-medium: length, choice-comfortable: length,
     scroll-thickness: length, scroll-thumb: length, scroll-active-thumb: length, scroll-inset: length, scroll-min-thumb: length,
     content-reading: length, content-standard: length, content-wide: length, content-fluid: length,
-    busy-mark: length, avatar-size: length, avatar-compact: length, avatar-large: length, avatar-initials-ratio: float, step-marker-minimum: length, step-marker-scaled: length,
+    busy-mark: length, avatar-size: length, avatar-compact: length, avatar-small: length, avatar-large: length, avatar-initials-ratio: float, step-marker-minimum: length, step-marker-scaled: length,
     drop-zone-minimum: length, drop-zone-scaled: length,
     color-wheel-minimum: length, color-wheel-diameter: length, color-wheel-indicator-size: length, color-wheel-indicator-border-width: length,
 }
@@ -205,7 +207,7 @@ export global KitMetrics {
         return (size == ControlSize.compact ? theme.geometry.icon-compact : size == ControlSize.comfortable ? theme.geometry.icon-comfortable : theme.geometry.icon-medium) * theme.text-scale;
     }
     public pure function avatar-size(theme: KitTheme, size: AvatarSize) -> length {
-        return (size == AvatarSize.compact ? theme.geometry.avatar-compact : size == AvatarSize.large ? theme.geometry.avatar-large : theme.geometry.avatar-size) * theme.text-scale;
+        return (size == AvatarSize.compact ? theme.geometry.avatar-compact : size == AvatarSize.small ? theme.geometry.avatar-small : size == AvatarSize.large ? theme.geometry.avatar-large : theme.geometry.avatar-size) * theme.text-scale;
     }
     // A control never clips one line of scaled text inside its block padding.
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length {
@@ -288,7 +290,7 @@ export global KitThemes {
             choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
             scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
-            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-small: 32px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
             color-wheel-minimum: 96px, color-wheel-diameter: 200px, color-wheel-indicator-size: 32px, color-wheel-indicator-border-width: 4px,
         },
@@ -343,7 +345,7 @@ export global KitThemes {
             choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
             scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
-            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-small: 32px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
             color-wheel-minimum: 96px, color-wheel-diameter: 200px, color-wheel-indicator-size: 32px, color-wheel-indicator-border-width: 4px,
         },
@@ -376,6 +378,10 @@ export global KitThemes {
     public pure function ambient-shadow(theme: KitTheme, level: ElevationLevel) -> ShadowLayer {
         return KitThemes.elevation-shadow(theme, level).ambient;
     }
+    // The border a surface wears for a tone; neutral keeps the surface's own.
+    public pure function tone-border(theme: KitTheme, tone: Tone, neutral: color) -> color {
+        return tone == Tone.accent ? theme.accent : tone == Tone.success ? theme.success : tone == Tone.warning ? theme.warning : tone == Tone.danger ? theme.danger : tone == Tone.information ? theme.information : neutral;
+    }
     public pure function icon-button-recipe(theme: KitTheme, size: ControlSize) -> ButtonRecipe {
         return {
             fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed,
@@ -393,15 +399,15 @@ export global KitThemes {
     }
     public pure function button-recipe(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe {
         return {
-            fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger
+            fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger : intent == ButtonIntent.destructive-soft ? theme.danger-subtle
                 : intent == ButtonIntent.success ? theme.success : intent == ButtonIntent.warning ? theme.warning : intent == ButtonIntent.information ? theme.information
                 : intent == ButtonIntent.secondary ? theme.control-fill : transparent,
-            hover-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover
+            hover-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover : intent == ButtonIntent.destructive-soft ? theme.danger.mix(theme.danger-subtle, 0.08)
                 : intent == ButtonIntent.success ? theme.success-hover : intent == ButtonIntent.warning ? theme.warning-hover : intent == ButtonIntent.information ? theme.information-hover : theme.hover,
-            pressed-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed
+            pressed-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed : intent == ButtonIntent.destructive-soft ? theme.danger.mix(theme.danger-subtle, 0.15)
                 : intent == ButtonIntent.success ? theme.success-pressed : intent == ButtonIntent.warning ? theme.warning-pressed : intent == ButtonIntent.information ? theme.information-pressed : theme.pressed,
             disabled-fill: intent == ButtonIntent.outline || intent == ButtonIntent.link ? transparent : theme.disabled-fill,
-            foreground: intent == ButtonIntent.link ? theme.accent : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger
+            foreground: intent == ButtonIntent.link ? theme.accent : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger : intent == ButtonIntent.destructive-soft ? theme.danger
                 : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : intent == ButtonIntent.information ? theme.on-information : theme.text-primary,
             disabled-foreground: theme.disabled-text,
             border: intent == ButtonIntent.secondary ? theme.control-border : intent == ButtonIntent.outline ? theme.border-strong : transparent,
@@ -416,9 +422,10 @@ export global KitThemes {
             busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // Filled intents lift by the theme's control elevation. Outline and
             // quiet controls show their parent through a transparent fill, which
-            // a shadow would tint, so they stay flat.
-            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link ? ElevationLevel.none : theme.elevation.control,
-            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link ? ElevationLevel.none : theme.elevation.control),
+            // a shadow would tint, and a soft control is a flat tint, so they
+            // stay flat.
+            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link || intent == ButtonIntent.destructive-soft ? ElevationLevel.none : theme.elevation.control,
+            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link || intent == ButtonIntent.destructive-soft ? ElevationLevel.none : theme.elevation.control),
             focus: theme.focus,
         };
     }
