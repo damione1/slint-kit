@@ -889,7 +889,7 @@ fn switch_track_and_radio_marks_stay_centered_beside_wrapped_or_enlarged_labels(
                     .match_type_name("Rectangle")
                     .match_predicate(move |element| {
                         (element.size().width - box_side * 1.9).abs() < 0.01
-                            && (element.size().height - box_side - 2.).abs() < 0.01
+                            && (element.size().height - box_side * 1.1).abs() < 0.01
                     })
                     .find_first()
                     .expect("switch track");

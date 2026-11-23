@@ -70,7 +70,7 @@ export component KitBadge inherits Rectangle {
     in property <string> text;
     in property <Tone> tone: Tone.neutral;
     in property <IconGlyph> leading-icon;
-    // A tinted, borderless badge: every tone uses its subtle fill, `accent` included.
+    // A tinted, borderless badge: every tone uses its subtle fill, `accent` included, and its own ink.
     in property <bool> subtle;
     // A filled status dot in the tone's color, drawn in place of `leading-icon`.
     in property <bool> dot;
@@ -81,7 +81,8 @@ export component KitBadge inherits Rectangle {
     private property <length> icon-space: root.lead-extent > 0px ? root.lead-extent + root.theme.spacing.unit : 0px;
     private property <length> inset-x: root.theme.spacing.unit * 2;
     private property <length> inset-y: root.theme.spacing.unit;
-    private property <color> ink: root.tone == Tone.accent ? (root.subtle ? root.theme.accent : root.theme.on-accent) : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
+    private property <color> ink: root.tone == Tone.accent ? (root.subtle ? root.theme.accent : root.theme.on-accent) : root.tone == Tone.danger ? root.theme.danger
+        : root.subtle && root.tone == Tone.success ? root.theme.success : root.subtle && root.tone == Tone.warning ? root.theme.warning : root.subtle && root.tone == Tone.information ? root.theme.information : root.theme.text-primary;
     private property <color> dot-ink: root.tone == Tone.accent ? (root.subtle ? root.theme.accent : root.theme.on-accent) : root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.information ? root.theme.information : root.theme.text-secondary;
     preferred-width: label.preferred-width + root.icon-space + 2 * root.inset-x;
     min-width: min(self.preferred-width, root.icon-space + 2 * root.inset-x); max-width: self.preferred-width;

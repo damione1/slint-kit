@@ -49,6 +49,8 @@ export component KitAlert inherits Rectangle {
     // Replaces the mark of the severity; the recipe still tints it.
     in property <IconGlyph> glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
     in property <bool> dismissible;
+    // false draws a tinted banner without an edge.
+    in property <bool> bordered: true;
     in property <string> dismiss-label: KitStrings.dismiss-label-template.replace-all("{title}", root.title);
     callback dismissed();
     // Measure wrapped copy at the allocated width, including when this component
@@ -63,7 +65,7 @@ export component KitAlert inherits Rectangle {
     min-height: self.preferred-height;
     min-width: 2 * root.inset + icon.width + root.gap + root.trailing-space;
     background: root.recipe.fill;
-    border-width: root.recipe.border-width; border-color: root.recipe.border;
+    border-width: root.bordered ? root.recipe.border-width : 0px; border-color: root.recipe.border;
     border-radius: root.corner-radius; vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.title != "" ? root.title : root.message; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
     icon := KitIcon {

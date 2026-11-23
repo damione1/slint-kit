@@ -66,12 +66,17 @@ fn density(tokens: &mut Vec<(String, Token)>, name: &str, value: KitControlDensi
     let KitControlDensity {
         height,
         padding_inline,
+        field_padding_inline,
         padding_block,
     } = value;
     tokens.push((format!("spacing.{name}.height"), Token::Length(height)));
     tokens.push((
         format!("spacing.{name}.padding-inline"),
         Token::Length(padding_inline),
+    ));
+    tokens.push((
+        format!("spacing.{name}.field-padding-inline"),
+        Token::Length(field_padding_inline),
     ));
     tokens.push((
         format!("spacing.{name}.padding-block"),
@@ -123,6 +128,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         control_border,
         choice_fill,
         on_choice_fill,
+        choice_thumb,
+        field_background,
         hover,
         pressed,
         disabled_fill,
@@ -181,6 +188,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("control-border", control_border),
         ("choice-fill", choice_fill),
         ("on-choice-fill", on_choice_fill),
+        ("choice-thumb", choice_thumb),
+        ("field-background", field_background),
         ("hover", hover),
         ("pressed", pressed),
         ("disabled-fill", disabled_fill),
@@ -198,6 +207,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         choice_compact,
         choice_medium,
         choice_comfortable,
+        switch_width,
+        switch_height,
+        switch_thumb,
+        switch_inset,
         scroll_thickness,
         scroll_thumb,
         scroll_active_thumb,
@@ -229,6 +242,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("geometry.choice-compact", choice_compact),
         ("geometry.choice-medium", choice_medium),
         ("geometry.choice-comfortable", choice_comfortable),
+        ("geometry.switch-width", switch_width),
+        ("geometry.switch-height", switch_height),
+        ("geometry.switch-thumb", switch_thumb),
+        ("geometry.switch-inset", switch_inset),
         ("geometry.scroll-thickness", scroll_thickness),
         ("geometry.scroll-thumb", scroll_thumb),
         ("geometry.scroll-active-thumb", scroll_active_thumb),
@@ -1067,11 +1084,12 @@ fn field_and_trigger_recipes_render_read_only_and_hover() {
 
         let choice = window.invoke_choice(theme.clone(), ControlSize::Medium);
         assert_eq!((choice.check_size, choice.mixed_width), (14., 12.));
-        // The group nests its options' control radius inside its padding.
+        // The group shares the control radius and spaces its options by half a unit.
         assert_eq!(
             (choice.group_radius, choice.group_padding, choice.group_gap),
-            (theme.shape.radius_control + 3., 3., 6.)
+            (theme.shape.radius_control, 3., 6.)
         );
+        assert_eq!(choice.segment_gap, 2.);
     }
 }
 

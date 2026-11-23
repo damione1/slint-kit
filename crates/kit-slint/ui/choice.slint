@@ -155,11 +155,11 @@ component SwitchTrackSlot inherits Rectangle {
         border-width: root.access != FieldAccess.editable ? root.theme.shape.border-width : 0px;
         border-color: root.disabled ? root.theme.disabled-text : root.theme.border-strong;
         Rectangle {
-            x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
-            y: root.choice.thumb-inset;
+            x: root.checked ? parent.width - self.width - root.choice.switch-thumb-inset : root.choice.switch-thumb-inset;
+            y: (parent.height - self.height) / 2;
             width: root.choice.thumb-size; height: root.choice.thumb-size;
             border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-            background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-choice-fill : root.theme.surface;
+            background: root.access == FieldAccess.read-only ? root.theme.choice-thumb : root.checked ? root.theme.on-choice-fill : root.theme.choice-thumb;
             animate x { enabled: !root.theme.reduced-motion; duration: root.choice.transition; easing: ease-in-out; }
         }
     }
@@ -636,9 +636,9 @@ export component KitSegmentedControl inherits Rectangle {
         choices := VerticalLayout {
             width: root.width; height: self.preferred-height;
             padding: root.choice.group-padding;
-            spacing: root.choice.group-padding;
+            spacing: root.choice.segment-gap;
             for row-index in ceil(root.render-count / root.column-count): HorizontalLayout {
-                spacing: root.choice.group-padding;
+                spacing: root.choice.segment-gap;
                 for column in root.column-count: option := SegmentedOption { modal-layer: root.modal-layer;
                     private property <int> row-start: row-index * root.column-count;
                     private property <int> source-index: self.row-start + (root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal ? root.column-count - 1 - column : column);
@@ -2258,7 +2258,7 @@ export component KitRating inherits Rectangle {
             border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
             preferred-height: preview.preferred-height;
             preview := HorizontalLayout {
-                padding: parent.recipe.group-padding; spacing: parent.recipe.group-padding;
+                padding: parent.recipe.group-padding; spacing: parent.recipe.segment-gap;
                 for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption { modal-layer: root.modal-layer;
                     theme: root.theme; control-size: root.control-size; access: root.access;
                     accessible-item-index: index; accessible-item-count: root.scale;

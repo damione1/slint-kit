@@ -64,7 +64,9 @@ export struct KitTypography {
     tracking-overline: float,
 }
 // Paddings and heights by ControlSize; one spacing unit derives gaps and insets.
-export struct KitControlDensity { height: length, padding-inline: length, padding-block: length }
+// `padding-inline` insets a button or option row; `field-padding-inline` insets the
+// text of an editable field, so a theme can pad fields tighter than buttons.
+export struct KitControlDensity { height: length, padding-inline: length, field-padding-inline: length, padding-block: length }
 export struct KitSpacing { unit: length, compact: KitControlDensity, medium: KitControlDensity, comfortable: KitControlDensity }
 // `repeat-delay` is the hold before an auto-repeating control (a stepper button)
 // starts repeating; `repeat-interval` is the time between repeats after that.
@@ -72,6 +74,8 @@ export struct KitMotion { fast: duration, base: duration, slow: duration, repeat
 export struct KitGeometry {
     icon-compact: length, icon-medium: length, icon-comfortable: length,
     choice-compact: length, choice-medium: length, choice-comfortable: length,
+    // The switch at medium size; other sizes scale with their choice box.
+    switch-width: length, switch-height: length, switch-thumb: length, switch-inset: length,
     scroll-thickness: length, scroll-thumb: length, scroll-active-thumb: length, scroll-inset: length, scroll-min-thumb: length,
     content-reading: length, content-standard: length, content-wide: length, content-fluid: length,
     busy-mark: length, avatar-size: length, avatar-compact: length, avatar-small: length, avatar-large: length, avatar-initials-ratio: float, step-marker-minimum: length, step-marker-scaled: length,
@@ -83,6 +87,8 @@ export struct KitGeometry {
 // `control-border` paint a secondary button at rest, `choice-fill` and
 // `on-choice-fill` a checked box, a selected radio dot and an on switch, so a
 // theme can give its selection marks a colour other than its action accent.
+// `field-background` fills editable fields; `choice-thumb` is the switch thumb
+// while off. Shipped themes keep them at the surface tone.
 export struct KitTheme {
     canvas: color, surface: color, surface-raised: color, surface-inset: color,
     text-primary: color, text-secondary: color, placeholder: color,
@@ -91,7 +97,7 @@ export struct KitTheme {
     danger: color, on-danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, on-success: color, success-hover: color, success-pressed: color, success-subtle: color,
     warning: color, on-warning: color, warning-hover: color, warning-pressed: color, warning-subtle: color, information: color, on-information: color, information-hover: color, information-pressed: color, information-subtle: color,
     border-subtle: color, border-strong: color,
-    control-fill: color, control-border: color, choice-fill: color, on-choice-fill: color,
+    control-fill: color, control-border: color, choice-fill: color, on-choice-fill: color, choice-thumb: color, field-background: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
     spacing: KitSpacing, motion: KitMotion, icons: KitIconSet, geometry: KitGeometry,
@@ -119,7 +125,7 @@ export struct ChoiceRecipe {
     track-width: length, track-height: length, track-radius: length, thumb-size: length, thumb-inset: length,
     check-size: length, mixed-width: length,
     slider-track-height: length, slider-thumb-size: length,
-    group-radius: length, group-padding: length, group-gap: length,
+    group-radius: length, group-padding: length, group-gap: length, segment-gap: length, switch-thumb-inset: length,
     transition: duration, focus: KitFocusRing,
 }
 // Rows of a list or menu. The active row is the keyboard target of its
@@ -254,6 +260,7 @@ export global KitThemes {
         // selection marks take the action accent.
         control-fill: #ffffff /* white */, control-border: #e2e8f0 /* slate-200 */,
         choice-fill: #4f46e5 /* indigo-600 */, on-choice-fill: #ffffff /* white */,
+        choice-thumb: #ffffff /* white */, field-background: #ffffff /* white */,
         hover: #f1f5f9 /* slate-100 */, pressed: #e2e8f0 /* slate-200 */,
         disabled-fill: #f1f5f9 /* slate-100 */, disabled-text: #94a3b8 /* slate-400 */, scrim: #00000080 /* black/50 */,
         // rounded-md, rounded-lg, rounded-xl and rounded-full.
@@ -281,9 +288,9 @@ export global KitThemes {
         // --spacing: 0.25rem. Heights h-8, h-9 and h-10; paddings px-3/px-4/px-6, py-1.5/py-2.
         spacing: {
             unit: 4px,
-            compact: { height: 32px, padding-inline: 12px, padding-block: 6px },
-            medium: { height: 36px, padding-inline: 14px, padding-block: 6px },
-            comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
+            compact: { height: 32px, padding-inline: 12px, field-padding-inline: 12px, padding-block: 6px },
+            medium: { height: 36px, padding-inline: 14px, field-padding-inline: 14px, padding-block: 6px },
+            comfortable: { height: 40px, padding-inline: 24px, field-padding-inline: 24px, padding-block: 8px },
         },
         // duration-150, duration-200 and duration-300.
         motion: { fast: 150ms, base: 200ms, slow: 300ms, repeat-delay: 400ms, repeat-interval: 60ms },
@@ -291,6 +298,7 @@ export global KitThemes {
         geometry: {
             icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
             choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
+            switch-width: 38px, switch-height: 22px, switch-thumb: 18px, switch-inset: 2px,
             scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
             busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-small: 32px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
@@ -317,6 +325,7 @@ export global KitThemes {
         border-subtle: #1e293b /* slate-800 */, border-strong: #64748b /* slate-500: visible control boundaries */,
         control-fill: #0f172a /* slate-900 */, control-border: #1e293b /* slate-800 */,
         choice-fill: #818cf8 /* indigo-400 */, on-choice-fill: #020617 /* slate-950 */,
+        choice-thumb: #0f172a /* slate-900 */, field-background: #0f172a /* slate-900 */,
         hover: #1e293b /* slate-800 */, pressed: #334155 /* slate-700 */,
         disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
         shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
@@ -338,15 +347,16 @@ export global KitThemes {
         },
         spacing: {
             unit: 4px,
-            compact: { height: 32px, padding-inline: 12px, padding-block: 6px },
-            medium: { height: 36px, padding-inline: 14px, padding-block: 6px },
-            comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
+            compact: { height: 32px, padding-inline: 12px, field-padding-inline: 12px, padding-block: 6px },
+            medium: { height: 36px, padding-inline: 14px, field-padding-inline: 14px, padding-block: 6px },
+            comfortable: { height: 40px, padding-inline: 24px, field-padding-inline: 24px, padding-block: 8px },
         },
         motion: { fast: 150ms, base: 200ms, slow: 300ms, repeat-delay: 400ms, repeat-interval: 60ms },
         icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete(), avatar: LucideIcons.user() },
         geometry: {
             icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
             choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
+            switch-width: 38px, switch-height: 22px, switch-thumb: 18px, switch-inset: 2px,
             scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
             busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-small: 32px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
@@ -437,14 +447,14 @@ export global KitThemes {
         return {
             // Read-only content stays legible and selectable on the canvas tone,
             // so it reads as not editable without looking disabled.
-            fill: access == FieldAccess.disabled ? theme.disabled-fill : access == FieldAccess.read-only ? theme.canvas : theme.surface,
+            fill: access == FieldAccess.disabled ? theme.disabled-fill : access == FieldAccess.read-only ? theme.canvas : theme.field-background,
             border: validation == ValidationPresentation.invalid ? theme.danger : theme.border-subtle,
             hover-border: validation == ValidationPresentation.invalid ? theme.danger
                 : access == FieldAccess.editable ? theme.border-strong : theme.border-subtle,
             foreground: access == FieldAccess.disabled ? theme.disabled-text : theme.text-primary,
             placeholder: theme.placeholder, selection: theme.selection, on-selection: theme.on-selection,
             radius: theme.shape.radius-control, border-width: theme.shape.border-width,
-            padding-inline: KitMetrics.density(theme, size).padding-inline,
+            padding-inline: KitMetrics.density(theme, size).field-padding-inline,
             padding-block: KitMetrics.density(theme, size).padding-block,
             height: KitMetrics.control-height(theme, size),
             font-size: KitMetrics.font-size(theme, TypographyRole.control),
@@ -523,13 +533,16 @@ export global KitThemes {
             box-radius: min(theme.shape.radius-control, KitThemes.choice-box-size(theme, size) / 4),
             mark-stroke: theme.shape.border-width-strong,
             radio-dot-size: KitThemes.choice-box-size(theme, size) / 2, label-gap: theme.spacing.unit * 2.5,
-            track-width: KitThemes.choice-box-size(theme, size) * 1.9, track-height: KitThemes.choice-box-size(theme, size) + theme.shape.border-width-strong,
-            track-radius: min(theme.shape.radius-pill, (KitThemes.choice-box-size(theme, size) + theme.shape.border-width-strong) / 2),
-            thumb-size: KitThemes.choice-box-size(theme, size) - theme.shape.border-width-strong, thumb-inset: theme.shape.border-width-strong,
+            track-width: theme.geometry.switch-width * KitThemes.choice-box-size(theme, size) / theme.geometry.choice-medium,
+            track-height: theme.geometry.switch-height * KitThemes.choice-box-size(theme, size) / theme.geometry.choice-medium,
+            track-radius: min(theme.shape.radius-pill, theme.geometry.switch-height * KitThemes.choice-box-size(theme, size) / theme.geometry.choice-medium / 2),
+            thumb-size: theme.geometry.switch-thumb * KitThemes.choice-box-size(theme, size) / theme.geometry.choice-medium,
+            thumb-inset: theme.shape.border-width-strong,
+            switch-thumb-inset: theme.geometry.switch-inset * KitThemes.choice-box-size(theme, size) / theme.geometry.choice-medium,
             check-size: KitThemes.choice-box-size(theme, size) * 0.7, mixed-width: KitThemes.choice-box-size(theme, size) * 0.6,
             slider-track-height: theme.spacing.unit, slider-thumb-size: KitThemes.choice-box-size(theme, size) - theme.spacing.unit,
-            group-radius: theme.shape.radius-control + theme.spacing.unit * 0.75,
-            group-padding: theme.spacing.unit * 0.75, group-gap: theme.spacing.unit * 1.5,
+            group-radius: theme.shape.radius-control,
+            group-padding: theme.spacing.unit * 0.75, group-gap: theme.spacing.unit * 1.5, segment-gap: theme.spacing.unit * 0.5,
             // Public recipe consumers retain the reduced-motion duration contract.
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
             focus: KitThemes.inset-focus(theme),
