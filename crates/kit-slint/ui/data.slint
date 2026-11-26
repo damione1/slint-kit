@@ -7,7 +7,7 @@ import { KitModalContext } from "modal.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph, IconPurpose } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { NavigationStep, FieldAccess, SelectionRef } from "contracts.slint";
 import { CheckState, TextPurpose, HtmlInputKind, Ownership, RowGesture, SelectionMode } from "shared-contracts.slint";
 import { KitInputConstraints } from "validation.slint";
@@ -129,6 +129,8 @@ export struct TextLine { token: int, number: int, text: string, selected: bool }
 // a table confirms the active cell with Return (edit or activate) while
 // Space always activates the row; lists bind both to activation.
 component DataKeyboard inherits FocusScope {
+    capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+    focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
     in property <bool> disabled;
     // Left/Right move a cell cursor inside the active row; off, they are
     // rejected like any unknown key.
@@ -263,7 +265,7 @@ component ColumnResizeHandle inherits Rectangle {
         mouse-cursor: col-resize;
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
-                keys.focus();
+                KitInputModality.note-pointer(); keys.focus();
                 root.dragging = true;
                 root.start-width = root.current-width;
                 root.start-pointer = root.absolute-position.x + self.mouse-x;
@@ -289,11 +291,12 @@ component ColumnResizeHandle inherits Rectangle {
         }
     }
     keys := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         enabled: !root.disabled;
         focus-on-tab-navigation: root.tab-stop;
         focus-on-click: false;
         focus-gained(reason) => {
-            root.keyboard-focus = reason == FocusReason.tab-navigation || reason == FocusReason.programmatic;
+            root.keyboard-focus = KitInputModality.ring-on-focus(reason);
         }
         key-pressed(event) => {
             if (event.text == Key.Escape && root.dragging) { root.dragging = false; root.cancel(); return accept; }
@@ -518,7 +521,7 @@ component TableCellView inherits Rectangle {
             }
         }
     }
-    if root.focus-indicated: FocusOutline {
+    if KitInputModality.keyboard && root.focus-indicated: FocusOutline {
         ring: root.focus-ring; radius: 0px; host-width: root.width; host-height: root.height;
     }
     if root.cell.kind == TableCellKind.badge: KitBadge {
@@ -1163,7 +1166,7 @@ export component KitDataTable inherits Rectangle {
                         width: parent.width; height: parent.height; background: root.row-recipe.fill;
                         accessible-role: text; accessible-label: root.header-name(column);
                         TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
-                        if header-cell.active-header: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: 0px; host-width: parent.width; host-height: parent.height; }
+                        if KitInputModality.keyboard && header-cell.active-header: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: 0px; host-width: parent.width; host-height: parent.height; }
                     }
                 }
                 column-drop := DropArea {
@@ -1421,7 +1424,7 @@ export component KitDataTable inherits Rectangle {
             accessible-role: AccessibleRole.text;
         }
     }
-    if keys.has-focus && root.cursor-region == TableCursorRegion.body && (root.active-index < 0 || root.active-index >= root.rows.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
+    if KitInputModality.keyboard && keys.has-focus && root.cursor-region == TableCursorRegion.body && (root.active-index < 0 || root.active-index >= root.rows.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
 
@@ -1569,7 +1572,7 @@ export component KitContentList inherits Rectangle {
         retry-requested => { root.retry-requested(); }
         @children
     }
-    if keys.has-focus && (root.active-index < 0 || root.active-index >= root.items.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
+    if KitInputModality.keyboard && keys.has-focus && (root.active-index < 0 || root.active-index >= root.items.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
 
@@ -1758,7 +1761,7 @@ export component KitVirtualTextView inherits Rectangle {
             if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}
         }
     }
-    if keys.has-focus && (root.active-index < 0 || root.active-index >= root.lines.length || (root.active-index + 1) * root.line-height + list.content-y <= 0px || root.active-index * root.line-height + list.content-y >= list.visible-height): FocusOutline {
+    if KitInputModality.keyboard && keys.has-focus && (root.active-index < 0 || root.active-index >= root.lines.length || (root.active-index + 1) * root.line-height + list.content-y <= 0px || root.active-index * root.line-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
 

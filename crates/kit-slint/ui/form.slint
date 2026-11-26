@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputModality } from "focus.slint";
 import { KitTheme, KitThemeContext, KitMetrics } from "theme.slint";
 import { FocusRequest } from "contracts.slint";
 import { KitModalContext } from "modal.slint";
@@ -39,6 +40,7 @@ export component KitForm inherits FocusScope {
     max-height: self.preferred-height;
     private property <ImplicitSubmitTicket> pending-ticket;
     capture-key-pressed(event) => {
+        KitInputModality.note-key(event);
         if (KitFormValidation.ready && root.implicit-submit && event.text == Key.Return && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && !event.modifiers.shift
             && (KitFormValidation.focused-editor == FormEditorFocus.single-line || KitFormValidation.focused-editor == FormEditorFocus.other)) {
             root.pending-ticket = KitFormValidation.begin-implicit-submit(KitFormValidation.focus-generation);

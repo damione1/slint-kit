@@ -2,7 +2,7 @@
 import { KitTheme, KitThemeContext, KitThemes } from "theme.slint";
 import { FieldAccess } from "contracts.slint";
 import { KitFieldService, SrgbColorView, ColorWheelPosition, ColorResult } from "field-service.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitModalContext } from "modal.slint";
 import { KitStrings } from "strings.slint";
 
@@ -71,7 +71,7 @@ export component KitColorWheel inherits Rectangle {
         border-radius: root.diameter / 2;
         Image { source: KitFieldService.ready ? KitFieldService.color-wheel-image() : root.empty-image; width: parent.width; height: parent.height; preferred-width: 0px; preferred-height: 0px; }
         if root.access == FieldAccess.disabled: Rectangle { border-radius: parent.border-radius; background: root.theme.disabled-fill; }
-        if keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+        if KitInputModality.keyboard && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     if root.known: Rectangle {
         width: root.theme.geometry.color-wheel-indicator-size * root.theme.text-scale; height: self.width;
@@ -82,6 +82,8 @@ export component KitColorWheel inherits Rectangle {
         border-color: root.theme.surface; border-width: root.theme.geometry.color-wheel-indicator-border-width * root.theme.text-scale;
     }
     keyboard := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+        focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
         enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
         // A two-axis picker is a named focus group, not a scalar slider.
         accessible-role: groupbox;
@@ -111,7 +113,7 @@ export component KitColorWheel inherits Rectangle {
         enabled: root.access == FieldAccess.editable && !KitModalContext.inert(root.modal-layer);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
-                keyboard.focus(); root.dragging = true; root.gesture-started(); root.move();
+                KitInputModality.note-pointer(); keyboard.focus(); root.dragging = true; root.gesture-started(); root.move();
             }
             if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.dragging) { root.dragging = false; root.committed(); }
             if (event.kind == PointerEventKind.cancel && root.dragging) { root.dragging = false; root.reset-hue(); root.cancelled(); }

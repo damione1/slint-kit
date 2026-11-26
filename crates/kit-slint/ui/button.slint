@@ -3,7 +3,7 @@ import { KitFormValidation } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconGlyph } from "icons.slint";
 import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow, ElevationLevel, FocusRingStyle, ButtonContentLayout, DisabledStyle } from "theme.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitStrings } from "strings.slint";
 import { KitModalContext } from "modal.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
@@ -198,7 +198,7 @@ export component KitPressable inherits Rectangle {
                 let was-focused = root.focused;
                 root.focused = true;
                 if (root.quiet-focus) { root.keyboard-focus = false; root.quiet-focus = false; }
-                else if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = true; }
+                else if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = KitInputModality.ring-on-focus(reason); }
                 else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
                 if (!was-focused) { root.focus-observed(true); }
             }
@@ -211,6 +211,7 @@ export component KitPressable inherits Rectangle {
             if (was-focused) { root.focus-observed(false); }
         }
         key-pressed(event) => {
+            KitInputModality.note-key(event);
             root.keyboard-focus = true;
             if (root.blocked || root.busy) { return reject; }
             if (root.key-event(event) == KitKeyResult.accept) { return accept; }
@@ -241,6 +242,7 @@ export component KitPressable inherits Rectangle {
         enabled: !root.blocked && !root.busy && root.pointer-enabled;
         mouse-cursor: pointer;
         pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) { KitInputModality.note-pointer(); }
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
                 root.pointer-modifiers = event.modifiers;
                 root.activation-started();
@@ -288,7 +290,7 @@ export component KitPressable inherits Rectangle {
         focus-on-click: false;
         accessible-role: none;
     }
-    if root.focus-visible || root.focus-indicated: FocusOutline {
+    if root.focus-visible || (root.focus-indicated && KitInputModality.keyboard): FocusOutline {
         ring: root.focus-ring; radius: root.corner-radius;
         host-width: root.width; host-height: root.height;
     }

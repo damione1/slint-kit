@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputModality } from "focus.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
 import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe, TooltipRecipe } from "theme.slint";
@@ -362,6 +363,7 @@ export component KitTooltip inherits Rectangle {
     min-width: content.min-width; preferred-width: content.preferred-width;
     min-height: content.min-height; preferred-height: content.preferred-height; max-height: self.preferred-height;
     focus := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         focus-on-tab-navigation: false;
         key-pressed(event) => { if (event.text == Key.Escape && root.keyboard-visible) { root.dismiss(); return accept; } return reject; }
         content := VerticalLayout { @children }

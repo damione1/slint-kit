@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputModality } from "focus.slint";
 import { KitTheme, KitThemeContext, ChoiceFlow } from "theme.slint";
 import { KitModalContext } from "modal.slint";
 import { RouteChange } from "shared-contracts.slint";
@@ -48,6 +49,7 @@ export component KitRouter inherits Rectangle {
     clip: true;
     scope := FocusScope {
         width: parent.width; height: parent.height;
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         key-pressed(event) => {
             if (root.live && root.can-go-back && (event.text == Key.Escape || event.text == Key.Back)) {
                 root.back();

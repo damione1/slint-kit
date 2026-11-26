@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitTextField, KitFieldLabel, KitSlider, KitTabs, KitRouter, KitScreen, KitTheme, KitThemes, OptionRow, SelectionRef, TabActivation } from "@kit";
+
+export component FocusVisibilityFixture inherits Window {
+    width: 600px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <bool> panel-open;
+    out property <bool> trigger-focused: trigger.has-focus;
+    out property <bool> trigger-ring: trigger.focus-visible;
+    out property <bool> tabs-focused: tabs.has-focus;
+    out property <int> selected-token: tabs.selected.token;
+    public function focus-trigger() { trigger.take-focus(); }
+    KitRouter {
+        x: 0px; y: 0px; width: parent.width; height: 320px;
+        can-go-back: root.panel-open;
+        back => { root.panel-open = false; trigger.take-focus(); }
+        KitScreen {
+            active: true;
+            tabs := KitTabs { x: 24px; y: 20px; width: 400px; height: self.preferred-height; theme: root.theme; accessible-name: "Sections"; activation: TabActivation.automatic;
+                options: [
+                    {token:1,generation:1,label:"General",description:"",disabled:false},
+                    {token:2,generation:1,label:"Audio",description:"",disabled:false},
+                    {token:3,generation:1,label:"System",description:"",disabled:false},
+                ]; }
+            trigger := KitButton { x: 24px; y: 100px; width: 140px; height: self.preferred-height; theme: root.theme; text: "Open panel"; activated => { root.panel-open = true; } }
+            KitButton { x: 200px; y: 100px; width: 140px; height: self.preferred-height; theme: root.theme; text: "Close panel"; activated => { root.panel-open = false; trigger.take-focus(); } }
+            KitFieldLabel { x: 24px; y: 260px; width: 200px; height: self.preferred-height; theme: root.theme; text: "Opener"; focus-requested => { trigger.take-focus(); } }
+            KitSlider { x: 24px; y: 180px; width: 300px; height: self.preferred-height; theme: root.theme; label: "Volume"; value: "40"; }
+        }
+    }
+    // Outside every scope that reports keys, as a plain form row would be.
+    KitTextField { x: 24px; y: 330px; width: 140px; height: self.preferred-height; theme: root.theme; label: "Name"; }
+    KitSlider { x: 200px; y: 340px; width: 300px; height: self.preferred-height; theme: root.theme; label: "Outside"; value: "40"; }
+}

@@ -170,6 +170,12 @@ Built-in control icons read semantic roles from `theme.icons`, a `KitIconSet`. T
 
 The Lucide files are generated from a vendored release and never edited by hand. Lucide is under the ISC license, and the icons it derives from Feather are also under the MIT license; both notices are in [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) and ship with the crate.
 
+## When the focus ring shows
+
+Kit controls follow the web `:focus-visible` rule. A pointer press moves focus without painting a ring. Tab and arrow navigation paint it. Focus moved from code, such as returning it to the button that opened a panel, shows the ring only if the latest input was the keyboard, which is also the state before any input. This applies to buttons, tabs, menus, lists, tables, calendars, choices, sliders, the color wheel, the keypad and scroll areas, and to any row painted through `focus-indicated`. Text editors keep their focus edge however they were focused.
+
+The window-level `KitInputModality` global holds the latest input. Kit controls update it. If your own `TouchArea` handles a press and then moves focus from code, call `KitInputModality.note-pointer()` first. If your own `FocusScope` consumes the keys that move focus, call `KitInputModality.note-key(event)`, for example from `capture-key-pressed`, and return `reject`. Control, Alt and Meta shortcuts do not count as keyboard navigation. `KitRouter`, `KitDialog`, `KitForm` and `KitFocusBackground` already report the keys pressed inside them. If you override `capture-key-pressed` on one of these, report the key yourself.
+
 ## Size and layout
 
 `ControlSize` is `compact`, `medium` or `comfortable`. `ControlWidth.intrinsic` preserves the component's content width; `fill` asks it to use the space allocated by its layout. Most component heights are intrinsic. Set a finite viewport for [virtualized data components](/components/#data), and keep their model identity stable while scrolling.

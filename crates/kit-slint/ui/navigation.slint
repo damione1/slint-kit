@@ -1,6 +1,6 @@
 import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
 import { SelectionRef, SelectionAvailability } from "contracts.slint";
@@ -557,6 +557,8 @@ export component KitTabPanel inherits Rectangle {
     forward-focus: scope;
     public function take-focus() { if (root.active) { scope.focus(); } }
     scope := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+        focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
         enabled: root.active;
         focus-on-tab-navigation: root.active && root.tab-stop;
         content := KitStack {
@@ -565,7 +567,7 @@ export component KitTabPanel inherits Rectangle {
             @children
         }
     }
-    if root.active && scope.has-focus: FocusOutline {
+    if KitInputModality.keyboard && root.active && scope.has-focus: FocusOutline {
         ring: root.theme.focus;
         radius: root.border-radius; host-width: root.width; host-height: root.height;
     }
@@ -790,6 +792,8 @@ export component KitCarousel inherits Rectangle {
     drop-shadow-blur: root.surface.shadow.blur;
     drop-shadow-color: root.surface.shadow.color;
     keyboard := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+        focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
         x: 0px; y: 0px; width: root.width; height: root.height;
         enabled: root.live;
         focus-on-tab-navigation: true;
@@ -853,7 +857,7 @@ export component KitCarousel inherits Rectangle {
         }
     }
 
-    if root.has-focus: FocusOutline {
+    if KitInputModality.keyboard && root.has-focus: FocusOutline {
         ring: KitThemes.inset-focus(root.theme);
         radius: root.surface.radius; host-width: root.width; host-height: root.height;
     }
@@ -1374,6 +1378,7 @@ component PopoverPanel inherits Rectangle {
     changed presented => { if (root.presented) { scope.focus(); } }
     ElevatedSurface { recipe: root.recipe; }
     scope := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         focus-on-tab-navigation: root.tab-stop;
         key-pressed(event) => {
             if (event.text == Key.Escape) { root.escape(); return accept; }
@@ -1687,6 +1692,7 @@ export component KitContextMenu inherits Rectangle {
     min-height: layout.min-height;
     preferred-height: layout.preferred-height;
     scope := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         enabled: root.live;
         key-pressed(event) => {
             if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
@@ -1850,6 +1856,7 @@ export component KitSidebar inherits Rectangle {
     // The trailing edge rule.
     Rectangle { x: parent.width - self.width; width: root.theme.shape.border-width; height: parent.height; background: root.theme.border-subtle; }
     arrows := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         enabled: root.live;
         focus-on-tab-navigation: false;
         key-pressed(event) => {

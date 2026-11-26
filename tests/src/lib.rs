@@ -37,6 +37,7 @@ mod document_guards;
 mod dropdown_collision;
 mod file_constraints;
 mod focus_target;
+mod focus_visibility;
 mod foundation_render;
 mod foundations;
 mod intrinsic_choice;

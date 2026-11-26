@@ -1,5 +1,6 @@
 import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputModality } from "focus.slint";
 import { ValidationPresentation, CommitPolicy } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, ColorPopupRecipe } from "theme.slint";
 import { ElevatedSurface } from "elevation.slint";
@@ -220,6 +221,7 @@ export component KitColorField inherits Rectangle {
         Rectangle {
             ElevatedSurface { recipe: root.popup-surface; }
             popup-keys := FocusScope {
+                capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
                 enabled: !KitModalContext.inert(root.modal-layer);
                 forward-focus: cancel-button;
                 private property <bool> shown: root.picker-open;

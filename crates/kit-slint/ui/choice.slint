@@ -9,7 +9,7 @@ import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow, ChoiceDirection, ShadowLayer } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
 import { KitModalContext } from "modal.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
 import { SelectPopupSession, KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitOptionBody } from "select.slint";
@@ -348,9 +348,10 @@ component ChoiceKeyboard inherits FocusScope {
     private property <bool> held;
     private property <bool> keyboard-focus;
     out property <bool> focus-visible: root.has-focus && root.keyboard-focus;
-    public function pointer-focus() { root.focus(); root.keyboard-focus = false; }
+    public function pointer-focus() { KitInputModality.note-pointer(); root.focus(); root.keyboard-focus = false; }
+    capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
     focus-gained(reason) => {
-        if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = true; }
+        if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = KitInputModality.ring-on-focus(reason); }
         else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
     }
     changed access => { root.held = false; }
@@ -1758,6 +1759,8 @@ component SliderMarks inherits Rectangle {
 // Numeric positions are renderer projections only. The Rust bounded-value
 // controller owns canonical values, steps and commits, including decimal domains.
 component SliderKeyboard inherits FocusScope {
+    capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+    focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
     in property <int> modal-layer;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> gesture-active;
@@ -1945,7 +1948,7 @@ export component KitSlider inherits Rectangle {
             border-width: root.theme.shape.border-width;
             border-color: root.edge-brush;
         }
-        if root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+        if KitInputModality.keyboard && root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     mark-view := SliderMarks {
         width: root.width; height: root.height;
@@ -1975,7 +1978,7 @@ export component KitSlider inherits Rectangle {
         drop-shadow-offset-y: root.disc-handle ? self.disc-shadow.offset-y : 0px;
         drop-shadow-blur: root.disc-handle ? self.disc-shadow.blur : 0px;
         drop-shadow-color: root.disc-handle ? self.disc-shadow.color : transparent;
-        if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+        if KitInputModality.keyboard && !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     keyboard := SliderKeyboard { modal-layer: root.modal-layer;
         enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
@@ -1987,7 +1990,7 @@ export component KitSlider inherits Rectangle {
     pointer := TouchArea {
         enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid) && !KitModalContext.inert(root.modal-layer);
         pointer-event(event) => {
-            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) { keyboard.focus(); root.gesture-active = true; root.snapshot = root.value; root.gesture-started(); root.update-position(); }
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) { KitInputModality.note-pointer(); keyboard.focus(); root.gesture-active = true; root.snapshot = root.value; root.gesture-started(); root.update-position(); }
             if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.gesture-active) { root.gesture-active = false; root.handle-commit(); }
             if (event.kind == PointerEventKind.cancel && root.gesture-active) { root.gesture-active = false; root.handle-cancel(); }
         }
@@ -2161,7 +2164,7 @@ export component KitRangeSlider inherits Rectangle {
         accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.lower, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.next); } }
         accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.previous); } }
-        focus-gained(reason) => { root.active-thumb = RangeThumb.lower; }
+        focus-gained(reason) => { KitInputModality.ring-on-focus(reason); root.active-thumb = RangeThumb.lower; }
         navigate(step) => { root.handle-navigate(RangeThumb.lower,step); }
         committed => { root.handle-commit(RangeThumb.lower); }
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.lower); }
@@ -2181,7 +2184,7 @@ export component KitRangeSlider inherits Rectangle {
         accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.upper, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.next); } }
         accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.previous); } }
-        focus-gained(reason) => { root.active-thumb = RangeThumb.upper; }
+        focus-gained(reason) => { KitInputModality.ring-on-focus(reason); root.active-thumb = RangeThumb.upper; }
         navigate(step) => { root.handle-navigate(RangeThumb.upper,step); }
         committed => { root.handle-commit(RangeThumb.upper); }
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.upper); }
@@ -2190,13 +2193,13 @@ export component KitRangeSlider inherits Rectangle {
         x: root.vertical ? (root.body-width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.lower-position);
         y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.lower-position) : (root.body-height - self.height) / 2;
         width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.handle-brush;
-        if lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+        if KitInputModality.keyboard && lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     Rectangle {
         x: root.vertical ? (root.body-width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.upper-position);
         y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.upper-position) : (root.body-height - self.height) / 2;
         width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.handle-brush;
-        if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+        if KitInputModality.keyboard && upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     pointer := TouchArea {
         enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid) && !KitModalContext.inert(root.modal-layer);
@@ -2213,6 +2216,7 @@ export component KitRangeSlider inherits Rectangle {
                     root.active-thumb = position < root.lower-position || root.upper-position == 1
                         ? RangeThumb.lower : RangeThumb.upper;
                 }
+                KitInputModality.note-pointer();
                 if (root.active-thumb == RangeThumb.lower) { lower.focus(); } else { upper.focus(); }
                 root.gesture-active = true; root.snapshot = root.value; root.gesture-started(root.active-thumb); root.update-position();
             }

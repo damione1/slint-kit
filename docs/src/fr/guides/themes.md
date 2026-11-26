@@ -170,6 +170,12 @@ Les icônes intégrées aux contrôles lisent les rôles sémantiques de `theme.
 
 Les fichiers Lucide sont générés à partir d’une version recopiée dans le dépôt et ne sont jamais modifiés à la main. Lucide est sous licence ISC, et les icônes dérivées de Feather sont aussi sous licence MIT ; les deux notices figurent dans [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) et sont livrées avec la crate.
 
+## Quand l’anneau de focus s’affiche
+
+Les contrôles du kit suivent la règle web `:focus-visible`. Un clic déplace le focus sans dessiner d’anneau. La navigation par Tab ou par les flèches le dessine. Un focus déplacé par le code, par exemple rendu au bouton qui a ouvert un panneau, n’affiche l’anneau que si la dernière saisie venait du clavier, ce qui est aussi l’état avant toute saisie. La règle s’applique aux boutons, onglets, menus, listes, tableaux, calendriers, choix, curseurs, roue chromatique, pavé numérique et zones défilantes, ainsi qu’à toute ligne dessinée avec `focus-indicated`. Les éditeurs de texte gardent leur contour de focus quelle que soit son origine.
+
+Le global de fenêtre `KitInputModality` retient la dernière saisie. Les contrôles du kit le mettent à jour. Si votre propre `TouchArea` traite un clic puis déplace le focus par le code, appelez d’abord `KitInputModality.note-pointer()`. Si votre propre `FocusScope` consomme les touches qui déplacent le focus, appelez `KitInputModality.note-key(event)`, par exemple depuis `capture-key-pressed`, puis renvoyez `reject`. Les raccourcis avec Control, Alt ou Meta ne comptent pas comme navigation au clavier. `KitRouter`, `KitDialog`, `KitForm` et `KitFocusBackground` signalent déjà les touches saisies à l’intérieur. Si vous redéfinissez `capture-key-pressed` sur l’un d’eux, signalez la touche vous-même.
+
 ## Taille et mise en page
 
 `ControlSize` vaut `compact`, `medium` ou `comfortable`. `ControlWidth.intrinsic` conserve la largeur du contenu ; `fill` utilise l’espace attribué par la mise en page. La hauteur est généralement intrinsèque. Donnez un viewport fini aux [composants de données virtualisées](/fr/components/#data) et conservez l’identité du modèle pendant le défilement.

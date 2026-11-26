@@ -132,7 +132,22 @@ fn pointer_focus_does_not_publish_the_keyboard_tooltip() {
         .unwrap();
     click(&app, &trigger);
     assert!(!app.get_tip_visible());
+    // Focus moved from code stays quiet while the latest input is the pointer.
     app.invoke_focus_avatar();
+    app.invoke_focus_tip();
+    slint::platform::update_timers_and_animations();
+    assert!(!app.get_tip_visible());
+    app.invoke_focus_avatar();
+    for event in [
+        WindowEvent::KeyPressed {
+            text: Key::RightArrow.into(),
+        },
+        WindowEvent::KeyReleased {
+            text: Key::RightArrow.into(),
+        },
+    ] {
+        app.window().dispatch_event(event);
+    }
     app.invoke_focus_tip();
     slint::platform::update_timers_and_animations();
     assert!(app.get_tip_visible());

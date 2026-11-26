@@ -43,11 +43,35 @@ export component KitFocusBackground inherits FocusScope {
     in property <int> modal-layer;
     focus-on-tab-navigation: false;
     focus-on-click: false;
+    capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
     TouchArea {
         enabled: !KitModalContext.inert(root.modal-layer);
+        pointer-event(event) => { if (event.kind == PointerEventKind.down) { KitInputModality.note-pointer(); } }
         clicked => { root.focus(); }
     }
     @children
+}
+
+// The latest input the window saw: the rule behind the web's `:focus-visible`.
+// Focus moved from code shows its ring only while that input is the keyboard,
+// which is also the state before any input. Kit controls keep it current; a
+// host that handles pointer or key input itself reports it here.
+export global KitInputModality {
+    in-out property <bool> keyboard: true;
+    public function note-pointer() { root.keyboard = false; }
+    // Shortcut chords and lone modifier keys are not keyboard navigation.
+    public function note-key(event: KeyEvent) {
+        if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta
+            && event.text != Key.Shift && event.text != Key.ShiftR && event.text != Key.Control && event.text != Key.ControlR
+            && event.text != Key.Meta && event.text != Key.MetaR && event.text != Key.Alt && event.text != Key.AltGr) {
+            root.keyboard = true;
+        }
+    }
+    // Whether a control that gains focus for `reason` paints its ring.
+    public function ring-on-focus(reason: FocusReason) -> bool {
+        if (reason == FocusReason.tab-navigation) { root.keyboard = true; }
+        return reason == FocusReason.tab-navigation || (reason == FocusReason.programmatic && root.keyboard);
+    }
 }
 
 // The single focus indicator of the kit. Place it as a direct child of the

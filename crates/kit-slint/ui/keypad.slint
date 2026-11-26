@@ -3,7 +3,7 @@ import { KitTheme, KitThemeContext, KitMetrics, ButtonIntent, ControlSize, Contr
 import { KitPressable } from "button.slint";
 import { KitIcon, IconGlyph } from "icons.slint";
 import { FieldAccess, ValidationPresentation } from "contracts.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitModalContext } from "modal.slint";
 import { KitKeyResult } from "keyboard.slint";
 
@@ -191,6 +191,7 @@ export component KitKeypad inherits Rectangle {
     accessible-enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     forward-focus: keys;
     keys := FocusScope {
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         private property <bool> keyboard-focus;
         private property <bool> confirm-held;
         private property <bool> pointer-return;
@@ -199,7 +200,7 @@ export component KitKeypad inherits Rectangle {
         focus-on-tab-navigation: false;
         focus-on-click: false;
         focus-gained(reason) => {
-            self.keyboard-focus = !self.pointer-return && (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic);
+            self.keyboard-focus = !self.pointer-return && KitInputModality.ring-on-focus(reason);
             self.pointer-return = false;
         }
         focus-lost(reason) => { self.confirm-held = false; }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputModality } from "focus.slint";
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { ElevatedSurface } from "elevation.slint";
@@ -323,6 +324,8 @@ export component KitCalendar inherits Rectangle {
             KitPressable { modal-layer: root.modal-layer; theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.page-label(!root.right-to-left); intent: ButtonIntent.quiet; disabled: !root.page-enabled(!root.right-to-left); activated => { root.page(!root.right-to-left); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: root.theme.icons.chevron-right; ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
+            capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+            focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
             accessible-role: list;
             accessible-label: root.label;
             accessible-description: root.navigation-help;

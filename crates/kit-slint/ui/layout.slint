@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ScrollFrame, ScrollPanPolicy } from "scroll.slint";
 import { NavigationStep } from "contracts.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitModalContext } from "modal.slint";
 import { ElevationLevel, KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext, Tone } from "theme.slint";
 export { SurfaceLevel } from "theme.slint";
@@ -228,6 +228,7 @@ export component KitScrollArea inherits Rectangle {
     // focus-on-click scope: the viewport takes the keyboard, without a ring.
     function press-background() {
         if (root.focusable && root.enabled && !KitModalContext.inert(root.modal-layer)) {
+            KitInputModality.note-pointer();
             keys.focus();
             root.keyboard-focus = false;
         }
@@ -275,9 +276,10 @@ export component KitScrollArea inherits Rectangle {
         accessible-role: groupbox;
         accessible-label: root.label;
         focus-gained(reason) => {
-            root.keyboard-focus = reason == FocusReason.tab-navigation || reason == FocusReason.programmatic;
+            root.keyboard-focus = KitInputModality.ring-on-focus(reason);
         }
         focus-lost(reason) => { root.keyboard-focus = false; }
+        capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
         key-pressed(event) => {
             if (!root.focusable || event.modifiers.control || event.modifiers.alt || event.modifiers.meta) { return reject; }
             root.keyboard-focus = true;

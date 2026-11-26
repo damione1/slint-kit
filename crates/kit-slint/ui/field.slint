@@ -3,7 +3,7 @@ import { KitStrings } from "strings.slint";
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext, ChoiceFlow, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { KitIcon } from "icons.slint";
 import { KitModalContext } from "modal.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitInputModality } from "focus.slint";
 import { KitFieldService } from "field-service.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitButton, KitIconButton, KitPressable } from "button.slint";
@@ -57,7 +57,11 @@ export component KitFieldLabel inherits Rectangle {
             wrap: word-wrap;
         }
     }
-    TouchArea { enabled: root.access != FieldAccess.disabled; clicked => { root.focus-requested(); } }
+    TouchArea {
+        enabled: root.access != FieldAccess.disabled;
+        pointer-event(event) => { if (event.kind == PointerEventKind.down) { KitInputModality.note-pointer(); } }
+        clicked => { root.focus-requested(); }
+    }
 }
 export component KitFieldDescription inherits Text {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -351,6 +355,7 @@ export struct ShortcutTicket { sequence: int, generation: int }
 enum ShortcutPhase { idle, recording, pending }
 
 export component KitShortcutField inherits FocusScope {
+    capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;

@@ -1,4 +1,5 @@
 import { KitModalContext } from "modal.slint";
+import { KitInputModality } from "focus.slint";
 import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
 import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
@@ -39,6 +40,8 @@ export component KitSelectKeyboard inherits FocusScope {
     check-typeahead-active => { return selection.is-typeahead-active(); }
     private property <bool> activation-held;
     focus-on-tab-navigation: false;
+    capture-key-pressed(event) => { KitInputModality.note-key(event); return reject; }
+    focus-gained(reason) => { KitInputModality.ring-on-focus(reason); }
     changed state => { if (!root.state.open) { root.activation-held = false; } }
     changed enabled => { if (!root.enabled) { root.activation-held = false; } }
     function is-typeahead-active() -> bool { return root.typeahead-enabled && root.check-typeahead-active(); }
@@ -274,6 +277,7 @@ export component KitSelectSurface inherits Rectangle {
     keyboard := KitSelectKeyboard {
         state: root.state;
         capture-key-pressed(event) => {
+            KitInputModality.note-key(event);
             if (root.searchable && !search.has-focus) {
                 if (event.text == Key.Tab && !event.modifiers.shift) { search.focus(); return accept; }
                 if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text >= " " && event.text < "\u{f700}") {
