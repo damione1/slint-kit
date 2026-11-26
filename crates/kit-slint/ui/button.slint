@@ -2,7 +2,7 @@ import { KitKeyResult } from "keyboard.slint";
 import { KitFormValidation } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconGlyph } from "icons.slint";
-import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow, ElevationLevel, FocusRingStyle, ButtonContentLayout } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow, ElevationLevel, FocusRingStyle, ButtonContentLayout, DisabledStyle } from "theme.slint";
 import { FocusOutline } from "focus.slint";
 import { KitStrings } from "strings.slint";
 import { KitModalContext } from "modal.slint";
@@ -156,7 +156,8 @@ export component KitPressable inherits Rectangle {
     // The recipe's elevation, painted by a child that repeats the host's own
     // fill and edge so only its shadow shows past them. A shadow on the host
     // itself would take part in its measured height inside a layout.
-    if root.recipe.shadow.color.to-hsv().alpha > 0: Rectangle {
+    // A faded disabled fill is translucent: repeating it here would paint it twice.
+    if root.recipe.shadow.color.to-hsv().alpha > 0 && !(root.disabled && root.theme.disabled-style == DisabledStyle.faded): Rectangle {
         background: root.background;
         border-radius: root.border-radius;
         border-width: root.border-width;

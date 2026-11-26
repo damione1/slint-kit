@@ -116,64 +116,70 @@ export component KitNumberStepper inherits KitField {
         theme: root.theme; text: root.label; access: root.access;
         focus-requested => { root.take-focus(); }
     }
-    HorizontalLayout {
-        spacing: KitMetrics.inline-gap(root.theme);
-        alignment: root.compact ? LayoutAlignment.start : LayoutAlignment.stretch;
-        editor := KitDecimalField {
-            decoration: root.compact ? FieldDecoration.bare : FieldDecoration.boxed;
-            padding-inline: root.compact ? root.theme.spacing.unit : KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation).padding-inline;
-            private property <length> value-width: value-measure.preferred-width + (root.suffix == "" ? 0px : suffix-measure.preferred-width + KitMetrics.inline-gap(root.theme)) + 2 * self.padding-inline + root.theme.spacing.unit * 2;
-            min-width: root.compact ? self.value-width : 0px;
-            max-width: root.compact ? self.value-width : 100000px;
-            horizontal-stretch: root.compact ? 0 : 1;
-            modal-layer: root.modal-layer;
-            ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
-            show-validation-message: false; error: root.error;
-            required: root.required; min: root.min; max: root.max; step: root.step;
-            page-steps: root.page-steps; wheel-stepping: root.wheel-stepping;
-            number-format: root.number-format; default-value: root.default-value;
-            custom-validity <=> root.custom-validity;
-            invalid => { root.invalid(); }
-            theme: root.theme; control-size: root.control-size;
-            access: root.access; validation: root.validation;
-            accessible-name: root.accessible-name;
-            required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message;
-            step-message: root.step-message; bad-input-message: root.bad-input-message;
-            validation-timing: root.validation-timing; text-alignment: root.text-alignment;
-            value-edited(value) => { root.value-edited(value); }
-            placeholder: root.placeholder; prefix: root.prefix; suffix: root.suffix;
-            leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
-            text <=> root.text;
-            edited(value) => { root.edited(value); }
-            commit-requested(value) => { root.commit-requested(value); }
-            cancelled => { root.cancelled(); }
-            focus-observed(value) => { root.focus-observed(value); }
-        }
-        for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
-            theme: root.theme; modal-layer: root.modal-layer; intent: ButtonIntent.secondary; control-size: root.control-size;
-            min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
-            preferred-width: KitMetrics.control-height(root.theme, root.control-size);
-            min-width: self.preferred-width;
-            // Spin buttons are pointer targets: keyboard users step with the
-            // arrow, page and Home/End keys of the editor, so they add no tab
-            // stops. A step hands focus to the editor, so a press must not
-            // focus the button first or that handover would cancel its repeat.
-            tab-stop: false; focus-on-pointer: false; repeat-on-hold: true;
-            disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement) || !editor.can-step(direction);
-            accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
-            activated => { if (editor.step-number(direction)) { root.step-requested(direction); } }
-            Rectangle {
-                KitIcon {
+    // The hidden measures sit beside the row, outside the field's own layout.
+    Rectangle {
+        min-width: controls.min-width; preferred-width: controls.preferred-width;
+        min-height: controls.min-height; preferred-height: controls.preferred-height;
+        vertical-stretch: 0;
+        controls := HorizontalLayout {
+            spacing: KitMetrics.inline-gap(root.theme);
+            alignment: root.compact ? LayoutAlignment.start : LayoutAlignment.stretch;
+            editor := KitDecimalField {
+                decoration: root.compact ? FieldDecoration.bare : FieldDecoration.boxed;
+                padding-inline: root.compact ? root.theme.spacing.unit : KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation).padding-inline;
+                private property <length> value-width: value-measure.preferred-width + (root.suffix == "" ? 0px : suffix-measure.preferred-width + KitMetrics.inline-gap(root.theme)) + 2 * self.padding-inline + root.theme.spacing.unit * 2;
+                min-width: root.compact ? self.value-width : 0px;
+                max-width: root.compact ? self.value-width : 100000px;
+                horizontal-stretch: root.compact ? 0 : 1;
+                modal-layer: root.modal-layer;
+                ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
+                show-validation-message: false; error: root.error;
+                required: root.required; min: root.min; max: root.max; step: root.step;
+                page-steps: root.page-steps; wheel-stepping: root.wheel-stepping;
+                number-format: root.number-format; default-value: root.default-value;
+                custom-validity <=> root.custom-validity;
+                invalid => { root.invalid(); }
                 theme: root.theme; control-size: root.control-size;
-                x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                glyph: direction == StepDirection.increment ? root.increment-glyph : root.decrement-glyph;
-                ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
+                access: root.access; validation: root.validation;
+                accessible-name: root.accessible-name;
+                required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message;
+                step-message: root.step-message; bad-input-message: root.bad-input-message;
+                validation-timing: root.validation-timing; text-alignment: root.text-alignment;
+                value-edited(value) => { root.value-edited(value); }
+                placeholder: root.placeholder; prefix: root.prefix; suffix: root.suffix;
+                leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
+                text <=> root.text;
+                edited(value) => { root.edited(value); }
+                commit-requested(value) => { root.commit-requested(value); }
+                cancelled => { root.cancelled(); }
+                focus-observed(value) => { root.focus-observed(value); }
+            }
+            for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
+                theme: root.theme; modal-layer: root.modal-layer; intent: ButtonIntent.secondary; control-size: root.control-size;
+                min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
+                preferred-width: KitMetrics.control-height(root.theme, root.control-size);
+                min-width: self.preferred-width;
+                // Spin buttons are pointer targets: keyboard users step with the
+                // arrow, page and Home/End keys of the editor, so they add no tab
+                // stops. A step hands focus to the editor, so a press must not
+                // focus the button first or that handover would cancel its repeat.
+                tab-stop: false; focus-on-pointer: false; repeat-on-hold: true;
+                disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement) || !editor.can-step(direction);
+                accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
+                activated => { if (editor.step-number(direction)) { root.step-requested(direction); } }
+                Rectangle {
+                    KitIcon {
+                    theme: root.theme; control-size: root.control-size;
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    glyph: direction == StepDirection.increment ? root.increment-glyph : root.decrement-glyph;
+                    ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
+                    }
                 }
             }
         }
+        value-measure := Text { x: 0px; y: 0px; visible: false; accessible-role: none; height: 0px; text: root.text == "" ? "0" : root.text; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+        suffix-measure := Text { x: 0px; y: 0px; visible: false; accessible-role: none; height: 0px; text: root.suffix; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
     }
-    value-measure := Text { visible: false; accessible-role: none; height: 0px; text: root.text == "" ? "0" : root.text; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
-    suffix-measure := Text { visible: false; accessible-role: none; height: 0px; text: root.suffix; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
     if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
     if root.validation == ValidationPresentation.invalid && root.error != "": KitFieldError { theme: root.theme; text: root.error; }
     if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
