@@ -139,6 +139,8 @@ export component KitInputGroup inherits Rectangle {
     in property <length> corner-radius: root.recipe.radius;
     in property <length> padding-inline: root.recipe.padding-inline;
     in property <length> padding-block: root.recipe.padding-block;
+    // The space above the content; `padding-block` stays below it.
+    in property <length> padding-block-start: root.padding-block;
     // An explicit resting fill and edge of an editable boxed field; `transparent`
     // defers to the theme.
     in property <color> field-fill: transparent;
@@ -180,9 +182,9 @@ export component KitInputGroup inherits Rectangle {
     // so the native editor and actions keep every press, caret and selection.
     hover := TouchArea {
         Rectangle {
-            x: root.padding-inline; y: root.padding-block;
+            x: root.padding-inline; y: root.padding-block-start;
             width: max(0px, parent.width - 2 * root.padding-inline);
-            height: max(0px, parent.height - 2 * root.padding-block);
+            height: max(0px, parent.height - root.padding-block-start - root.padding-block);
             @children
         }
     }
@@ -210,6 +212,9 @@ export component KitFieldSeparator inherits Rectangle {
     vertical-stretch: 0;
 }
 
+// Where a horizontal row places its caption and control across its height.
+export enum FieldRowAlignment { center, top }
+
 // A single retained slot lets hosts switch orientation without recreating an editor.
 export component KitFieldRow inherits KitField {
     in property <Orientation> orientation: Orientation.horizontal;
@@ -220,6 +225,9 @@ export component KitFieldRow inherits KitField {
     in property <bool> show-divider;
     in property <FieldRowAppearance> appearance: FieldRowAppearance.plain;
     private property <bool> inset-row: root.appearance == FieldRowAppearance.inset;
+    in property <FieldRowAlignment> row-alignment: FieldRowAlignment.center;
+    // Fades the label alone: it keeps its ink and still moves focus when clicked.
+    in property <float> label-opacity: 1;
     callback focus-requested();
     spacing: root.inset-row ? 0px : KitMetrics.label-gap(root.theme);
 
@@ -232,6 +240,7 @@ export component KitFieldRow inherits KitField {
         Rectangle {
             private property <bool> stacked: root.orientation == Orientation.vertical;
             private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
+            private property <bool> top-aligned: root.row-alignment == FieldRowAlignment.top;
             private property <bool> has-caption: root.label != "" || root.description != "" || root.error-message != "";
             private property <length> gap: !self.has-caption ? 0px : root.inset-row ? root.theme.spacing.unit * 6 : KitMetrics.field-gap(root.theme);
             preferred-width: self.stacked ? max(caption.preferred-width, slot.preferred-width)
@@ -243,12 +252,13 @@ export component KitFieldRow inherits KitField {
                 ? KitMetrics.label-gap(root.theme) - KitMetrics.help-gap(root.theme) : 0px;
             caption := VerticalLayout {
                 x: parent.stacked || !parent.rtl ? 0px : slot.width + parent.gap;
-                y: parent.stacked ? 0px : (parent.height - self.height + parent.trailing-gap) / 2;
+                y: parent.stacked || parent.top-aligned ? 0px : (parent.height - self.height + parent.trailing-gap) / 2;
                 width: parent.stacked ? parent.width : max(0px, parent.width - slot.width - parent.gap);
                 height: self.preferred-height;
                 spacing: KitMetrics.help-gap(root.theme);
                 if root.label != "": KitFieldLabel {
                     theme: root.theme; text: root.label; access: root.access;
+                    opacity: root.label-opacity;
                     focus-requested => { if (!KitModalContext.inert(root.modal-layer)) { root.focus-requested(); } }
                 }
                 if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
@@ -256,7 +266,7 @@ export component KitFieldRow inherits KitField {
             }
             slot := VerticalLayout {
                 x: parent.stacked || parent.rtl ? 0px : parent.width - self.width;
-                y: parent.stacked ? caption.height + parent.gap : (parent.height - self.height) / 2;
+                y: parent.stacked ? caption.height + parent.gap : parent.top-aligned ? 0px : (parent.height - self.height) / 2;
                 width: parent.stacked ? parent.width : min(parent.width, self.preferred-width);
                 height: self.preferred-height;
                 alignment: start;

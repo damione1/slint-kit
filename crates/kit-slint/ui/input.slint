@@ -315,11 +315,15 @@ export component KitTextField inherits KitField {
     in property <length> corner-radius: root.recipe.radius;
     in property <length> padding-inline: root.recipe.padding-inline;
     in property <length> padding-block: root.recipe.padding-block;
+    // The space above the editor; `padding-block` stays below it.
+    in property <length> padding-block-start: root.padding-block;
     in property <length> text-size: root.recipe.font-size;
     in property <string> prefix;
     in property <string> suffix;
     // The space between the editor and the icons, affixes and actions beside it.
     in property <length> affix-gap: KitMetrics.inline-gap(root.theme);
+    // The ink of the prefix and the suffix.
+    in property <color> affix-ink: root.theme.text-secondary;
     in-out property <string> text;
     in property <bool> show-character-count;
     in property <int> character-count: KitFormValidation.ready ? KitFormValidation.grapheme-count(root.text) : 0;
@@ -464,7 +468,7 @@ export component KitTextField inherits KitField {
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> clear-visible: !root.multiline && root.clearable && root.text != "";
     private property <bool> reveal-visible: !root.multiline && root.purpose == TextPurpose.password && root.reveal-toggle == SecretToggleVisibility.shown;
-    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : Math.max(root.line-height, KitMetrics.control-height(root.theme, root.control-size) - 2 * root.padding-block);
+    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : Math.max(root.line-height, KitMetrics.control-height(root.theme, root.control-size) - root.padding-block-start - root.padding-block);
     if root.label != "": KitFieldLabel {
         theme: root.theme; text: root.label; access: root.access; required: root.required; show-required-indicator: root.show-required-indicator; required-label: root.required-label;
         focus-requested => { root.take-focus(); }
@@ -475,8 +479,8 @@ export component KitTextField inherits KitField {
         decoration: root.decoration; underline-segments: root.underline-segments; group-size: root.group-size;
         field-fill: root.field-fill; field-border: root.field-border;
         cell-trailing-space: root.decoration == FieldDecoration.cells ? root.text-inset + 2px : 0px;
-        corner-radius: root.corner-radius; padding-inline: root.padding-inline; padding-block: root.padding-block;
-        preferred-height: Math.max(root.editor-height, editor-row.preferred-height) + 2 * root.padding-block;
+        corner-radius: root.corner-radius; padding-inline: root.padding-inline; padding-block: root.padding-block; padding-block-start: root.padding-block-start;
+        preferred-height: Math.max(root.editor-height, editor-row.preferred-height) + root.padding-block-start + root.padding-block;
         max-height: self.preferred-height;
         checks := FormConstraintState {
             kind: root.input-kind; twelve-hour: root.validation-twelve-hour; date-entry: root.validation-date-entry; number-format: root.number-format; access: root.access; required: root.required; multiple: root.multiple;
@@ -495,7 +499,7 @@ export component KitTextField inherits KitField {
         // Behind the editor and action: the visual padding is part of the
         // field's focus target without intercepting native caret/selection.
         TouchArea {
-            x: -surface.padding-inline; y: -surface.padding-block;
+            x: -surface.padding-inline; y: -surface.padding-block-start;
             width: surface.width; height: surface.height;
             enabled: root.access != FieldAccess.disabled;
             pointer-event(event) => {
@@ -510,7 +514,7 @@ export component KitTextField inherits KitField {
                 if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; width: root.leading-icon-size; height: root.leading-icon-size; glyph: root.leading-icon; ink: root.leading-icon-ink != transparent ? root.leading-icon-ink : root.recipe.foreground; cross-axis-self-alignment: center; }
                 if root.prefix != "": Text {
                     layout-order: root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
-                    text: root.prefix; color: root.theme.text-secondary;
+                    text: root.prefix; color: root.affix-ink;
                     font-family: root.theme.typography.family; font-size: root.text-size;
                     vertical-alignment: center; horizontal-stretch: 0;
                 }
@@ -722,7 +726,7 @@ export component KitTextField inherits KitField {
                 if root.trailing-icon.stroke != "" || root.trailing-icon.fill != "": KitIcon { layout-order: 3 * root.flow-sign; theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; ink: root.recipe.foreground; cross-axis-self-alignment: center; }
                 if root.suffix != "": Text {
                     layout-order: 4 * root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
-                    text: root.suffix; color: root.theme.text-secondary;
+                    text: root.suffix; color: root.affix-ink;
                     font-family: root.text-font-family; font-size: root.text-size;
                     vertical-alignment: center; horizontal-stretch: 0;
                 }

@@ -5763,6 +5763,9 @@
         "cell-trailing-space": {
           "effect": "Espace après les cellules décoratives, réservé au curseur natif final. KitTextField le fournit automatiquement avec cells ; il n’ajoute aucun caractère et conserve l’éditeur natif unique.",
           "default": "`0px`."
+        },
+        "padding-block-start": {
+          "effect": "L’espace au-dessus du contenu ; `padding-block` reste en dessous."
         }
       }
     },
@@ -5781,6 +5784,9 @@
         "cell-trailing-space": {
           "effect": "Space after the decorative cells, reserved for the final native caret. KitTextField supplies it automatically for cells; it adds no character and preserves the single native editor.",
           "default": "`0px`."
+        },
+        "padding-block-start": {
+          "effect": "The space above the content; `padding-block` stays below it."
         }
       }
     }
@@ -7261,6 +7267,12 @@
         },
         "value-font": {
           "effect": "`TextViewFont.monospace` affiche la valeur et son suffixe dans la police à chasse fixe du thème."
+        },
+        "value-button-gap": {
+          "effect": "Apparence `compact` uniquement : l’espace de mise en page entre l’éditeur, dont la fin contient la valeur, le suffixe éventuel et la marge intérieure, et le premier bouton de pas."
+        },
+        "affix-in-value-ink": {
+          "effect": "Encre le suffixe et le préfixe comme la valeur au lieu du texte secondaire."
         }
       },
       "functions": {
@@ -7401,6 +7413,12 @@
         },
         "value-font": {
           "effect": "`TextViewFont.monospace` draws the value and its suffix in the theme’s monospace family."
+        },
+        "value-button-gap": {
+          "effect": "`compact` appearance only: the layout space between the editor, whose end holds the value, any suffix and the inline padding, and the first step button."
+        },
+        "affix-in-value-ink": {
+          "effect": "Inks the suffix and the prefix like the value instead of as secondary text."
         }
       },
       "functions": {
@@ -7713,6 +7731,9 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitPressable {\n    modal-layer: 1;\n}"
+        },
+        "keep-disabled-shadow": {
+          "effect": "Conserve l’ombre de la recette à l’état désactivé avec `disabled-style: faded`, pour une recette dont le fond désactivé est opaque."
         }
       },
       "callbacks": {
@@ -7748,6 +7769,9 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitPressable {\n    modal-layer: 1;\n}"
+        },
+        "keep-disabled-shadow": {
+          "effect": "Keeps the recipe’s shadow while disabled under `disabled-style: faded`, for a recipe whose disabled fill is opaque."
         }
       },
       "callbacks": {
@@ -8758,7 +8782,10 @@
           "effect": "Lecture seule : vrai tant que le déclencheur ou la fenêtre déroulante ouverte (y compris son champ de recherche) possède le focus. Quitter le contrôle fermé compte comme une perte de focus pour `validation-timing`."
         },
         "full-ink-when-disabled": {
-          "effect": "Conserve les encres actives de la valeur et du chevron quand `access` vaut `disabled`. Le déclencheur reste non focalisable et se déclare désactivé."
+          "effect": "Conserve les encres, le fond, le bord et l’élévation actifs quand `access` vaut `disabled`. Le déclencheur reste non focalisable et se déclare désactivé."
+        },
+        "trigger-elevation": {
+          "effect": "L’élévation du déclencheur fermé. `ElevationLevel.none` par défaut."
         }
       },
       "callbacks": {
@@ -8984,7 +9011,10 @@
           "effect": "Read-only: true while the trigger or the open popup (including its search field) has focus. Leaving the control while it is closed counts as a blur for `validation-timing`."
         },
         "full-ink-when-disabled": {
-          "effect": "Keeps the value and chevron in their enabled inks while `access` is `disabled`. The trigger stays unfocusable and reports itself disabled."
+          "effect": "Keeps the enabled inks, fill, edge and elevation while `access` is `disabled`. The trigger stays unfocusable and reports itself disabled."
+        },
+        "trigger-elevation": {
+          "effect": "The elevation of the closed trigger. `ElevationLevel.none` by default."
         }
       },
       "callbacks": {
@@ -9189,7 +9219,15 @@
       "callbacks": {
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran.",
+      "properties": {
+        "trigger-elevation": {
+          "effect": "L’élévation du déclencheur fermé."
+        },
+        "locked-chrome": {
+          "effect": "Conserve le fond, le bord et l’élévation modifiables quand `access` vaut `disabled`."
+        }
+      }
     },
     "en": {
       "summary": "Customizable trigger sharing selector interactions.",
@@ -9204,7 +9242,15 @@
       "callbacks": {
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader.",
+      "properties": {
+        "trigger-elevation": {
+          "effect": "The elevation of the closed trigger."
+        },
+        "locked-chrome": {
+          "effect": "Keeps the editable fill, edge and elevation while `access` is `disabled`."
+        }
+      }
     }
   },
   "KitSkeleton": {
@@ -9306,6 +9352,9 @@
           "effect": "Poignée d’une piste remplie. `bar` est une courte barre dans le remplissage, à trois unités d’espacement de son bord. `disc` est un curseur rond centré sur le bord du remplissage, aussi large que la piste moins son retrait de chaque côté, peint en `handle-brush` dans un anneau de `theme.surface` avec l’ombre des contrôles du thème ; il reste dans la piste aux deux bouts. Un curseur en ligne a toujours un curseur rond.",
           "default": "`SliderHandleShape.bar`.",
           "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    handle-shape: SliderHandleShape.disc;\n    handle-brush: root.theme.accent;\n}"
+        },
+        "track-thickness": {
+          "effect": "Présentation `line` : l’épaisseur peinte de la piste. La pastille et la zone de pointage gardent leur taille."
         }
       },
       "callbacks": {
@@ -9389,6 +9438,9 @@
           "effect": "The handle of a filled track. `bar` is a short bar inside the fill, three spacing units from its edge. `disc` is a round thumb centred on the fill's edge, as wide as the track less its inset on each side, painted in `handle-brush` inside a ring of `theme.surface` with the theme's control shadow; it stays inside the track at both ends. A line slider always has a round thumb.",
           "default": "`SliderHandleShape.bar`.",
           "example": "KitSlider {\n    presentation: SliderPresentation.filled;\n    handle-shape: SliderHandleShape.disc;\n    handle-brush: root.theme.accent;\n}"
+        },
+        "track-thickness": {
+          "effect": "`line` presentation: the painted thickness of the track. The thumb and the pointer area keep their size."
         }
       },
       "callbacks": {
@@ -10595,6 +10647,12 @@
         },
         "affix-gap": {
           "effect": "L’espace entre l’éditeur et les icônes, affixes et actions voisins."
+        },
+        "padding-block-start": {
+          "effect": "L’espace au-dessus de l’éditeur ; `padding-block` reste en dessous."
+        },
+        "affix-ink": {
+          "effect": "L’encre du préfixe et du suffixe."
         }
       },
       "callbacks": {
@@ -11258,6 +11316,12 @@
         },
         "affix-gap": {
           "effect": "The space between the editor and the icons, affixes and actions beside it."
+        },
+        "padding-block-start": {
+          "effect": "The space above the editor; `padding-block` stays below it."
+        },
+        "affix-ink": {
+          "effect": "The ink of the prefix and the suffix."
         }
       },
       "callbacks": {
@@ -12927,6 +12991,12 @@
         },
         "access": {
           "effect": "Styles the caption and disables its focus request when disabled. Supplied children receive their own access binding."
+        },
+        "row-alignment": {
+          "effect": "`FieldRowAlignment.center` (default) or `top`: where a horizontal row places its caption and control across its height."
+        },
+        "label-opacity": {
+          "effect": "Fades the label alone: it keeps its ink and still moves focus when clicked."
         }
       },
       "callbacks": {
@@ -12962,6 +13032,12 @@
         },
         "access": {
           "effect": "Adapte la légende et bloque sa demande de focus si désactivée. Les enfants reçoivent leur propre liaison d’accès."
+        },
+        "row-alignment": {
+          "effect": "`FieldRowAlignment.center` (par défaut) ou `top` : la position verticale de la légende et du contrôle dans une ligne horizontale."
+        },
+        "label-opacity": {
+          "effect": "Estompe le libellé seul : il garde son encre et déplace toujours le focus au clic."
         }
       },
       "callbacks": {

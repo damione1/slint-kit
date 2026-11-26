@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Content-sized geometry: a compact stepper with a suffix, and a hugging chat
 // bubble around a wrapping flow measured unwrapped.
-import { KitAlert, AlertActions, KitButton, KitWrap, LayoutSpace, KitNumberStepper, StepperAppearance, ControlSize, KitFieldRow, FieldRowAppearance, KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit";
+import { KitAlert, AlertActions, KitButton, KitWrap, LayoutSpace, KitNumberStepper, StepperAppearance, ControlSize, KitFieldRow, FieldRowAppearance, KitChatBubble, ChatSide, KitTheme, KitThemes, FieldRowAlignment, KitSelect, FieldAccess, KitSlider, KitTextArea, ResizePolicy } from "@kit";
 
 component Flow inherits KitWrap {
     in property <[string]> words;
@@ -16,7 +16,7 @@ component Flow inherits KitWrap {
 }
 
 export component ContentSizingFixture inherits Window {
-    width: 600px; height: 320px;
+    width: 600px; height: 900px;
     in property <KitTheme> theme: KitThemes.light;
     background: root.theme.canvas;
     out property <length> flow-line-height: reference.preferred-height;
@@ -42,6 +42,26 @@ export component ContentSizingFixture inherits Window {
                 theme: root.theme; appearance: StepperAppearance.compact; control-size: ControlSize.compact;
                 accessible-name: "Delay"; text: "5"; suffix: " min";
             }
+        }
+        KitFieldRow {
+            theme: root.theme; label: "Prompt"; row-alignment: FieldRowAlignment.top; label-opacity: 0.55;
+            Rectangle {
+                width: 200px; height: 96px;
+                accessible-role: groupbox; accessible-label: "Prompt editor";
+            }
+        }
+        KitNumberStepper {
+            theme: root.theme; appearance: StepperAppearance.compact; control-size: ControlSize.compact;
+            accessible-name: "Tight"; text: "150"; value-button-gap: 0px; affix-in-value-ink: true;
+            decrement-label: "Tight less";
+        }
+        KitTextArea { theme: root.theme; accessible-name: "Even"; resize-policy: ResizePolicy.fixed; padding-block: 6px; }
+        KitTextArea { theme: root.theme; accessible-name: "Lowered"; resize-policy: ResizePolicy.fixed; padding-block: 6px; padding-block-start: 20px; }
+        KitSlider { theme: root.theme; label: "Thin"; }
+        KitSlider { theme: root.theme; label: "Thick"; track-thickness: 6px; }
+        KitSelect {
+            theme: root.theme; label: "Locked model"; access: FieldAccess.disabled;
+            full-ink-when-disabled: true; trigger-elevation: root.theme.elevation.control;
         }
     }
 }

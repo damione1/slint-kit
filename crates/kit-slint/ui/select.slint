@@ -13,7 +13,7 @@ import { KitIconButton } from "button.slint";
 import { ListView } from "scroll.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
-import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe, ChoiceDirection, ChoiceFlow } from "theme.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe, ChoiceDirection, ChoiceFlow, ElevationLevel } from "theme.slint";
 import { OptionRow, OptionItem, OptionItemKind, ChoiceRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 export { OptionRow, OptionItem, OptionItemKind, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 
@@ -147,8 +147,14 @@ export component KitSelectTrigger inherits KitPressable {
     callback tab-navigation(bool) -> KitKeyResult;
     callback check-typeahead-active() -> bool;
     check-typeahead-active => { return selection.is-typeahead-active(); }
-    private property <FieldRecipe> field: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
-    recipe: KitThemes.trigger-recipe(root.theme, root.field, root.access);
+    // A locked trigger is disabled but keeps its editable fill, edge and elevation.
+    in property <bool> locked-chrome;
+    in property <ElevationLevel> trigger-elevation: ElevationLevel.none;
+    private property <bool> locked: root.locked-chrome && root.access == FieldAccess.disabled;
+    private property <FieldAccess> chrome-access: root.locked ? FieldAccess.editable : root.access;
+    private property <FieldRecipe> field: KitThemes.field-recipe(root.theme, root.control-size, root.chrome-access, root.validation);
+    recipe: KitThemes.elevated-trigger-recipe(root.theme, KitThemes.trigger-recipe(root.theme, root.field, root.chrome-access), root.trigger-elevation, root.locked);
+    keep-disabled-shadow: root.locked;
     disabled: root.access == FieldAccess.disabled;
     border-color: root.hovered && !root.state.open ? root.field.hover-border : root.recipe.border;
     accessible-role: combobox;
@@ -553,9 +559,11 @@ export component KitSelect inherits Rectangle {
     private property <string> trigger-label: root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label
         : root.state.selected.present && (root.state.selection-availability == SelectionAvailability.available || root.selected-label != "") ? root.selected-label : root.placeholder;
     in property <FieldAccess> access: FieldAccess.editable;
-    // Keeps the value and chevron in their enabled inks while `access` is
+    // Keeps the enabled inks, fill, edge and elevation while `access` is
     // `disabled`, for a locked choice that must stay readable.
     in property <bool> full-ink-when-disabled;
+    // The elevation of the closed trigger.
+    in property <ElevationLevel> trigger-elevation: ElevationLevel.none;
     private property <bool> faint: trigger.disabled && !root.full-ink-when-disabled;
     // A composite (multi-select) reports its own constraint through this.
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
@@ -661,6 +669,8 @@ export component KitSelect inherits Rectangle {
         control-size: root.control-size;
         state: root.state;
         access: root.access;
+        locked-chrome: root.full-ink-when-disabled;
+        trigger-elevation: root.trigger-elevation;
         wrap: root.wrap;
         page-rows: root.page-rows;
         typeahead-timeout-ms: root.typeahead-timeout-ms;

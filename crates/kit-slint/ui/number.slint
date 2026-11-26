@@ -45,6 +45,11 @@ export component KitNumberStepper inherits KitField {
     // `compact` only: the room between the end of the value and the suffix,
     // which includes the room for the caret.
     in property <length> suffix-gap: KitMetrics.inline-gap(root.theme) + root.theme.spacing.unit * 2;
+    // `compact` only: the layout space between the editor, whose end holds the
+    // value, any suffix and the inline padding, and the first step button.
+    in property <length> value-button-gap: KitMetrics.inline-gap(root.theme);
+    // Inks the suffix and the prefix like the value instead of as secondary text.
+    in property <bool> affix-in-value-ink;
     // The face of the value and its suffix.
     in property <TextViewFont> value-font: TextViewFont.proportional;
     private property <string> value-family: root.value-font == TextViewFont.monospace ? root.theme.typography.family-monospace : root.theme.typography.family;
@@ -128,13 +133,14 @@ export component KitNumberStepper inherits KitField {
         min-height: controls.min-height; preferred-height: controls.preferred-height;
         vertical-stretch: 0;
         controls := HorizontalLayout {
-            spacing: KitMetrics.inline-gap(root.theme);
+            spacing: root.compact ? root.value-button-gap : KitMetrics.inline-gap(root.theme);
             alignment: root.compact ? LayoutAlignment.start : LayoutAlignment.stretch;
             editor := KitDecimalField {
                 decoration: root.compact ? FieldDecoration.bare : FieldDecoration.boxed;
                 padding-inline: root.compact ? root.theme.spacing.unit : KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation).padding-inline;
                 private property <length> value-width: value-measure.preferred-width + (root.suffix == "" ? root.theme.spacing.unit * 2 : suffix-measure.preferred-width + root.suffix-gap) + 2 * self.padding-inline;
                 text-font-family: root.value-family;
+                affix-ink: root.affix-in-value-ink ? KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation).foreground : root.theme.text-secondary;
                 affix-gap: root.compact && root.suffix != "" ? Math.max(0px, root.suffix-gap - root.theme.spacing.unit * 2) : KitMetrics.inline-gap(root.theme);
                 min-width: root.compact ? self.value-width : 0px;
                 max-width: root.compact ? self.value-width : 100000px;
@@ -162,25 +168,29 @@ export component KitNumberStepper inherits KitField {
                 cancelled => { root.cancelled(); }
                 focus-observed(value) => { root.focus-observed(value); }
             }
-            for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
-                theme: root.theme; modal-layer: root.modal-layer; intent: ButtonIntent.secondary; control-size: root.control-size;
-                min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
-                preferred-width: KitMetrics.control-height(root.theme, root.control-size);
-                min-width: self.preferred-width;
-                // Spin buttons are pointer targets: keyboard users step with the
-                // arrow, page and Home/End keys of the editor, so they add no tab
-                // stops. A step hands focus to the editor, so a press must not
-                // focus the button first or that handover would cancel its repeat.
-                tab-stop: false; focus-on-pointer: false; repeat-on-hold: true;
-                disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement) || !editor.can-step(direction);
-                accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
-                activated => { if (editor.step-number(direction)) { root.step-requested(direction); } }
-                Rectangle {
-                    KitIcon {
-                    theme: root.theme; control-size: root.control-size;
-                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                    glyph: direction == StepDirection.increment ? root.increment-glyph : root.decrement-glyph;
-                    ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
+            HorizontalLayout {
+                spacing: KitMetrics.inline-gap(root.theme);
+                horizontal-stretch: 0;
+                for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
+                    theme: root.theme; modal-layer: root.modal-layer; intent: ButtonIntent.secondary; control-size: root.control-size;
+                    min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
+                    preferred-width: KitMetrics.control-height(root.theme, root.control-size);
+                    min-width: self.preferred-width;
+                    // Spin buttons are pointer targets: keyboard users step with the
+                    // arrow, page and Home/End keys of the editor, so they add no tab
+                    // stops. A step hands focus to the editor, so a press must not
+                    // focus the button first or that handover would cancel its repeat.
+                    tab-stop: false; focus-on-pointer: false; repeat-on-hold: true;
+                    disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement) || !editor.can-step(direction);
+                    accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
+                    activated => { if (editor.step-number(direction)) { root.step-requested(direction); } }
+                    Rectangle {
+                        KitIcon {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        glyph: direction == StepDirection.increment ? root.increment-glyph : root.decrement-glyph;
+                        ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
+                        }
                     }
                 }
             }

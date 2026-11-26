@@ -522,6 +522,21 @@ export global KitThemes {
             focus: field.focus,
         };
     }
+    // `trigger` with its own elevation. A locked trigger also keeps this
+    // recipe's fill while disabled.
+    public pure function elevated-trigger-recipe(theme: KitTheme, trigger: ButtonRecipe, elevation: ElevationLevel, locked: bool) -> ButtonRecipe {
+        return {
+            fill: trigger.fill, hover-fill: trigger.hover-fill, pressed-fill: trigger.pressed-fill,
+            disabled-fill: locked ? trigger.fill : trigger.disabled-fill,
+            foreground: trigger.foreground, disabled-foreground: trigger.disabled-foreground, border: trigger.border,
+            radius: trigger.radius, padding-inline: trigger.padding-inline, padding-block: trigger.padding-block,
+            border-width: trigger.border-width, height: trigger.height, font-size: trigger.font-size,
+            font-weight: trigger.font-weight, underline: trigger.underline,
+            busy-mark-size: trigger.busy-mark-size, busy-mark-stroke: trigger.busy-mark-stroke,
+            elevation: elevation, shadow: KitThemes.shadow(theme, elevation),
+            focus: trigger.focus,
+        };
+    }
     // A data-table row: a flat, square pressable that fills its cell grid and
     // paints the theme's ring over its own edge while its table owns focus.
     public pure function table-row-recipe(theme: KitTheme, size: ControlSize) -> ButtonRecipe {

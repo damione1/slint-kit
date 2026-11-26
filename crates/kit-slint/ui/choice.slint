@@ -1811,6 +1811,9 @@ export component KitSlider inherits Rectangle {
     // The edge of a filled track, drawn over the fill. A host whose page
     // already sets the control apart passes `transparent`.
     in property <brush> edge-brush: root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+    // The painted thickness of a line track. The thumb and the pointer area
+    // keep their size.
+    in property <length> track-thickness: root.choice.slider-track-height;
     // The corner radius of a filled track: the container radius, never more
     // than half the track's shorter side. A line track is always a pill.
     in property <length> track-radius: min(root.theme.shape.radius-container, min(root.body-width, root.body-height) / 2);
@@ -1908,8 +1911,8 @@ export component KitSlider inherits Rectangle {
     track := Rectangle {
         x: root.filled ? 0px : root.vertical ? (root.body-width - self.width) / 2 : root.edge;
         y: root.filled ? 0px : root.vertical ? root.edge : (root.body-height - self.height) / 2;
-        width: root.filled ? root.body-width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
-        height: root.filled ? root.body-height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
+        width: root.filled ? root.body-width : root.vertical ? root.track-thickness : root.width - 2 * root.edge;
+        height: root.filled ? root.body-height : root.vertical ? root.height - 2 * root.edge : root.track-thickness;
         border-radius: root.filled ? min(root.track-radius, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
         clip: root.filled;
         background: root.track-brush;

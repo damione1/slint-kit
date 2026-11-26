@@ -55,6 +55,54 @@ fn a_label_only_row_centres_its_caption_on_the_control() {
 }
 
 #[test]
+fn a_top_aligned_row_keeps_its_caption_level_with_the_control() {
+    let window = fixture();
+    let caption = ElementQuery::from_root(&window)
+        .match_type_name("Text")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Prompt"))
+        .find_first()
+        .expect("row label");
+    let control = ElementHandle::find_by_accessible_label(&window, "Prompt editor")
+        .next()
+        .expect("tall control");
+    let offset = caption.absolute_position().y - control.absolute_position().y;
+    assert!(
+        offset.abs() <= 1.,
+        "label is {offset}px below the control top"
+    );
+}
+
+#[test]
+fn compact_stepper_and_text_area_spacing_options_move_only_their_edge() {
+    let window = fixture();
+    let element = |label: &'static str| {
+        ElementHandle::find_by_accessible_label(&window, label)
+            .next()
+            .expect(label)
+    };
+    let gap = |editor: ElementHandle, button: ElementHandle| {
+        button.absolute_position().x - editor.absolute_position().x - editor.size().width
+    };
+    let tight = gap(element("Tight"), element("Tight less"));
+    assert!(tight.abs() <= 0.5, "first button gap is {tight}px");
+    let added = element("Lowered").size().height - element("Even").size().height;
+    assert!((added - 14.).abs() <= 0.5, "top padding added {added}px");
+    assert_eq!(
+        element("Thin").size().height,
+        element("Thick").size().height
+    );
+}
+
+#[test]
+fn a_locked_select_with_full_ink_stays_disabled() {
+    let window = fixture();
+    let select = ElementHandle::find_by_accessible_label(&window, "Locked model")
+        .find(|element| element.accessible_enabled().is_some())
+        .expect("locked select trigger");
+    assert_eq!(select.accessible_enabled(), Some(false));
+}
+
+#[test]
 fn a_hugging_bubble_keeps_an_unwrapped_measure_on_one_line() {
     let window = fixture();
     let flow = ElementHandle::find_by_accessible_label(&window, "Words")
