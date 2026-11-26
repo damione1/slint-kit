@@ -133,13 +133,18 @@ export struct DialogAction { token: int, text: string, intent: ButtonIntent, dis
 export component DialogActionButton inherits KitButton {
     // Takes focus when it becomes true, or when it is created already true.
     in property <bool> claim-focus;
-    init => { if (root.claim-focus) { root.take-focus(); } }
-    changed claim-focus => { if (root.claim-focus) { root.take-focus(); } }
+    // Claims focus without a ring until a key is pressed.
+    in property <bool> quiet-claim;
+    function claim() { if (root.quiet-claim) { root.take-focus-quietly(); } else { root.take-focus(); } }
+    init => { if (root.claim-focus) { root.claim(); } }
+    changed claim-focus => { if (root.claim-focus) { root.claim(); } }
 }
 export component DialogCloseButton inherits KitIconButton {
     in property <bool> claim-focus;
-    init => { if (root.claim-focus) { root.take-focus(); } }
-    changed claim-focus => { if (root.claim-focus) { root.take-focus(); } }
+    in property <bool> quiet-claim;
+    function claim() { if (root.quiet-claim) { root.take-focus-quietly(); } else { root.take-focus(); } }
+    init => { if (root.claim-focus) { root.claim(); } }
+    changed claim-focus => { if (root.claim-focus) { root.claim(); } }
 }
 
 // A centered modal dialog: title, optional description, a close button, a body
@@ -165,7 +170,22 @@ export component KitDialog inherits KitDialogSurface {
     callback restore-focus();
     callback close-focus-observed(bool);
     private property <bool> opened: root.state.open;
-    private property <length> inset: root.theme.spacing.unit * 6;
+    in property <length> inset: root.theme.spacing.unit * 6;
+    // Space between the header, the body and the footer.
+    in property <length> content-gap: root.theme.spacing.unit * 4;
+    // A panel width in place of the `size` preset; zero keeps the preset.
+    in property <length> panel-width: 0px;
+    // The size of the close button, independent of the footer actions.
+    in property <ControlSize> close-control-size: root.control-size;
+    // Opening takes focus without a ring until a key is pressed.
+    in property <bool> quiet-initial-focus;
+    // Stacks the description under the title, beside the close button.
+    in property <bool> stacked-header;
+    in property <length> title-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle);
+    in property <int> title-weight: root.theme.typography.weight-semibold;
+    in property <length> description-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+    // Draws the body scrollbar over the content, so the body reaches the footer's edge.
+    in property <bool> overlay-body-scrollbar;
     private property <bool> overflowing: frame.content-height > frame.visible-height;
     private property <bool> body-focus;
     changed opened => { if (!root.opened) { root.restore-focus(); } }
@@ -176,18 +196,24 @@ export component KitDialog inherits KitDialogSurface {
         theme: root.theme;
         accessible-name: root.title;
         accessible-description-text: root.description;
-        width: min(max(0px, root.width - 2 * KitMetrics.dialog-margin(root.theme)), KitMetrics.dialog-width(root.theme, root.size));
+        width: min(max(0px, root.width - 2 * KitMetrics.dialog-margin(root.theme)), root.panel-width > 0px ? root.panel-width * root.theme.text-scale : KitMetrics.dialog-width(root.theme, root.size));
         height: min(max(0px, root.height - 2 * KitMetrics.dialog-margin(root.theme)), layout.preferred-height);
         x: (root.width - self.width) / 2;
         y: (root.height - self.height) / 2;
         layout := VerticalLayout {
-            padding: root.inset; spacing: root.theme.spacing.unit * 4;
+            padding: root.inset; spacing: root.content-gap;
             HorizontalLayout {
                 vertical-stretch: 0;
                 spacing: root.theme.spacing.unit * 3;
-                Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: root.theme.spacing.unit;
+                    alignment: root.stacked-header ? LayoutAlignment.start : LayoutAlignment.stretch;
+                    Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.title-size; font-weight: root.title-weight; wrap: word-wrap; vertical-alignment: center; }
+                    if root.stacked-header && root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: root.description-size; wrap: word-wrap; }
+                }
                 if root.show-close-button: DialogCloseButton {
-                    theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.close;
+                    theme: root.theme; control-size: root.close-control-size; glyph: root.theme.icons.close;
+                    quiet-claim: root.quiet-initial-focus; cross-axis-self-alignment: start;
                     accessible-name: root.close-label;
                     modal-layer: root.modal-layer;
                     claim-focus: root.state.open;
@@ -196,7 +222,7 @@ export component KitDialog inherits KitDialogSurface {
                     activated => { root.dismiss(CloseReason.close-button); }
                 }
             }
-            if root.description != "": Text { vertical-stretch: 0; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
+            if !root.stacked-header && root.description != "": Text { vertical-stretch: 0; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: root.description-size; wrap: word-wrap; }
             scroller := FocusScope {
                 preferred-height: body.preferred-height;
                 min-height: min(self.preferred-height, root.theme.spacing.unit * 16);
@@ -222,6 +248,7 @@ export component KitDialog inherits KitDialogSurface {
                 }
                 frame := ScrollFrame {
                     theme: root.theme;
+                    overlay-scrollbars: root.overlay-body-scrollbar;
                     width: scroller.width; height: scroller.height;
                     horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                     content-width: self.visible-width;
@@ -246,6 +273,7 @@ export component KitDialog inherits KitDialogSurface {
                     text: action.text; intent: action.intent;
                     modal-layer: root.modal-layer;
                     claim-focus: index == 0 && !root.show-close-button && root.state.open;
+                    quiet-claim: root.quiet-initial-focus;
                     disabled: action.disabled || root.state.busy || !root.state.topmost;
                     activated => { root.action-activated(action.token); }
                 }

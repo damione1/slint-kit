@@ -33,6 +33,14 @@ export enum FocusRingStyle { outside, inside }
 // well sunk into its parent surface, with a border and no shadow.
 export enum SurfaceLevel { flat, raised, overlay, popover, inset }
 export enum AlertSeverity { information, success, warning, error }
+// How disabled buttons look: `neutral` gives every filled and quiet button the
+// disabled fill and ink; `faded` keeps a filled button's hue at a reduced
+// opacity and leaves a quiet button flat.
+export enum DisabledStyle { neutral, faded }
+// How a button lays out its icons: `balanced` pins them to the edges and
+// reserves both sides, so the label stays centred in the button; `grouped`
+// centres icons and label together and reserves only the sides in use.
+export enum ButtonContentLayout { balanced, grouped }
 
 // One layer of a web box shadow. Slint draws one shadow per element and has
 // no spread: a surface's own drop-shadow paints `key` and ignores `spread`.
@@ -47,6 +55,7 @@ export struct KitShadow { key: ShadowLayer, ambient: ShadowLayer }
 export struct KitShape {
     radius-control: length, radius-container: length, radius-overlay: length, radius-pill: length,
     border-width: length, border-width-strong: length, icon-stroke: float,
+    radius-badge: length, radius-keycap: length,
 }
 export struct KitElevation {
     control: ElevationLevel, container: ElevationLevel, overlay: ElevationLevel, popover: ElevationLevel,
@@ -60,6 +69,8 @@ export struct KitTypography {
     weight-regular: int, weight-medium: int, weight-semibold: int, weight-bold: int,
     size-caption: length, size-control: length, size-body: length, size-subtitle: length, size-title: length, size-display: length,
     line-height-control: length,
+    // The value of a closed select trigger, and the text of a key cap.
+    weight-select: int, weight-keycap: int,
     // Letter spacing of an overline, as a fraction of its font size.
     tracking-overline: float,
 }
@@ -80,6 +91,7 @@ export struct KitGeometry {
     content-reading: length, content-standard: length, content-wide: length, content-fluid: length,
     busy-mark: length, avatar-size: length, avatar-compact: length, avatar-small: length, avatar-large: length, avatar-initials-ratio: float, step-marker-minimum: length, step-marker-scaled: length,
     drop-zone-minimum: length, drop-zone-scaled: length,
+    progress-thickness: length, badge-padding-inline: length,
     color-wheel-minimum: length, color-wheel-diameter: length, color-wheel-indicator-size: length, color-wheel-indicator-border-width: length,
 }
 // `surface-inset` is a well sunk into a surface (a facts panel, a settings
@@ -89,6 +101,11 @@ export struct KitGeometry {
 // theme can give its selection marks a colour other than its action accent.
 // `field-background` fills editable fields; `choice-thumb` is the switch thumb
 // while off. Shipped themes keep them at the surface tone.
+// `accent-ink` is the accent used as text or as a mark on the canvas, a surface
+// or `accent-subtle`, for themes whose accent fill is too light to read.
+// `field-border` edges editable fields and `select-fill` and `select-border`
+// closed select triggers. `switch-thumb-on` is the thumb of a checked switch,
+// separate from the check mark ink in `on-choice-fill`.
 export struct KitTheme {
     canvas: color, surface: color, surface-raised: color, surface-inset: color,
     text-primary: color, text-secondary: color, placeholder: color,
@@ -98,10 +115,13 @@ export struct KitTheme {
     warning: color, on-warning: color, warning-hover: color, warning-pressed: color, warning-subtle: color, information: color, on-information: color, information-hover: color, information-pressed: color, information-subtle: color,
     border-subtle: color, border-strong: color,
     control-fill: color, control-border: color, choice-fill: color, on-choice-fill: color, choice-thumb: color, field-background: color,
+    accent-ink: color, field-border: color, select-fill: color, select-border: color, switch-thumb-on: color,
+    progress-track: color, keycap-fill: color, keycap-border: color, keycap-ink: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
     spacing: KitSpacing, motion: KitMotion, icons: KitIconSet, geometry: KitGeometry,
-    reduced-motion: bool, text-scale: float, direction: ChoiceFlow,
+    reduced-motion: bool, text-scale: float, direction: ChoiceFlow, disabled-style: DisabledStyle,
+    button-content: ButtonContentLayout,
 }
 
 export struct ButtonRecipe {
@@ -261,10 +281,12 @@ export global KitThemes {
         control-fill: #ffffff /* white */, control-border: #e2e8f0 /* slate-200 */,
         choice-fill: #4f46e5 /* indigo-600 */, on-choice-fill: #ffffff /* white */,
         choice-thumb: #ffffff /* white */, field-background: #ffffff /* white */,
+        accent-ink: #4f46e5 /* indigo-600 */, field-border: #e2e8f0 /* slate-200 */, select-fill: #ffffff /* white */, select-border: #e2e8f0 /* slate-200 */, switch-thumb-on: #ffffff /* white */,
+        progress-track: #e2e8f0 /* slate-200 */, keycap-fill: #ffffff /* white */, keycap-border: #64748b /* slate-500 */, keycap-ink: #475569 /* slate-600 */,
         hover: #f1f5f9 /* slate-100 */, pressed: #e2e8f0 /* slate-200 */,
         disabled-fill: #f1f5f9 /* slate-100 */, disabled-text: #94a3b8 /* slate-400 */, scrim: #00000080 /* black/50 */,
         // rounded-md, rounded-lg, rounded-xl and rounded-full.
-        shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
+        shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2, radius-badge: 6px, radius-keycap: 6px },
         elevation: {
             // Filled buttons carry shadow-xs, cards shadow-sm, popovers
             // shadow-md and dialogs shadow-lg.
@@ -283,6 +305,7 @@ export global KitThemes {
             // text-xs, text-sm, text-base, text-xl, text-3xl and text-5xl; text-sm line height.
             size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px, size-display: 48px,
             line-height-control: 20px,
+            weight-select: 400, weight-keycap: 500,
             tracking-overline: 0.08,
         },
         // --spacing: 0.25rem. Heights h-8, h-9 and h-10; paddings px-3/px-4/px-6, py-1.5/py-2.
@@ -303,9 +326,10 @@ export global KitThemes {
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
             busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-small: 32px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
+            progress-thickness: 8px, badge-padding-inline: 8px,
             color-wheel-minimum: 96px, color-wheel-diameter: 200px, color-wheel-indicator-size: 32px, color-wheel-indicator-border-width: 4px,
         },
-        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right,
+        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right, disabled-style: DisabledStyle.neutral, button-content: ButtonContentLayout.balanced,
     };
     out property <KitTheme> dark: {
         // Raised surfaces (popovers, dialogs) keep the card tone, as shadcn's
@@ -326,9 +350,11 @@ export global KitThemes {
         control-fill: #0f172a /* slate-900 */, control-border: #1e293b /* slate-800 */,
         choice-fill: #818cf8 /* indigo-400 */, on-choice-fill: #020617 /* slate-950 */,
         choice-thumb: #0f172a /* slate-900 */, field-background: #0f172a /* slate-900 */,
+        accent-ink: #818cf8 /* indigo-400 */, field-border: #1e293b /* slate-800 */, select-fill: #0f172a /* slate-900 */, select-border: #1e293b /* slate-800 */, switch-thumb-on: #020617 /* slate-950 */,
+        progress-track: #1e293b /* slate-800 */, keycap-fill: #0f172a /* slate-900 */, keycap-border: #64748b /* slate-500 */, keycap-ink: #94a3b8 /* slate-400 */,
         hover: #1e293b /* slate-800 */, pressed: #334155 /* slate-700 */,
         disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
-        shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
+        shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2, radius-badge: 6px, radius-keycap: 6px },
         elevation: {
             control: ElevationLevel.xs, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
             // The light geometry at rgb(0 0 0 / 0.3): a 10% shadow vanishes on slate-950.
@@ -343,6 +369,7 @@ export global KitThemes {
             family: "", family-monospace: MonospaceFont.family, weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
             size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px, size-display: 48px,
             line-height-control: 20px,
+            weight-select: 400, weight-keycap: 500,
             tracking-overline: 0.08,
         },
         spacing: {
@@ -361,9 +388,10 @@ export global KitThemes {
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
             busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-small: 32px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
+            progress-thickness: 8px, badge-padding-inline: 8px,
             color-wheel-minimum: 96px, color-wheel-diameter: 200px, color-wheel-indicator-size: 32px, color-wheel-indicator-border-width: 4px,
         },
-        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right,
+        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right, disabled-style: DisabledStyle.neutral, button-content: ButtonContentLayout.balanced,
     };
     // How far an outline extends beyond its host; inside rings extend nowhere.
     public pure function focus-outset(ring: KitFocusRing) -> length {
@@ -420,10 +448,17 @@ export global KitThemes {
                 : intent == ButtonIntent.success ? theme.success-hover : intent == ButtonIntent.warning ? theme.warning-hover : intent == ButtonIntent.information ? theme.information-hover : theme.hover,
             pressed-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed : intent == ButtonIntent.destructive-soft ? theme.danger.mix(theme.danger-subtle, 0.15)
                 : intent == ButtonIntent.success ? theme.success-pressed : intent == ButtonIntent.warning ? theme.warning-pressed : intent == ButtonIntent.information ? theme.information-pressed : theme.pressed,
-            disabled-fill: intent == ButtonIntent.outline || intent == ButtonIntent.link ? transparent : theme.disabled-fill,
-            foreground: intent == ButtonIntent.link ? theme.accent : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger : intent == ButtonIntent.destructive-soft ? theme.danger
+            disabled-fill: intent == ButtonIntent.outline || intent == ButtonIntent.link || (theme.disabled-style == DisabledStyle.faded && intent == ButtonIntent.quiet) ? transparent
+                : theme.disabled-style == DisabledStyle.faded && intent != ButtonIntent.secondary
+                    ? (intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger : intent == ButtonIntent.destructive-soft ? theme.danger-subtle
+                        : intent == ButtonIntent.success ? theme.success : intent == ButtonIntent.warning ? theme.warning : theme.information).transparentize(0.55)
+                    : theme.disabled-fill,
+            foreground: intent == ButtonIntent.link ? theme.accent-ink : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger : intent == ButtonIntent.destructive-soft ? theme.danger
                 : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : intent == ButtonIntent.information ? theme.on-information : theme.text-primary,
-            disabled-foreground: theme.disabled-text,
+            disabled-foreground: theme.disabled-style == DisabledStyle.faded && intent != ButtonIntent.secondary && intent != ButtonIntent.outline && intent != ButtonIntent.quiet && intent != ButtonIntent.link
+                ? (intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger : intent == ButtonIntent.destructive-soft ? theme.danger
+                    : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : theme.on-information).transparentize(0.45)
+                : theme.disabled-text,
             border: intent == ButtonIntent.secondary ? theme.control-border : intent == ButtonIntent.outline ? theme.border-strong : transparent,
             radius: theme.shape.radius-control,
             padding-inline: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-inline,
@@ -448,7 +483,8 @@ export global KitThemes {
             // Read-only content stays legible and selectable on the canvas tone,
             // so it reads as not editable without looking disabled.
             fill: access == FieldAccess.disabled ? theme.disabled-fill : access == FieldAccess.read-only ? theme.canvas : theme.field-background,
-            border: validation == ValidationPresentation.invalid ? theme.danger : theme.border-subtle,
+            border: validation == ValidationPresentation.invalid ? theme.danger
+                : access == FieldAccess.editable ? theme.field-border : theme.border-subtle,
             hover-border: validation == ValidationPresentation.invalid ? theme.danger
                 : access == FieldAccess.editable ? theme.border-strong : theme.border-subtle,
             foreground: access == FieldAccess.disabled ? theme.disabled-text : theme.text-primary,
@@ -470,15 +506,16 @@ export global KitThemes {
     // a button. Only an editable trigger answers hover and press.
     public pure function trigger-recipe(theme: KitTheme, field: FieldRecipe, access: FieldAccess) -> ButtonRecipe {
         return {
-            fill: field.fill,
+            fill: access == FieldAccess.editable ? theme.select-fill : field.fill,
             hover-fill: access == FieldAccess.editable ? theme.hover : field.fill,
             pressed-fill: access == FieldAccess.editable ? theme.pressed : field.fill,
             disabled-fill: theme.disabled-fill,
             foreground: field.foreground, disabled-foreground: theme.disabled-text,
-            border: field.border,
+            // A field-specific edge, such as the invalid one, wins over the select edge.
+            border: access == FieldAccess.editable && field.border == theme.field-border ? theme.select-border : field.border,
             radius: field.radius, padding-inline: field.padding-inline, padding-block: field.padding-block,
             border-width: field.border-width, height: field.height, font-size: field.font-size,
-            font-weight: theme.typography.weight-regular,
+            font-weight: theme.typography.weight-select,
             underline: false,
             busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
@@ -548,13 +585,34 @@ export global KitThemes {
             focus: KitThemes.inset-focus(theme),
         };
     }
+    // A segment of a raised segmented control: flat muted ink on the track, and
+    // a lifted raised surface under primary ink for the selected one.
+    public pure function segment-recipe(theme: KitTheme, size: ControlSize, selected: bool) -> ButtonRecipe {
+        return {
+            fill: selected ? theme.surface-raised : transparent,
+            hover-fill: selected ? theme.surface-raised : transparent,
+            pressed-fill: selected ? theme.surface-raised : theme.pressed,
+            disabled-fill: transparent,
+            foreground: selected ? theme.text-primary : theme.text-secondary, disabled-foreground: theme.disabled-text,
+            border: transparent,
+            radius: max(0px, theme.shape.radius-control - theme.spacing.unit / 2), border-width: 0px,
+            padding-inline: theme.spacing.unit * 3.5, padding-block: KitMetrics.density(theme, size).padding-block,
+            height: KitMetrics.density(theme, size).height,
+            font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-semibold,
+            underline: false,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            elevation: selected ? theme.elevation.control : ElevationLevel.none,
+            shadow: KitThemes.shadow(theme, selected ? theme.elevation.control : ElevationLevel.none),
+            focus: KitThemes.inset-focus(theme),
+        };
+    }
     // Rows of a list or menu: one keyboard target owns focus and the active
     // row carries the inset ring over its accent-subtle tint.
     public pure function option-recipe(theme: KitTheme, size: ControlSize) -> OptionRecipe {
         return {
             fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed,
             active-fill: theme.accent-subtle, selected-fill: theme.accent-subtle,
-            foreground: theme.text-primary, selected-foreground: theme.accent, disabled-foreground: theme.disabled-text,
+            foreground: theme.text-primary, selected-foreground: theme.accent-ink, disabled-foreground: theme.disabled-text,
             radius: theme.shape.radius-control,
             padding-inline: KitMetrics.density(theme, size).padding-inline,
             height: KitMetrics.density(theme, size).height,

@@ -31,6 +31,13 @@ export struct ChoiceIcon { token: int, glyph: IconGlyph }
 import { ChipRow } from "contracts.slint";
 export { ChipRow } from "contracts.slint";
 
+// `outlined` is the bordered group with a filled selection; `raised` is an inset
+// track with a lifted surface under the selection.
+export enum SegmentedAppearance { outlined, raised }
+// `tinted` marks a selected chip with its tone's tint and a strong edge; `solid`
+// inverts it to the primary ink and leaves unselected chips transparent.
+export enum ChipAppearance { tinted, solid }
+
 component ChoiceOption inherits KitPressable {
     in property <ChoiceRow> option-data;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -159,7 +166,7 @@ component SwitchTrackSlot inherits Rectangle {
             y: (parent.height - self.height) / 2;
             width: root.choice.thumb-size; height: root.choice.thumb-size;
             border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-            background: root.access == FieldAccess.read-only ? root.theme.choice-thumb : root.checked ? root.theme.on-choice-fill : root.theme.choice-thumb;
+            background: root.access == FieldAccess.read-only ? root.theme.choice-thumb : root.checked ? root.theme.switch-thumb-on : root.theme.choice-thumb;
             animate x { enabled: !root.theme.reduced-motion; duration: root.choice.transition; easing: ease-in-out; }
         }
     }
@@ -515,6 +522,17 @@ component SegmentedOption inherits ChoiceOption {
     // another tone paints its subtle tint under its own ink, as a selected
     // chip of that tone does. Read-only keeps the pressed tone.
     in property <Tone> selected-tone: Tone.accent;
+    in property <SegmentedAppearance> appearance: SegmentedAppearance.outlined;
+    // Sizes the segment to its label on one line.
+    in property <bool> hug;
+    private property <bool> raised: root.appearance == SegmentedAppearance.raised;
+    recipe: root.raised ? KitThemes.segment-recipe(root.theme, root.control-size, root.option-data.selected && root.access != FieldAccess.read-only)
+        : KitThemes.button-recipe(root.theme, root.intent, root.control-size);
+    private property <length> natural-width: natural-label.preferred-width + 2 * root.icon-reserve + 2 * root.padding-inline;
+    min-width: root.hug ? root.natural-width : 0px;
+    max-width: root.hug ? root.natural-width : 100000px;
+    horizontal-stretch: root.hug ? 0 : 1;
+    natural-label := Text { visible: false; accessible-role: none; text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; }
     private property <bool> editable-selected: root.option-data.selected && root.access != FieldAccess.read-only;
     private property <bool> toned: root.editable-selected && root.selected-tone != Tone.accent;
     private property <color> tone-fill: root.selected-tone == Tone.success ? root.theme.success-subtle
@@ -527,19 +545,21 @@ component SegmentedOption inherits ChoiceOption {
         : root.selected-tone == Tone.danger ? root.theme.danger
         : root.selected-tone == Tone.information ? root.theme.information
         : root.theme.text-primary;
-    private property <color> ink: root.disabled ? root.recipe.disabled-foreground : root.toned ? root.tone-ink : root.recipe.foreground;
+    private property <color> ink: root.disabled ? root.recipe.disabled-foreground
+        : root.raised ? (root.option-data.selected || root.hovered ? root.theme.text-primary : root.theme.text-secondary)
+        : root.toned ? root.tone-ink : root.recipe.foreground;
     private property <length> icon-reserve: root.icons.length > 0 ? KitMetrics.icon-size(root.theme, root.control-size) + KitMetrics.inline-gap(root.theme) : 0px;
     content-reserve: 2 * root.icon-reserve;
     control-width: ControlWidth.fill;
     accessible-name: root.option-data.label;
     disabled: root.option-data.disabled || root.access == FieldAccess.disabled;
     intent: root.editable-selected && root.selected-tone == Tone.accent ? ButtonIntent.primary : ButtonIntent.quiet;
-    background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.theme.canvas) : root.toned ? root.tone-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+    background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.raised ? transparent : root.theme.canvas) : root.raised ? (root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill) : root.toned ? root.tone-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     accessible-role: radio-button; accessible-checked: root.option-data.selected;
     accessible-read-only: root.access == FieldAccess.read-only;
     // A primary segment carries the ring in its on-accent ink; a toned tint
     // keeps the theme's ring colour.
-    focus-ring: root.editable-selected && !root.disabled && root.access == FieldAccess.editable && root.selected-tone == Tone.accent ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
+    focus-ring: !root.raised && root.editable-selected && !root.disabled && root.access == FieldAccess.editable && root.selected-tone == Tone.accent ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
     for icon in root.icons: Rectangle {
         if icon.token == root.option-data.token: KitIcon {
             x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
@@ -554,7 +574,7 @@ component SegmentedOption inherits ChoiceOption {
         text: root.option-data.label;
         color: root.ink;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
-        wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center;
+        wrap: root.hug ? no-wrap : word-wrap; vertical-alignment: center; horizontal-alignment: center;
     }
 }
 
@@ -582,7 +602,12 @@ export component KitSegmentedControl inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
+    in property <SegmentedAppearance> appearance: SegmentedAppearance.outlined;
+    // `intrinsic` sizes the group and each segment to its labels, on one line.
+    in property <ControlWidth> control-width: ControlWidth.fill;
+    private property <bool> raised: root.appearance == SegmentedAppearance.raised;
+    private property <bool> hug: root.control-width == ControlWidth.intrinsic;
+    min-width: root.hug ? choices.preferred-width : 0px; preferred-width: root.hug ? choices.preferred-width : 280px; max-width: root.hug ? choices.preferred-width : 100000px; horizontal-stretch: root.hug ? 0 : 1;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -621,8 +646,8 @@ export component KitSegmentedControl inherits Rectangle {
         ? Math.floor(root.active-index / root.column-count) * root.column-count + root.column-count - 1 - Math.mod(root.active-index, root.column-count) : root.active-index;
     accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
-    border-radius: root.choice.group-radius; background: root.theme.canvas;
-    border-width: root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
+    border-radius: root.raised ? root.choice.group-radius + root.theme.shape.border-width : root.choice.group-radius; background: root.raised ? root.theme.surface-inset : root.theme.canvas;
+    border-width: root.raised && !checks.show-error ? 0px : root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
     preferred-height: max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-read-only: root.access == FieldAccess.read-only;
@@ -646,7 +671,7 @@ export component KitSegmentedControl inherits Rectangle {
                     disabled: self.source-index >= root.render-count || self.option-data.disabled || root.access == FieldAccess.disabled;
                     accessible-item-index: self.source-index; accessible-item-count: root.render-count;
                     option-data: root.render-row(self.source-index); generation: root.generation; access: root.access;
-                    icons: root.icons; selected-tone: root.selected-tone;
+                    icons: root.icons; selected-tone: root.selected-tone; appearance: root.appearance; hug: root.hug;
                     theme: root.theme; control-size: root.control-size;
                     focus-indicated: keyboard.focus-visible && root.active-token == self.option-data.token;
                     activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
@@ -873,6 +898,10 @@ export component KitChipButton inherits KitPressable {
     // not pressed. A shortcut chip that only runs an action clears this, and
     // `selected` then only paints.
     in property <bool> checkable: true;
+    in property <ChipAppearance> appearance: ChipAppearance.tinted;
+    private property <bool> solid: root.appearance == ChipAppearance.solid;
+    private property <color> chip-ink: root.disabled ? root.recipe.disabled-foreground
+        : !root.solid ? root.recipe.foreground : root.selected ? root.theme.canvas : root.theme.text-secondary;
     in property <int> token;
     in property <int> generation;
     callback activate(int, int);
@@ -890,7 +919,7 @@ export component KitChipButton inherits KitPressable {
         : root.theme.pressed;
     // A neutral selected chip takes the text colour as its edge, so it stays
     // distinct from an unselected chip under the pointer.
-    private property <color> tone-ink: root.tone == Tone.accent ? root.theme.accent
+    private property <color> tone-ink: root.tone == Tone.accent ? root.theme.accent-ink
         : root.tone == Tone.success ? root.theme.success
         : root.tone == Tone.warning ? root.theme.warning
         : root.tone == Tone.danger ? root.theme.danger
@@ -902,12 +931,13 @@ export component KitChipButton inherits KitPressable {
     preferred-width: root.natural-width;
     corner-radius: min(root.theme.shape.radius-pill, root.height / 2);
     background: root.disabled ? root.recipe.disabled-fill
-        : root.selected ? root.tone-fill
+        : root.selected ? (root.solid ? root.theme.text-primary : root.tone-fill)
         : root.pressed ? root.theme.pressed
         : root.hovered ? root.theme.hover
-        : root.theme.surface;
-    border-width: root.selected ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
+        : root.solid ? transparent : root.theme.surface;
+    border-width: root.selected && !root.solid ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
     border-color: root.disabled ? root.theme.border-subtle
+        : root.solid ? (root.selected ? root.theme.text-primary : root.theme.control-border)
         : root.selected ? root.tone-ink
         : root.hovered || root.pressed ? root.theme.border-strong
         : root.theme.border-subtle;
@@ -927,12 +957,12 @@ export component KitChipButton inherits KitPressable {
                 theme: root.theme; control-size: root.control-size;
                 y: (parent.height - self.height) / 2;
                 glyph: root.glyph;
-                ink: root.disabled ? root.recipe.disabled-foreground : root.selected && root.tone != Tone.neutral ? root.tone-ink : root.recipe.foreground;
+                ink: !root.solid && !root.disabled && root.selected && root.tone != Tone.neutral ? root.tone-ink : root.chip-ink;
             }
         }
         text := Text {
             text: root.label;
-            color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            color: root.chip-ink;
             font-family: root.theme.typography.family; font-size: root.text-size;
             font-weight: root.selected ? max(root.text-weight, root.theme.typography.weight-semibold) : root.text-weight;
             vertical-alignment: center;

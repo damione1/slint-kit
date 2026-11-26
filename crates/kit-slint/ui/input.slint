@@ -290,6 +290,10 @@ export component KitTextField inherits KitField {
     in property <string> error;
     in property <string> placeholder;
     in property <FieldDecoration> decoration: FieldDecoration.boxed;
+    // Explicit resting fill, edge and leading icon ink; `transparent` defers to the theme.
+    in property <color> field-fill: transparent;
+    in property <color> field-border: transparent;
+    in property <color> leading-icon-ink: transparent;
     in property <int> underline-segments: 1;
     in property <int> group-size;
     in property <string> text-font-family: root.theme.typography.family;
@@ -466,6 +470,7 @@ export component KitTextField inherits KitField {
         theme: root.theme; control-size: root.control-size; access: root.access; validation: root.effective-validation;
         focused: root.has-focus;
         decoration: root.decoration; underline-segments: root.underline-segments; group-size: root.group-size;
+        field-fill: root.field-fill; field-border: root.field-border;
         cell-trailing-space: root.decoration == FieldDecoration.cells ? root.text-inset + 2px : 0px;
         corner-radius: root.corner-radius; padding-inline: root.padding-inline; padding-block: root.padding-block;
         preferred-height: Math.max(root.editor-height, editor-row.preferred-height) + 2 * root.padding-block;
@@ -499,7 +504,7 @@ export component KitTextField inherits KitField {
             native-row := HorizontalLayout {
                 horizontal-stretch: 1;
                 spacing: KitMetrics.inline-gap(root.theme);
-                if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.recipe.foreground; cross-axis-self-alignment: center; }
+                if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.leading-icon-ink != transparent ? root.leading-icon-ink : root.recipe.foreground; cross-axis-self-alignment: center; }
                 if root.prefix != "": Text {
                     layout-order: root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
                     text: root.prefix; color: root.theme.text-secondary;
@@ -556,7 +561,7 @@ export component KitTextField inherits KitField {
                             // Letter spacing includes an advance after the final
                             // glyph. Reserve that advance for elision; the viewport
                             // still clips the ink to the field's visible bounds.
-                            x: root.text-inset; width: Math.max(0px,viewport.width - root.text-inset + root.text-letter-spacing); height: root.multiline ? self.preferred-height : viewport.height;
+                            x: root.text-inset; y: 0px; width: Math.max(0px,viewport.width - root.text-inset + root.text-letter-spacing); height: root.multiline ? self.preferred-height : viewport.height;
                             letter-spacing: root.text-letter-spacing; horizontal-alignment: root.effective-text-alignment;
                             text: root.placeholder;
                             color: root.recipe.placeholder;

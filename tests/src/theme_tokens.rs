@@ -130,6 +130,15 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         on_choice_fill,
         choice_thumb,
         field_background,
+        accent_ink,
+        field_border,
+        select_fill,
+        select_border,
+        switch_thumb_on,
+        progress_track,
+        keycap_fill,
+        keycap_border,
+        keycap_ink,
         hover,
         pressed,
         disabled_fill,
@@ -146,6 +155,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         reduced_motion,
         text_scale,
         direction: _,
+        disabled_style: _,
+        button_content: _,
     } = theme;
     let mut tokens: Vec<(String, Token)> = [
         ("canvas", canvas),
@@ -190,6 +201,15 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("on-choice-fill", on_choice_fill),
         ("choice-thumb", choice_thumb),
         ("field-background", field_background),
+        ("accent-ink", accent_ink),
+        ("field-border", field_border),
+        ("select-fill", select_fill),
+        ("select-border", select_border),
+        ("switch-thumb-on", switch_thumb_on),
+        ("progress-track", progress_track),
+        ("keycap-fill", keycap_fill),
+        ("keycap-border", keycap_border),
+        ("keycap-ink", keycap_ink),
         ("hover", hover),
         ("pressed", pressed),
         ("disabled-fill", disabled_fill),
@@ -230,6 +250,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         step_marker_scaled,
         drop_zone_minimum,
         drop_zone_scaled,
+        progress_thickness,
+        badge_padding_inline,
         color_wheel_minimum,
         color_wheel_diameter,
         color_wheel_indicator_size,
@@ -264,6 +286,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("geometry.step-marker-scaled", step_marker_scaled),
         ("geometry.drop-zone-minimum", drop_zone_minimum),
         ("geometry.drop-zone-scaled", drop_zone_scaled),
+        ("geometry.progress-thickness", progress_thickness),
+        ("geometry.badge-padding-inline", badge_padding_inline),
         ("geometry.color-wheel-minimum", color_wheel_minimum),
         ("geometry.color-wheel-diameter", color_wheel_diameter),
         (
@@ -290,12 +314,16 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         border_width,
         border_width_strong,
         icon_stroke,
+        radius_badge,
+        radius_keycap,
     } = shape;
     for (name, value) in [
         ("shape.radius-control", radius_control),
         ("shape.radius-container", radius_container),
         ("shape.radius-overlay", radius_overlay),
         ("shape.radius-pill", radius_pill),
+        ("shape.radius-badge", radius_badge),
+        ("shape.radius-keycap", radius_keycap),
         ("shape.border-width", border_width),
         ("shape.border-width-strong", border_width_strong),
     ] {
@@ -358,6 +386,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         size_title,
         size_display,
         line_height_control,
+        weight_select,
+        weight_keycap,
         tracking_overline,
     } = typography;
     tokens.push(("typography.family".into(), Token::Text(family)));
@@ -370,6 +400,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("typography.weight-medium", weight_medium),
         ("typography.weight-semibold", weight_semibold),
         ("typography.weight-bold", weight_bold),
+        ("typography.weight-select", weight_select),
+        ("typography.weight-keycap", weight_keycap),
     ] {
         tokens.push((name.to_owned(), Token::Weight(weight)));
     }

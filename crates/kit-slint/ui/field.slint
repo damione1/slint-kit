@@ -1,6 +1,6 @@
 import { KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext, ChoiceFlow } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext, ChoiceFlow, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { KitIcon } from "icons.slint";
 import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
@@ -12,7 +12,13 @@ import { FocusRequest } from "contracts.slint";
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 export { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 
-export enum FieldDecoration { boxed, underlined, cells }
+// `bare` draws neither fill nor edge and keeps the focus ring, for an editor that
+// sits inside a surface of its own such as a toolbar.
+export enum FieldDecoration { boxed, underlined, cells, bare }
+// `card` groups the rows on one elevated surface under a tracked overline legend.
+export enum FieldSetAppearance { plain, card }
+// `inset` pads the row below a full-width divider, for rows inside a card.
+export enum FieldRowAppearance { plain, inset }
 
 export component KitField inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -76,19 +82,42 @@ export component KitFieldGroup inherits VerticalLayout {
 export component KitFieldSet inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> legend;
+    in property <FieldSetAppearance> appearance: FieldSetAppearance.plain;
+    private property <bool> card: root.appearance == FieldSetAppearance.card;
+    private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
     accessible-role: groupbox;
     accessible-label: root.legend;
     preferred-height: content.preferred-height;
     vertical-stretch: 0;
+    background: root.card ? root.surface.fill : transparent;
+    border-width: root.card ? root.surface.border-width : 0px;
+    border-color: root.surface.border;
+    border-radius: root.card ? root.surface.radius : 0px;
+    drop-shadow-offset-y: root.card ? root.surface.shadow.offset-y : 0px;
+    drop-shadow-blur: root.card ? root.surface.shadow.blur : 0px;
+    drop-shadow-color: root.card ? root.surface.shadow.color : transparent;
     content := VerticalLayout {
         alignment: start;
-        spacing: KitMetrics.field-gap(root.theme);
-        if root.legend != "": Text {
+        spacing: root.card ? 0px : KitMetrics.field-gap(root.theme);
+        if root.legend != "" && !root.card: Text {
             text: root.legend; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
             color: root.theme.text-primary;
             font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
             font-weight: root.theme.typography.weight-semibold;
             wrap: word-wrap;
+        }
+        if root.legend != "" && root.card: VerticalLayout {
+            padding-left: root.theme.spacing.unit * 5; padding-right: root.theme.spacing.unit * 5;
+            padding-top: root.theme.spacing.unit * 4; padding-bottom: root.theme.spacing.unit * 2.5;
+            Text {
+                text: root.legend.to-uppercase(); horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
+                color: root.theme.text-secondary;
+                font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+                font-weight: root.theme.typography.weight-semibold;
+                letter-spacing: KitMetrics.font-size(root.theme, TypographyRole.caption) * root.theme.typography.tracking-overline;
+                wrap: word-wrap;
+                accessible-role: none;
+            }
         }
         @children
     }
@@ -110,13 +139,18 @@ export component KitInputGroup inherits Rectangle {
     in property <length> corner-radius: root.recipe.radius;
     in property <length> padding-inline: root.recipe.padding-inline;
     in property <length> padding-block: root.recipe.padding-block;
+    // An explicit resting fill and edge of an editable boxed field; `transparent`
+    // defers to the theme.
+    in property <color> field-fill: transparent;
+    in property <color> field-border: transparent;
     min-height: root.recipe.height;
     preferred-height: self.min-height;
     vertical-stretch: 0;
-    background: root.decoration == FieldDecoration.boxed ? root.recipe.fill : transparent;
+    background: root.decoration != FieldDecoration.boxed ? transparent : root.field-fill != transparent && root.access == FieldAccess.editable ? root.field-fill : root.recipe.fill;
     border-radius: root.corner-radius;
     border-width: root.decoration == FieldDecoration.boxed ? root.recipe.border-width : 0px;
-    border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
+    border-color: root.hovered && !root.focused ? root.recipe.hover-border
+        : root.field-border != transparent && root.access == FieldAccess.editable && root.validation != ValidationPresentation.invalid ? root.field-border : root.recipe.border;
     if root.decoration == FieldDecoration.cells: Rectangle {
         x: root.padding-inline; y: 0px;
         width: max(0px, root.width - 2 * root.padding-inline - root.cell-trailing-space); height: root.height;
@@ -164,7 +198,7 @@ export component KitInputGroup inherits Rectangle {
             background: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.focused ? root.theme.focus.color : root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.border-strong;
         }
     }
-    if root.focused && root.decoration == FieldDecoration.boxed: FocusOutline {
+    if root.focused && (root.decoration == FieldDecoration.boxed || root.decoration == FieldDecoration.bare): FocusOutline {
         ring: root.recipe.focus; radius: root.corner-radius;
         host-width: root.width; host-height: root.height;
     }
@@ -184,38 +218,46 @@ export component KitFieldRow inherits KitField {
     in property <string> error-message;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> show-divider;
+    in property <FieldRowAppearance> appearance: FieldRowAppearance.plain;
+    private property <bool> inset-row: root.appearance == FieldRowAppearance.inset;
     callback focus-requested();
-    spacing: KitMetrics.label-gap(root.theme);
+    spacing: root.inset-row ? 0px : KitMetrics.label-gap(root.theme);
 
     if root.show-divider: KitFieldSeparator { theme: root.theme; }
-    Rectangle {
-        private property <bool> stacked: root.orientation == Orientation.vertical;
-        private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
-        private property <bool> has-caption: root.label != "" || root.description != "" || root.error-message != "";
-        private property <length> gap: self.has-caption ? KitMetrics.field-gap(root.theme) : 0px;
-        preferred-width: self.stacked ? max(caption.preferred-width, slot.preferred-width)
-            : caption.preferred-width + self.gap + slot.preferred-width;
-        height: self.stacked ? caption.height + self.gap + slot.height : max(caption.height, slot.height);
-        caption := VerticalLayout {
-            x: parent.stacked || !parent.rtl ? 0px : slot.width + parent.gap;
-            y: 0px;
-            width: parent.stacked ? parent.width : max(0px, parent.width - slot.width - parent.gap);
-            height: self.preferred-height;
-            spacing: KitMetrics.help-gap(root.theme);
-            if root.label != "": KitFieldLabel {
-                theme: root.theme; text: root.label; access: root.access;
-                focus-requested => { if (!KitModalContext.inert(root.modal-layer)) { root.focus-requested(); } }
+    VerticalLayout {
+        padding-top: root.inset-row ? root.theme.spacing.unit * 3.5 : 0px;
+        padding-bottom: self.padding-top;
+        padding-left: root.inset-row ? root.theme.spacing.unit * 5 : 0px;
+        padding-right: self.padding-left;
+        Rectangle {
+            private property <bool> stacked: root.orientation == Orientation.vertical;
+            private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
+            private property <bool> has-caption: root.label != "" || root.description != "" || root.error-message != "";
+            private property <length> gap: !self.has-caption ? 0px : root.inset-row ? root.theme.spacing.unit * 6 : KitMetrics.field-gap(root.theme);
+            preferred-width: self.stacked ? max(caption.preferred-width, slot.preferred-width)
+                : caption.preferred-width + self.gap + slot.preferred-width;
+            height: self.stacked ? caption.height + self.gap + slot.height : max(caption.height, slot.height);
+            caption := VerticalLayout {
+                x: parent.stacked || !parent.rtl ? 0px : slot.width + parent.gap;
+                y: 0px;
+                width: parent.stacked ? parent.width : max(0px, parent.width - slot.width - parent.gap);
+                height: self.preferred-height;
+                spacing: KitMetrics.help-gap(root.theme);
+                if root.label != "": KitFieldLabel {
+                    theme: root.theme; text: root.label; access: root.access;
+                    focus-requested => { if (!KitModalContext.inert(root.modal-layer)) { root.focus-requested(); } }
+                }
+                if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
+                if root.error-message != "": KitFieldError { theme: root.theme; text: root.error-message; }
             }
-            if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
-            if root.error-message != "": KitFieldError { theme: root.theme; text: root.error-message; }
-        }
-        slot := VerticalLayout {
-            x: parent.stacked || parent.rtl ? 0px : parent.width - self.width;
-            y: parent.stacked ? caption.height + parent.gap : (parent.height - self.height) / 2;
-            width: parent.stacked ? parent.width : min(parent.width, self.preferred-width);
-            height: self.preferred-height;
-            alignment: start;
-            @children
+            slot := VerticalLayout {
+                x: parent.stacked || parent.rtl ? 0px : parent.width - self.width;
+                y: parent.stacked ? caption.height + parent.gap : (parent.height - self.height) / 2;
+                width: parent.stacked ? parent.width : min(parent.width, self.preferred-width);
+                height: self.preferred-height;
+                alignment: start;
+                @children
+            }
         }
     }
 }
