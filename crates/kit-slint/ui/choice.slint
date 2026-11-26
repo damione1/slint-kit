@@ -603,11 +603,29 @@ export component KitSegmentedControl inherits Rectangle {
     }
 
     in property <SegmentedAppearance> appearance: SegmentedAppearance.outlined;
-    // `intrinsic` sizes the group and each segment to its labels, on one line.
+    // `intrinsic` sizes a horizontal group and each segment to its labels, on one line.
     in property <ControlWidth> control-width: ControlWidth.fill;
     private property <bool> raised: root.appearance == SegmentedAppearance.raised;
     private property <bool> hug: root.control-width == ControlWidth.intrinsic;
-    min-width: root.hug ? choices.preferred-width : 0px; preferred-width: root.hug ? choices.preferred-width : 280px; max-width: root.hug ? choices.preferred-width : 100000px; horizontal-stretch: root.hug ? 0 : 1;
+    // Measured apart from the option grid, whose columns may follow a direction
+    // the host derives from the width.
+    private property <length> segment-inset: root.raised ? root.theme.spacing.unit * 3.5 : KitMetrics.density(root.theme, root.control-size).padding-inline;
+    private property <length> segment-reserve: root.icons.length > 0 ? 2 * (KitMetrics.icon-size(root.theme, root.control-size) + KitMetrics.inline-gap(root.theme)) : 0px;
+    private property <length> hug-width: labels.preferred-width;
+    min-width: root.hug ? root.hug-width : 0px; preferred-width: root.hug ? root.hug-width : 280px; max-width: root.hug ? root.hug-width : 100000px; horizontal-stretch: root.hug ? 0 : 1;
+    labels := HorizontalLayout {
+        visible: false; height: 0px;
+        padding-left: root.choice.group-padding; padding-right: root.choice.group-padding;
+        spacing: root.choice.segment-gap;
+        for index in (root.hug ? root.render-count : 0): HorizontalLayout {
+            padding-left: root.segment-inset + root.segment-reserve / 2; padding-right: self.padding-left;
+            Text {
+                accessible-role: none; text: root.render-row(index).label; font-family: root.theme.typography.family;
+                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                font-weight: root.raised ? root.theme.typography.weight-semibold : root.theme.typography.weight-medium;
+            }
+        }
+    }
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
