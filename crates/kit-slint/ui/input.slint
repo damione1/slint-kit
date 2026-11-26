@@ -518,8 +518,9 @@ export component KitTextField inherits KitField {
                     horizontal-stretch: 1;
                     // Bound intrinsic measurement independently of child viewport
                     // geometry, then let the native hit area fill the complete row.
-                    // Hidden measures inside must not widen a narrow editor.
-                    min-width: 0px;
+                    // A single-line editor shrinks with its field; its native
+                    // content must not widen a narrow one.
+                    min-width: root.multiline ? self.preferred-width : 0px;
                     min-height: root.editor-height;
                     preferred-height: root.editor-height;
                     mouse-cursor: MouseCursor.text;

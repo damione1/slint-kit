@@ -157,7 +157,10 @@ export component KitPressable inherits Rectangle {
     // fill and edge so only its shadow shows past them. A shadow on the host
     // itself would take part in its measured height inside a layout.
     // A faded disabled fill is translucent: repeating it here would paint it twice.
-    if root.recipe.shadow.color.to-hsv().alpha > 0 && !(root.disabled && root.theme.disabled-style == DisabledStyle.faded): Rectangle {
+    if root.recipe.shadow.color.to-hsv().alpha > 0: Rectangle {
+        // Hidden rather than removed: a disabled change must not rebuild this
+        // element while a control is claiming focus.
+        visible: !(root.disabled && root.theme.disabled-style == DisabledStyle.faded);
         background: root.background;
         border-radius: root.border-radius;
         border-width: root.border-width;
