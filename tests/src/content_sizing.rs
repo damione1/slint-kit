@@ -47,3 +47,26 @@ fn a_hugging_bubble_keeps_an_unwrapped_measure_on_one_line() {
         flow.size().height
     );
 }
+
+#[test]
+fn inline_alert_actions_follow_the_copy() {
+    let window = fixture();
+    let message = ElementQuery::from_root(&window)
+        .match_type_name("Text")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Capture paused."))
+        .find_first()
+        .expect("alert message");
+    let action = ElementHandle::find_by_accessible_label(&window, "Resume")
+        .next()
+        .expect("alert action");
+    let gap = action.absolute_position().x - message.absolute_position().x - message.size().width;
+    assert!(
+        (0. ..=24.).contains(&gap),
+        "action is {gap}px after the copy"
+    );
+    assert!(
+        message.size().height < 1.5 * window.get_flow_line_height(),
+        "the copy wrapped: {}",
+        message.size().height
+    );
+}

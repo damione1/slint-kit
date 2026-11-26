@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Content-sized geometry: a compact stepper with a suffix, and a hugging chat
 // bubble around a wrapping flow measured unwrapped.
-import { KitWrap, LayoutSpace, KitNumberStepper, StepperAppearance, ControlSize, KitFieldRow, FieldRowAppearance, KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit";
+import { KitAlert, AlertActions, KitButton, KitWrap, LayoutSpace, KitNumberStepper, StepperAppearance, ControlSize, KitFieldRow, FieldRowAppearance, KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit";
 
 component Flow inherits KitWrap {
     in property <[string]> words;
@@ -31,6 +31,10 @@ export component ContentSizingFixture inherits Window {
                 natural := Flow { flex-wrap: no-wrap; width: 0px; visible: false; size: 14.5px; words: ["On", "avance", "sur", "la", "revue", "de", "design", "demain", "matin"]; }
                 flow := Flow { width: parent.width; accessible-role: groupbox; accessible-label: "Words"; size: 14.5px; words: ["On", "avance", "sur", "la", "revue", "de", "design", "demain", "matin"]; }
             }
+        }
+        KitAlert {
+            theme: root.theme; message: "Capture paused."; actions-placement: AlertActions.inline;
+            KitButton { theme: root.theme; text: "Resume"; }
         }
         KitFieldRow {
             theme: root.theme; label: "Delay"; appearance: FieldRowAppearance.inset;
