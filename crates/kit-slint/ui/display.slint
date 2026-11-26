@@ -11,6 +11,7 @@ export { Tone, AvatarSize } from "theme.slint";
 export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
+export enum CardBorderStyle { solid, dashed }
 // `large` is a control-tall cap in the body size, for a shortcut shown on its own.
 export enum KeycapSize { regular, large }
 // How a bubble is painted: `automatic` follows the side (accent for end, surface
@@ -282,12 +283,33 @@ export component KitCard inherits Rectangle {
     // Takes the height the parent allocates and stretches its children into it,
     // instead of sizing to the content and packing it at the top.
     in property <bool> fill: false;
+    // `dashed` draws the same edge, color and corner radius as a broken line.
+    in property <CardBorderStyle> border-style: CardBorderStyle.solid;
     background: root.recipe.fill;
-    border-color: KitThemes.tone-border(root.theme, root.tone, root.recipe.border); border-width: root.recipe.border-width; border-radius: root.corner-radius;
+    border-color: KitThemes.tone-border(root.theme, root.tone, root.recipe.border); border-width: root.border-style == CardBorderStyle.solid ? root.recipe.border-width : 0px; border-radius: root.corner-radius;
     drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
     preferred-height: content.preferred-height; min-height: root.fill ? content.min-height : self.preferred-height;
     vertical-stretch: root.fill ? 1 : 0;
     content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: root.fill ? max(root.height, self.min-height) : self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: root.fill ? LayoutAlignment.stretch : LayoutAlignment.start; @children }
+    if root.border-style == CardBorderStyle.dashed: Path {
+        private property <length> stroke-size: root.recipe.border-width;
+        private property <float> right: (root.width - self.stroke-size) / 1px;
+        private property <float> bottom: (root.height - self.stroke-size) / 1px;
+        private property <float> corner: max(0, min((root.corner-radius - self.stroke-size / 2) / 1px, min(self.right, self.bottom) / 2));
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        viewbox-width: self.right; viewbox-height: self.bottom;
+        fill: transparent; stroke: root.border-color; stroke-width: self.stroke-size;
+        stroke-dash-array: [4px, 4px];
+        MoveTo { x: parent.corner; y: 0; }
+        LineTo { x: parent.right - parent.corner; y: 0; }
+        ArcTo { x: parent.right; y: parent.corner; radius-x: parent.corner; radius-y: parent.corner; sweep: true; }
+        LineTo { x: parent.right; y: parent.bottom - parent.corner; }
+        ArcTo { x: parent.right - parent.corner; y: parent.bottom; radius-x: parent.corner; radius-y: parent.corner; sweep: true; }
+        LineTo { x: parent.corner; y: parent.bottom; }
+        ArcTo { x: 0; y: parent.bottom - parent.corner; radius-x: parent.corner; radius-y: parent.corner; sweep: true; }
+        LineTo { x: 0; y: parent.corner; }
+        ArcTo { x: parent.corner; y: 0; radius-x: parent.corner; radius-y: parent.corner; sweep: true; }
+    }
 }
 export component KitCardHeader inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -370,7 +392,8 @@ export component KitChatBubble inherits HorizontalLayout {
     // Largest fraction of the row the bubble column may take; the rest stays empty on the far side.
     in property <float> content-share: 0.8;
     // Sizes the bubble to its content, with `content-share` as the maximum. Custom
-    // children must report their natural width through their preferred width.
+    // children must report their natural width through their preferred width (for
+    // a wrapping flow, see `KitWrap`).
     in property <bool> hug;
     private property <ChatBubbleTone> resolved-tone: root.tone != ChatBubbleTone.automatic ? root.tone : root.side == ChatSide.end ? ChatBubbleTone.accent : ChatBubbleTone.surface;
     vertical-stretch: 0;

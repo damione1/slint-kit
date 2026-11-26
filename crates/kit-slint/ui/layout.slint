@@ -74,6 +74,10 @@ export component KitInline inherits HorizontalLayout {
 
 // FlexboxLayout is public in Slint 1.18. It reflows ordinary children while
 // retaining their instances, so focus and native editor state survive resizing.
+// The preferred width of a wrapping flow is a compact estimate, not its width on
+// one line. A caller that sizes to content takes it from the same items laid out
+// unwrapped: measuring joined text instead falls short, because each item's
+// width is rounded on its own.
 export component KitWrap inherits FlexboxLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.compact;

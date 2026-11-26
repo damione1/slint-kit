@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+use crate::ContentSizingFixture;
+use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
+use slint::ComponentHandle;
+
+fn fixture() -> ContentSizingFixture {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = ContentSizingFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    window
+}
+
+#[test]
+fn compact_suffix_stays_before_the_step_buttons() {
+    let window = fixture();
+    let suffix = ElementQuery::from_root(&window)
+        .match_predicate(|element| element.accessible_label().as_deref() == Some(" min"))
+        .find_first()
+        .expect("visible suffix");
+    let decrement = ElementHandle::find_by_accessible_label(&window, "Decrease value")
+        .next()
+        .expect("step button");
+    let suffix_end = suffix.absolute_position().x + suffix.size().width;
+    assert!(
+        suffix_end <= decrement.absolute_position().x,
+        "suffix ends at {suffix_end}, buttons start at {}",
+        decrement.absolute_position().x
+    );
+}
+
+#[test]
+fn a_hugging_bubble_keeps_an_unwrapped_measure_on_one_line() {
+    let window = fixture();
+    let flow = ElementHandle::find_by_accessible_label(&window, "Words")
+        .next()
+        .expect("wrapping flow");
+    assert!(
+        flow.size().height < 1.5 * window.get_flow_line_height(),
+        "the last word wrapped: {}",
+        flow.size().height
+    );
+}

@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Content-sized geometry: a compact stepper with a suffix, and a hugging chat
+// bubble around a wrapping flow measured unwrapped.
+import { KitWrap, LayoutSpace, KitNumberStepper, StepperAppearance, ControlSize, KitFieldRow, FieldRowAppearance, KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit";
+
+component Flow inherits KitWrap {
+    in property <[string]> words;
+    in property <length> size;
+    gap: none;
+    for word in root.words: Rectangle {
+        width: label.preferred-width + space.preferred-width;
+        height: label.preferred-height;
+        label := Text { x: 0px; text: word; font-size: root.size; width: self.preferred-width; }
+        space := Text { x: label.width; text: " "; font-size: root.size; width: self.preferred-width; }
+    }
+}
+
+export component ContentSizingFixture inherits Window {
+    width: 600px; height: 320px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    out property <length> flow-line-height: reference.preferred-height;
+    reference := Text { x: 0px; y: 0px; width: 0px; visible: false; text: "On"; font-size: 14.5px; }
+    VerticalLayout {
+        padding: 8px; spacing: 8px; alignment: start;
+        KitChatBubble {
+            theme: root.theme; hug: true; content-share: 0.8;
+            Rectangle {
+                preferred-width: natural.preferred-width;
+                preferred-height: flow.preferred-height;
+                natural := Flow { flex-wrap: no-wrap; width: 0px; visible: false; size: 14.5px; words: ["On", "avance", "sur", "la", "revue", "de", "design", "demain", "matin"]; }
+                flow := Flow { width: parent.width; accessible-role: groupbox; accessible-label: "Words"; size: 14.5px; words: ["On", "avance", "sur", "la", "revue", "de", "design", "demain", "matin"]; }
+            }
+        }
+        KitFieldRow {
+            theme: root.theme; label: "Delay"; appearance: FieldRowAppearance.inset;
+            KitNumberStepper {
+                theme: root.theme; appearance: StepperAppearance.compact; control-size: ControlSize.compact;
+                accessible-name: "Delay"; text: "5"; suffix: " min";
+            }
+        }
+    }
+}

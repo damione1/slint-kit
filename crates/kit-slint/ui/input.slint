@@ -294,6 +294,7 @@ export component KitTextField inherits KitField {
     in property <color> field-fill: transparent;
     in property <color> field-border: transparent;
     in property <color> leading-icon-ink: transparent;
+    in property <length> leading-icon-size: root.icon.size;
     in property <int> underline-segments: 1;
     in property <int> group-size;
     in property <string> text-font-family: root.theme.typography.family;
@@ -504,7 +505,7 @@ export component KitTextField inherits KitField {
             native-row := HorizontalLayout {
                 horizontal-stretch: 1;
                 spacing: KitMetrics.inline-gap(root.theme);
-                if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.leading-icon-ink != transparent ? root.leading-icon-ink : root.recipe.foreground; cross-axis-self-alignment: center; }
+                if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; width: root.leading-icon-size; height: root.leading-icon-size; glyph: root.leading-icon; ink: root.leading-icon-ink != transparent ? root.leading-icon-ink : root.recipe.foreground; cross-axis-self-alignment: center; }
                 if root.prefix != "": Text {
                     layout-order: root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
                     text: root.prefix; color: root.theme.text-secondary;
@@ -517,6 +518,8 @@ export component KitTextField inherits KitField {
                     horizontal-stretch: 1;
                     // Bound intrinsic measurement independently of child viewport
                     // geometry, then let the native hit area fill the complete row.
+                    // Hidden measures inside must not widen a narrow editor.
+                    min-width: 0px;
                     min-height: root.editor-height;
                     preferred-height: root.editor-height;
                     mouse-cursor: MouseCursor.text;
