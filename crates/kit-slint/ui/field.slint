@@ -237,9 +237,13 @@ export component KitFieldRow inherits KitField {
             preferred-width: self.stacked ? max(caption.preferred-width, slot.preferred-width)
                 : caption.preferred-width + self.gap + slot.preferred-width;
             height: self.stacked ? caption.height + self.gap + slot.height : max(caption.height, slot.height);
+            // A label with nothing under it still carries its gap to the help
+            // text, which must not count when centring it.
+            private property <length> trailing-gap: root.label != "" && root.description == "" && root.error-message == ""
+                ? KitMetrics.label-gap(root.theme) - KitMetrics.help-gap(root.theme) : 0px;
             caption := VerticalLayout {
                 x: parent.stacked || !parent.rtl ? 0px : slot.width + parent.gap;
-                y: 0px;
+                y: parent.stacked ? 0px : (parent.height - self.height + parent.trailing-gap) / 2;
                 width: parent.stacked ? parent.width : max(0px, parent.width - slot.width - parent.gap);
                 height: self.preferred-height;
                 spacing: KitMetrics.help-gap(root.theme);

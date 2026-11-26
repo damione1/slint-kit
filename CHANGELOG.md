@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added `bar-fill` to `KitProgress` (a brush, so a gradient can replace the intent ink), `full-ink-when-disabled` to `KitSelect` (a disabled trigger keeps the enabled value and chevron inks and stays unfocusable), `suffix-gap` (compact appearance) and `value-font` to `KitNumberStepper`, and `affix-gap` to `KitTextField`. Defaults keep the previous rendering.
+- Ajout de `bar-fill` à `KitProgress` (un pinceau, pour qu'un dégradé puisse remplacer l'encre de l'intention), de `full-ink-when-disabled` à `KitSelect` (un déclencheur désactivé garde les encres actives de la valeur et du chevron et reste non focalisable), de `suffix-gap` (apparence compacte) et `value-font` à `KitNumberStepper`, et de `affix-gap` à `KitTextField`. Les valeurs par défaut conservent le rendu précédent.
+
+- Fixed the caption of a horizontal `KitFieldRow` staying at the top of a taller control. It is now centred on it, and a label without help text no longer counts its trailing gap.
+- Correction de la légende d'une `KitFieldRow` horizontale qui restait en haut d'un contrôle plus grand. Elle est désormais centrée sur lui, et un libellé sans texte d'aide ne compte plus son espacement final.
+
 - Fixed hidden text measures widening a narrow text field's editor, which pushed the suffix of a compact `KitNumberStepper` over its step buttons. Added `KitCard.border-style` (`CardBorderStyle.solid`, `dashed`), `leading-icon-size` on text fields, `KitAlert.message-size` and `AlertActions.inline` (actions right after the copy). With `disabled-style: faded`, a disabled select trigger keeps its select fill. Documented how to measure the natural width of a wrapping flow inside a hugging `KitChatBubble`.
 - Correction de mesures de texte masquées qui élargissaient l'éditeur d'un champ étroit et poussaient le suffixe d'un `KitNumberStepper` compact sur ses boutons. Ajout de `KitCard.border-style` (`CardBorderStyle.solid`, `dashed`), de `leading-icon-size` sur les champs de texte, de `KitAlert.message-size` et de `AlertActions.inline` (actions juste après le texte). Avec `disabled-style: faded`, le déclencheur d'un select désactivé garde son fond de select. Documentation de la mesure de la largeur naturelle d'un flux à retour à la ligne dans une `KitChatBubble` ajustée.
 

@@ -163,6 +163,8 @@ export component KitProgress inherits VerticalLayout {
     in property <string> caption;
     in property <ProgressMode> mode: ProgressMode.determinate;
     in property <ProgressIntent> intent: ProgressIntent.accent;
+    // Paints the bar; a gradient or another ink replaces the intent's color.
+    in property <brush> bar-fill: KitProgressInks.ink(root.theme, root.intent);
     out property <float> bounded-value: min(1,max(0,root.value));
     private property <float> segment: 0.4;
     spacing: root.theme.spacing.unit * 2; vertical-stretch: 0;
@@ -177,7 +179,7 @@ export component KitProgress inherits VerticalLayout {
     }
     Rectangle { height: root.theme.geometry.progress-thickness; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.progress-track; clip: true;
         Rectangle {
-            y: 0px; height: parent.height; border-radius: parent.border-radius; background: KitProgressInks.ink(root.theme, root.intent);
+            y: 0px; height: parent.height; border-radius: parent.border-radius; background: root.bar-fill;
             width: root.mode == ProgressMode.indeterminate ? parent.width * root.segment : parent.width * root.bounded-value;
             x: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? -self.width + (parent.width + self.width) * Math.mod(animation-tick() / 1.6s, 1) : 0px;
             animate width { enabled: !root.theme.reduced-motion; duration: root.theme.motion.slow; }

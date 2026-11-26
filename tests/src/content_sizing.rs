@@ -36,6 +36,25 @@ fn compact_suffix_stays_before_the_step_buttons() {
 }
 
 #[test]
+fn a_label_only_row_centres_its_caption_on_the_control() {
+    let window = fixture();
+    let caption = ElementQuery::from_root(&window)
+        .match_type_name("Text")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Delay"))
+        .find_first()
+        .expect("row label");
+    let control = ElementHandle::find_by_accessible_label(&window, "Decrease value")
+        .next()
+        .expect("step button");
+    let caption_centre = caption.absolute_position().y + caption.size().height / 2.;
+    let control_centre = control.absolute_position().y + control.size().height / 2.;
+    assert!(
+        (caption_centre - control_centre).abs() <= 1.,
+        "label centre {caption_centre}, control centre {control_centre}"
+    );
+}
+
+#[test]
 fn a_hugging_bubble_keeps_an_unwrapped_measure_on_one_line() {
     let window = fixture();
     let flow = ElementHandle::find_by_accessible_label(&window, "Words")

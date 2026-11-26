@@ -553,6 +553,10 @@ export component KitSelect inherits Rectangle {
     private property <string> trigger-label: root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label
         : root.state.selected.present && (root.state.selection-availability == SelectionAvailability.available || root.selected-label != "") ? root.selected-label : root.placeholder;
     in property <FieldAccess> access: FieldAccess.editable;
+    // Keeps the value and chevron in their enabled inks while `access` is
+    // `disabled`, for a locked choice that must stay readable.
+    in property <bool> full-ink-when-disabled;
+    private property <bool> faint: trigger.disabled && !root.full-ink-when-disabled;
     // A composite (multi-select) reports its own constraint through this.
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <string> error-message;
@@ -674,7 +678,7 @@ export component KitSelect inherits Rectangle {
         tab-navigation(reverse) => { return root.advance-tab(reverse); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            Text { text: root.trigger-label; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
+            Text { text: root.trigger-label; color: root.faint ? trigger.recipe.disabled-foreground : trigger.disabled ? root.theme.text-primary : trigger.recipe.foreground; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
             if root.clear-visible: Rectangle { width: root.clear-width; horizontal-stretch: 0; }
             Rectangle {
                 width: root.icon.size;
@@ -682,7 +686,7 @@ export component KitSelect inherits Rectangle {
                     theme: root.theme; control-size: root.control-size;
                     y: (parent.height - self.height) / 2;
                     glyph: root.theme.icons.warning;
-                    ink: trigger.disabled ? root.icon.disabled-color : root.theme.danger;
+                    ink: root.faint ? root.icon.disabled-color : root.theme.danger;
                 }
                 // Points up while the list is presented below the trigger.
                 if root.state.selection-availability != SelectionAvailability.unavailable: TurningIcon {
@@ -691,7 +695,7 @@ export component KitSelect inherits Rectangle {
                     turned: root.state.open;
                     rest-glyph: root.theme.icons.chevron-down;
                     turned-glyph: root.theme.icons.chevron-up;
-                    ink: trigger.disabled ? root.icon.disabled-color : root.icon.color;
+                    ink: root.faint ? root.icon.disabled-color : root.icon.color;
                 }
             }
         }

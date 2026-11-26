@@ -318,6 +318,8 @@ export component KitTextField inherits KitField {
     in property <length> text-size: root.recipe.font-size;
     in property <string> prefix;
     in property <string> suffix;
+    // The space between the editor and the icons, affixes and actions beside it.
+    in property <length> affix-gap: KitMetrics.inline-gap(root.theme);
     in-out property <string> text;
     in property <bool> show-character-count;
     in property <int> character-count: KitFormValidation.ready ? KitFormValidation.grapheme-count(root.text) : 0;
@@ -504,7 +506,7 @@ export component KitTextField inherits KitField {
             spacing: KitMetrics.inline-gap(root.theme);
             native-row := HorizontalLayout {
                 horizontal-stretch: 1;
-                spacing: KitMetrics.inline-gap(root.theme);
+                spacing: root.affix-gap;
                 if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; width: root.leading-icon-size; height: root.leading-icon-size; glyph: root.leading-icon; ink: root.leading-icon-ink != transparent ? root.leading-icon-ink : root.recipe.foreground; cross-axis-self-alignment: center; }
                 if root.prefix != "": Text {
                     layout-order: root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;

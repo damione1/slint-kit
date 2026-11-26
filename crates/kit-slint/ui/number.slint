@@ -6,7 +6,7 @@ import { KitStrings } from "strings.slint";
 import { NumberInputFormat } from "shared-contracts.slint";
 import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, FieldDecoration } from "field.slint";
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, KitThemeContext, TypographyRole } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, KitThemeContext, TypographyRole, TextViewFont } from "theme.slint";
 import { KitPressable } from "button.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
@@ -42,6 +42,12 @@ export enum StepperAppearance { boxed, compact }
 export component KitNumberStepper inherits KitField {
     in property <StepperAppearance> appearance: StepperAppearance.boxed;
     private property <bool> compact: root.appearance == StepperAppearance.compact;
+    // `compact` only: the room between the end of the value and the suffix,
+    // which includes the room for the caret.
+    in property <length> suffix-gap: KitMetrics.inline-gap(root.theme) + root.theme.spacing.unit * 2;
+    // The face of the value and its suffix.
+    in property <TextViewFont> value-font: TextViewFont.proportional;
+    private property <string> value-family: root.value-font == TextViewFont.monospace ? root.theme.typography.family-monospace : root.theme.typography.family;
     in property <IconGlyph> decrement-glyph: root.theme.icons.minus;
     in property <IconGlyph> increment-glyph: root.theme.icons.plus;
     in property <string> spec-key;
@@ -127,7 +133,9 @@ export component KitNumberStepper inherits KitField {
             editor := KitDecimalField {
                 decoration: root.compact ? FieldDecoration.bare : FieldDecoration.boxed;
                 padding-inline: root.compact ? root.theme.spacing.unit : KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation).padding-inline;
-                private property <length> value-width: value-measure.preferred-width + (root.suffix == "" ? 0px : suffix-measure.preferred-width + KitMetrics.inline-gap(root.theme)) + 2 * self.padding-inline + root.theme.spacing.unit * 2;
+                private property <length> value-width: value-measure.preferred-width + (root.suffix == "" ? root.theme.spacing.unit * 2 : suffix-measure.preferred-width + root.suffix-gap) + 2 * self.padding-inline;
+                text-font-family: root.value-family;
+                affix-gap: root.compact && root.suffix != "" ? Math.max(0px, root.suffix-gap - root.theme.spacing.unit * 2) : KitMetrics.inline-gap(root.theme);
                 min-width: root.compact ? self.value-width : 0px;
                 max-width: root.compact ? self.value-width : 100000px;
                 horizontal-stretch: root.compact ? 0 : 1;
@@ -177,8 +185,8 @@ export component KitNumberStepper inherits KitField {
                 }
             }
         }
-        value-measure := Text { x: 0px; y: 0px; visible: false; accessible-role: none; height: 0px; text: root.text == "" ? "0" : root.text; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
-        suffix-measure := Text { x: 0px; y: 0px; visible: false; accessible-role: none; height: 0px; text: root.suffix; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+        value-measure := Text { x: 0px; y: 0px; visible: false; accessible-role: none; height: 0px; text: root.text == "" ? "0" : root.text; font-family: root.value-family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+        suffix-measure := Text { x: 0px; y: 0px; visible: false; accessible-role: none; height: 0px; text: root.suffix; font-family: root.value-family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
     }
     if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
     if root.validation == ValidationPresentation.invalid && root.error != "": KitFieldError { theme: root.theme; text: root.error; }
