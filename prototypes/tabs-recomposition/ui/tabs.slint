@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Tabs rebuilt by an application from the public exports of `@kit` only. Both
+// keep the data interface of `KitTabList`; only the drawing is written here.
+import { KitTabList, KitTabStrip, KitTab, KitThemes, ControlSize, ChoiceFlow, OptionRecipe } from "@kit";
+
+// Flat tabs over a hairline; the selection is an ink and an indicator.
+export component UnderlineTabs inherits KitTabList {
+    in property <ControlSize> control-size: ControlSize.medium;
+    min-height: strip.min-height;
+    preferred-height: strip.preferred-height;
+    min-width: strip.min-width;
+    preferred-width: strip.preferred-width;
+    if !root.view.vertical: Rectangle {
+        y: parent.height - self.height; height: root.theme.shape.border-width;
+        background: root.theme.border-subtle;
+    }
+    strip := KitTabStrip {
+        view: root.view; theme: root.theme; control-size: root.control-size;
+        scroll-bar: false;
+        for index in root.rows.length: tab := KitTab {
+            view: root.view; index: index; viewport-extent: strip.viewport-extent;
+            theme: root.theme; control-size: root.control-size;
+            background: transparent;
+            label-ink: self.selected || self.hovered ? root.theme.text-primary : root.theme.text-secondary;
+            Rectangle {
+                x: root.view.vertical && root.flow != ChoiceFlow.right-to-left ? tab.width - tab.recipe.padding-inline - self.width : -tab.recipe.padding-inline;
+                y: root.view.vertical ? -tab.recipe.padding-block : tab.height - tab.recipe.padding-block - self.height;
+                width: root.view.vertical ? root.theme.shape.border-width-strong : tab.width;
+                height: root.view.vertical ? tab.height : root.theme.shape.border-width-strong;
+                background: root.theme.accent;
+                opacity: tab.selected ? 1 : 0;
+                animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
+            }
+            reveal(start, extent) => { strip.reveal-tab(start, extent); }
+            key-event(event) => { return root.tab-key(event); }
+            activate(token, generation) => { root.tab-activate(token, generation); }
+        }
+    }
+}
+
+// Rounded tabs on a tinted track; the selection is a filled pill.
+export component PillTabs inherits KitTabList {
+    in property <ControlSize> control-size: ControlSize.medium;
+    private property <OptionRecipe> paint: KitThemes.option-recipe(root.theme, root.control-size);
+    min-height: strip.min-height;
+    preferred-height: strip.preferred-height;
+    min-width: strip.min-width;
+    preferred-width: strip.preferred-width;
+    Rectangle {
+        height: strip.min-height;
+        y: 0px;
+        border-radius: self.height / 2;
+        background: root.view.vertical ? transparent : root.theme.surface-inset;
+    }
+    strip := KitTabStrip {
+        view: root.view; theme: root.theme; control-size: root.control-size;
+        for index in root.rows.length: tab := KitTab {
+            view: root.view; index: index; viewport-extent: strip.viewport-extent;
+            theme: root.theme; control-size: root.control-size;
+            border-radius: self.height / 2;
+            background: self.selected ? root.theme.accent : self.pressed ? root.paint.pressed-fill
+                : self.hovered || self.active ? root.paint.hover-fill : transparent;
+            label-ink: self.selected ? root.theme.on-accent : root.theme.text-primary;
+            reveal(start, extent) => { strip.reveal-tab(start, extent); }
+            key-event(event) => { return root.tab-key(event); }
+            activate(token, generation) => { root.tab-activate(token, generation); }
+        }
+    }
+}
