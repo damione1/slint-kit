@@ -333,20 +333,20 @@ export component KitMenuBar inherits Rectangle {
     out property <string> selected-label: selection.selected-label;
 }
 
-// `tinted` fills the active tab; `underline` keeps tabs flat over a hairline
-// baseline and marks the selection with its ink and indicator.
-export enum TabsAppearance { tinted, underline }
+// What a tab list shares with its strip and its tabs. An application that
+// writes the tab loop passes this value on unchanged.
+export struct TabListView { rows: [OptionRow], state: SelectState, live: bool, interactive: bool, focused: bool, vertical: bool, reversed: bool, flow: ChoiceFlow, tab-width: ControlWidth, modal-layer: int }
 
-export component KitTabs inherits Rectangle {
-    in property <TabsAppearance> appearance: TabsAppearance.tinted;
-    private property <bool> underline: root.appearance == TabsAppearance.underline;
+// The behavior of a tab list without its drawing: selection, keyboard, focus and
+// the tab-list accessibility node. Its children fill the list; the tabs go in a
+// `KitTabStrip` and anything else is drawn around it.
+export component KitTabList inherits Rectangle {
     // The modal layer this control belongs to; 0 is the window. While another layer
     // is open and topmost the control is inert and its rows ignore pointer and keys.
     in property <int> modal-layer;
     private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
-    in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Tabs";
@@ -370,17 +370,19 @@ export component KitTabs inherits Rectangle {
     callback dismiss(CloseReason);
     callback typeahead(string);
     out property <bool> has-focus: root.live && keyboard.has-focus;
+    out property <TabListView> view: { rows: root.rows, state: root.state, live: root.live, interactive: root.interactive, focused: keyboard.has-focus, vertical: root.vertical, reversed: root.reversed, flow: root.flow, tab-width: root.tab-width, modal-layer: root.modal-layer };
     public function take-focus() { if (root.live) { keyboard.focus(); } }
-    // Scrolls the strip along its axis so the span from `start` to `end` is visible.
-    public function reveal(start: length, end: length) {
-        if (root.vertical) { viewport.reveal-vertical(start, end, KitThemes.scroll-behavior(root.theme)); }
-        else { viewport.reveal-horizontal(start, end, KitThemes.scroll-behavior(root.theme)); }
-    }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.live) { return KitKeyResult.reject; }
         return keyboard.handle-key(event);
     }
-    private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    // A focused tab hands its navigation keys back to the list.
+    public function tab-key(event: KeyEvent) -> KitKeyResult {
+        if (event.text == (root.vertical ? Key.DownArrow : Key.RightArrow) || event.text == (root.vertical ? Key.UpArrow : Key.LeftArrow) || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
+        return KitKeyResult.reject;
+    }
+    // A pressed tab proposes itself and returns focus to the list.
+    public function tab-activate(token: int, generation: int) { root.take-focus(); root.handle-activate(token, generation); }
     accessible-role: tab-list;
     accessible-label: root.accessible-name;
     accessible-orientation: root.orientation;
@@ -389,11 +391,6 @@ export component KitTabs inherits Rectangle {
     // sequence. ScrollFrame and its bars are roleless; RTL reverses this loop.
     accessible-delegate-focus: root.state.active-index >= 0 && root.state.active-index < root.rows.length
         ? (root.reversed ? root.rows.length - 1 - root.state.active-index : root.state.active-index) : -1;
-    // Reserve the scrollbar gutter on the cross axis without clipping the tabs.
-    min-height: KitMetrics.row-height(root.theme, root.control-size) + (root.vertical || root.underline ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness);
-    preferred-height: root.vertical ? max(self.min-height, strip.preferred-height) : self.min-height;
-    min-width: root.vertical ? strip.min-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
-    preferred-width: root.vertical ? strip.preferred-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
     horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: 0;
     forward-focus: keyboard;
@@ -415,91 +412,7 @@ export component KitTabs inherits Rectangle {
         activate(token, generation) => { root.handle-activate(token, generation); }
         dismiss(reason) => { if (reason != CloseReason.programmatic) { root.handle-dismiss(reason); } }
         typeahead(text) => { root.handle-typeahead(text); }
-        if root.underline && !root.vertical: Rectangle {
-            y: parent.height - self.height; height: root.theme.shape.border-width;
-            background: root.theme.border-subtle;
-        }
-        viewport := ScrollFrame {
-            theme: root.theme;
-            vertical-scrollbar-policy: root.vertical ? ScrollBarPolicy.as-needed : ScrollBarPolicy.always-off;
-            horizontal-scrollbar-policy: root.vertical || root.underline ? ScrollBarPolicy.always-off : ScrollBarPolicy.as-needed;
-            content-width: root.vertical ? self.visible-width : max(self.visible-width, strip.preferred-width);
-            content-height: root.vertical ? max(self.visible-height, strip.preferred-height) : self.visible-height;
-            strip := FlexboxLayout {
-                width: viewport.content-width;
-                height: root.vertical ? viewport.content-height : viewport.visible-height;
-                spacing: root.theme.spacing.unit;
-                flex-direction: root.vertical ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
-                flex-wrap: FlexboxLayoutWrap.no-wrap;
-                cross-axis-alignment: CrossAxisAlignment.stretch;
-                alignment: root.tab-width == ControlWidth.fill ? LayoutAlignment.stretch
-                    : root.reversed ? LayoutAlignment.end : LayoutAlignment.start;
-                for index in root.rows.length: tab-action := KitNavigationAction {
-                    private property <OptionRow> entry: root.rows[root.reversed ? root.rows.length - 1 - index : index];
-                    theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
-                    option-data: self.entry;
-                    accessible-item-index: root.reversed ? root.rows.length - 1 - index : index;
-                    accessible-item-count: root.rows.length;
-                    disabled: !root.interactive || self.entry.disabled;
-                    accessible-role: tab;
-                    control-width: root.vertical ? ControlWidth.fill : root.tab-width;
-                    label-alignment: root.vertical ? (root.flow == ChoiceFlow.right-to-left ? TextHorizontalAlignment.right : TextHorizontalAlignment.left) : TextHorizontalAlignment.center;
-                    active: root.state.active.present && root.state.active.token == self.entry.token;
-                    selected: root.state.selected.present && root.state.selected.token == self.entry.token;
-                    focus-indicated: root.live && self.active && (keyboard.has-focus || self.has-focus);
-                    // The selected tab carries an underline instead of a tint;
-                    // the ring is left to the active (keyboard) tab only.
-                    background: root.underline ? transparent : self.pressed ? root.tab-recipe.pressed-fill : self.active ? root.tab-recipe.active-fill
-                        : self.hovered ? root.tab-recipe.hover-fill : root.tab-recipe.fill;
-                    label-ink: !root.underline ? transparent : self.selected || self.hovered ? root.theme.text-primary : root.theme.text-secondary;
-                    indicator := Rectangle {
-                        x: root.vertical && root.flow != ChoiceFlow.right-to-left ? tab-action.width - tab-action.recipe.padding-inline - self.width : -tab-action.recipe.padding-inline;
-                        y: root.vertical ? -tab-action.recipe.padding-block : tab-action.height - tab-action.recipe.padding-block - self.height;
-                        width: root.vertical ? root.theme.shape.border-width-strong : tab-action.width;
-                        height: root.vertical ? tab-action.height : root.theme.shape.border-width-strong;
-                        background: root.theme.accent;
-                        opacity: tab-action.selected ? 1 : 0;
-                        animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
-                    }
-                    // A controlled selection may already exist when this delegate is
-                    // created. Read its Flexbox geometry after the repeater has placed it.
-                    private property <bool> reveal-target: keyboard.has-focus || root.state.selection-availability != SelectionAvailability.available
-                        ? self.active : self.selected;
-                    private property <bool> placed;
-                    Timer {
-                        interval: 0ms;
-                        running: tab-action.reveal-target && !tab-action.placed;
-                        triggered => { tab-action.placed = true; }
-                    }
-                    // Content-local geometry changes on relayout, but stays fixed
-                    // when the user scrolls. Only the target observes its span.
-                    private property <{start: length, extent: length, viewport: length}> reveal-span:
-                        !self.placed || !self.reveal-target ? {} : root.vertical
-                        ? {start: self.y, extent: self.height, viewport: viewport.visible-height}
-                        : {start: self.x, extent: self.width, viewport: viewport.visible-width};
-                    changed reveal-span => {
-                        let span = self.reveal-span;
-                        if (span.extent > 0px && span.viewport > 0px) {
-                            if (keyboard.has-focus) {
-                                root.reveal(span.start, span.start + span.extent);
-                            } else {
-                                // A background strip must only move its own viewport.
-                                let offset = root.vertical ? -viewport.content-y : -viewport.content-x;
-                                let next = span.extent > span.viewport
-                                    ? (span.start >= offset && span.start < offset + span.viewport ? offset : span.start)
-                                    : clamp(offset, span.start + span.extent - span.viewport, span.start);
-                                viewport.scroll-to(root.vertical ? {x: 0px, y: next} : {x: next, y: 0px}, ScrollBehavior.instant);
-                            }
-                        }
-                    }
-                    key-event(event) => {
-                        if (event.text == (root.vertical ? Key.DownArrow : Key.RightArrow) || event.text == (root.vertical ? Key.UpArrow : Key.LeftArrow) || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
-                        return KitKeyResult.reject;
-                    }
-                    activate(token, generation) => { root.take-focus(); root.handle-activate(token, generation); }
-                }
-            }
-        }
+        @children
     }
 
     in-out property <string> query <=> selection.query;
@@ -528,6 +441,153 @@ export component KitTabs inherits Rectangle {
     function handle-typeahead(text: string) { selection.typeahead(text); root.activate-on-navigation(); root.typeahead(text); }
 
     out property <string> selected-label: selection.selected-label;
+}
+
+// The scrolling row or column that lays the tabs out. Its children are the
+// tabs, in model order; the strip reverses nothing itself.
+export component KitTabStrip inherits Rectangle {
+    in property <TabListView> view;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    // Whether a horizontal strip shows a scroll bar on overflow and reserves its
+    // gutter. Without it the strip still scrolls to reveal a tab.
+    in property <bool> scroll-bar: true;
+    private property <bool> gutter: !root.view.vertical && root.scroll-bar;
+    // The visible length of the strip along its axis.
+    out property <length> viewport-extent: root.view.vertical ? viewport.visible-height : viewport.visible-width;
+    // Scrolls the strip along its axis so the span from `start` to `end` is visible.
+    public function reveal(start: length, end: length) {
+        if (root.view.vertical) { viewport.reveal-vertical(start, end, KitThemes.scroll-behavior(root.theme)); }
+        else { viewport.reveal-horizontal(start, end, KitThemes.scroll-behavior(root.theme)); }
+    }
+    // Brings the tab that asked for it into view.
+    public function reveal-tab(start: length, extent: length) {
+        if (root.view.focused) {
+            root.reveal(start, start + extent);
+        } else {
+            // A background strip must only move its own viewport.
+            let offset = root.view.vertical ? -viewport.content-y : -viewport.content-x;
+            let next = extent > root.viewport-extent
+                ? (start >= offset && start < offset + root.viewport-extent ? offset : start)
+                : clamp(offset, start + extent - root.viewport-extent, start);
+            viewport.scroll-to(root.view.vertical ? {x: 0px, y: next} : {x: next, y: 0px}, ScrollBehavior.instant);
+        }
+    }
+    // Reserve the scrollbar gutter on the cross axis without clipping the tabs.
+    min-height: KitMetrics.row-height(root.theme, root.control-size) + (root.gutter ? KitThemes.scroll-bar-recipe(root.theme).thickness : 0px);
+    preferred-height: root.view.vertical ? max(self.min-height, strip.preferred-height) : self.min-height;
+    min-width: root.view.vertical ? strip.min-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
+    preferred-width: root.view.vertical ? strip.preferred-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
+    viewport := ScrollFrame {
+        theme: root.theme;
+        vertical-scrollbar-policy: root.view.vertical ? ScrollBarPolicy.as-needed : ScrollBarPolicy.always-off;
+        horizontal-scrollbar-policy: root.gutter ? ScrollBarPolicy.as-needed : ScrollBarPolicy.always-off;
+        content-width: root.view.vertical ? self.visible-width : max(self.visible-width, strip.preferred-width);
+        content-height: root.view.vertical ? max(self.visible-height, strip.preferred-height) : self.visible-height;
+        strip := FlexboxLayout {
+            width: viewport.content-width;
+            height: root.view.vertical ? viewport.content-height : viewport.visible-height;
+            spacing: root.theme.spacing.unit;
+            flex-direction: root.view.vertical ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
+            flex-wrap: FlexboxLayoutWrap.no-wrap;
+            cross-axis-alignment: CrossAxisAlignment.stretch;
+            alignment: root.view.tab-width == ControlWidth.fill ? LayoutAlignment.stretch
+                : root.view.reversed ? LayoutAlignment.end : LayoutAlignment.start;
+            @children
+        }
+    }
+}
+
+// One tab of a `KitTabList`, at `index` of the loop the application writes. It
+// owns its row, its states, its accessibility node and the request to be
+// revealed; its fill, its label ink and its children are free.
+export component KitTab inherits KitNavigationAction {
+    in property <TabListView> view;
+    in property <int> index;
+    // `viewport-extent` of the strip that holds this tab.
+    in property <length> viewport-extent;
+    // The tab asks its strip to show the span from `start` over `extent`.
+    callback reveal(start: length, extent: length);
+    private property <int> position: root.view.reversed ? root.view.rows.length - 1 - root.index : root.index;
+    private property <OptionRow> entry: root.view.rows[root.position];
+    modal-layer: root.view.modal-layer;
+    option-data: root.entry;
+    accessible-item-index: root.position;
+    accessible-item-count: root.view.rows.length;
+    disabled: !root.view.interactive || root.entry.disabled;
+    accessible-role: tab;
+    control-width: root.view.vertical ? ControlWidth.fill : root.view.tab-width;
+    label-alignment: root.view.vertical ? (root.view.flow == ChoiceFlow.right-to-left ? TextHorizontalAlignment.right : TextHorizontalAlignment.left) : TextHorizontalAlignment.center;
+    active: root.view.state.active.present && root.view.state.active.token == root.entry.token;
+    selected: root.view.state.selected.present && root.view.state.selected.token == root.entry.token;
+    focus-indicated: root.view.live && self.active && (root.view.focused || self.has-focus);
+    // A controlled selection may already exist when this delegate is
+    // created. Read its Flexbox geometry after the repeater has placed it.
+    private property <bool> reveal-target: root.view.focused || root.view.state.selection-availability != SelectionAvailability.available
+        ? self.active : self.selected;
+    private property <bool> placed;
+    Timer {
+        interval: 0ms;
+        running: root.reveal-target && !root.placed;
+        triggered => { root.placed = true; }
+    }
+    // Content-local geometry changes on relayout, but stays fixed
+    // when the user scrolls. Only the target observes its span.
+    private property <{start: length, extent: length, viewport: length}> reveal-span:
+        !root.placed || !root.reveal-target ? {} : root.view.vertical
+        ? {start: self.y, extent: self.height, viewport: root.viewport-extent}
+        : {start: self.x, extent: self.width, viewport: root.viewport-extent};
+    changed reveal-span => {
+        let span = self.reveal-span;
+        if (span.extent > 0px && span.viewport > 0px) { root.reveal(span.start, span.extent); }
+    }
+}
+
+// `tinted` fills the active tab; `underline` keeps tabs flat over a hairline
+// baseline and marks the selection with its ink and indicator.
+export enum TabsAppearance { tinted, underline }
+
+// The default assembly of `KitTabList`, `KitTabStrip` and `KitTab`.
+export component KitTabs inherits KitTabList {
+    in property <TabsAppearance> appearance: TabsAppearance.tinted;
+    private property <bool> underline: root.appearance == TabsAppearance.underline;
+    in property <ControlSize> control-size: ControlSize.medium;
+    // Scrolls the strip along its axis so the span from `start` to `end` is visible.
+    public function reveal(start: length, end: length) { strip.reveal(start, end); }
+    private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    min-height: strip.min-height;
+    preferred-height: strip.preferred-height;
+    min-width: strip.min-width;
+    preferred-width: strip.preferred-width;
+    if root.underline && !root.view.vertical: Rectangle {
+        y: parent.height - self.height; height: root.theme.shape.border-width;
+        background: root.theme.border-subtle;
+    }
+    strip := KitTabStrip {
+        view: root.view; theme: root.theme; control-size: root.control-size;
+        scroll-bar: !root.underline;
+        for index in root.rows.length: tab-action := KitTab {
+            view: root.view; index: index; viewport-extent: strip.viewport-extent;
+            theme: root.theme; control-size: root.control-size;
+            // The selected tab carries an underline instead of a tint;
+            // the ring is left to the active (keyboard) tab only.
+            background: root.underline ? transparent : self.pressed ? root.tab-recipe.pressed-fill : self.active ? root.tab-recipe.active-fill
+                : self.hovered ? root.tab-recipe.hover-fill : root.tab-recipe.fill;
+            label-ink: !root.underline ? transparent : self.selected || self.hovered ? root.theme.text-primary : root.theme.text-secondary;
+            indicator := Rectangle {
+                x: root.view.vertical && root.flow != ChoiceFlow.right-to-left ? tab-action.width - tab-action.recipe.padding-inline - self.width : -tab-action.recipe.padding-inline;
+                y: root.view.vertical ? -tab-action.recipe.padding-block : tab-action.height - tab-action.recipe.padding-block - self.height;
+                width: root.view.vertical ? root.theme.shape.border-width-strong : tab-action.width;
+                height: root.view.vertical ? tab-action.height : root.theme.shape.border-width-strong;
+                background: root.theme.accent;
+                opacity: tab-action.selected ? 1 : 0;
+                animate opacity { enabled: !root.theme.reduced-motion; duration: root.theme.motion.fast; }
+            }
+            reveal(start, extent) => { strip.reveal-tab(start, extent); }
+            key-event(event) => { return root.tab-key(event); }
+            activate(token, generation) => { root.tab-activate(token, generation); }
+        }
+    }
 }
 
 // Keep native child editors mounted while collapsing the inactive panel's
