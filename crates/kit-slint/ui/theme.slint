@@ -161,7 +161,12 @@ export struct OptionRecipe {
 export struct IconRecipe { size: length, color: color, disabled-color: color, stroke: float }
 // A severity's tint, edge and mark, so alerts stay distinguishable without
 // relying on their titles.
-export struct AlertRecipe { fill: color, border: color, mark: color, radius: length, border-width: length, inset: length, gap: length }
+export struct AlertRecipe {
+    fill: color, border: color, mark: color, radius: length, border-width: length, inset: length, gap: length,
+    glyph: IconGlyph, dismiss-glyph: IconGlyph,
+    title-ink: color, message-ink: color, font-family: string, title-size: length, title-weight: int, message-size: length,
+    copy-gap: length, actions-gap: length, inline-copy-minimum: length,
+}
 // A tooltip bubble: inverted ink, its own inline and block padding, and a
 // reading width it never exceeds. `gap` separates it from its anchor and from
 // the window edges.
@@ -645,6 +650,14 @@ export global KitThemes {
                 : severity == AlertSeverity.success ? theme.success : theme.information,
             radius: theme.shape.radius-container, border-width: theme.shape.border-width,
             inset: theme.spacing.unit * 4, gap: theme.spacing.unit * 3,
+            glyph: severity == AlertSeverity.success ? theme.icons.check : severity == AlertSeverity.warning || severity == AlertSeverity.error ? theme.icons.warning : theme.icons.information,
+            dismiss-glyph: theme.icons.close,
+            title-ink: theme.text-primary, message-ink: theme.text-secondary, font-family: theme.typography.family,
+            title-size: KitMetrics.font-size(theme, TypographyRole.control), title-weight: theme.typography.weight-semibold,
+            message-size: KitMetrics.font-size(theme, TypographyRole.control),
+            copy-gap: theme.spacing.unit, actions-gap: theme.spacing.unit * 2,
+            // Trailing actions fall back below when the copy would get narrower.
+            inline-copy-minimum: theme.spacing.unit * 50 * theme.text-scale,
         };
     }
     // Tailwind's px-3 py-1.5 text-xs bubble, capped at max-w-xs (80 units),

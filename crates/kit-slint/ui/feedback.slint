@@ -51,14 +51,14 @@ export component KitAlert inherits Rectangle {
     in property <string> title;
     in property <string> message;
     // Replaces the mark of the severity; the recipe still tints it.
-    in property <IconGlyph> glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
+    in property <IconGlyph> glyph: root.recipe.glyph;
     in property <bool> dismissible;
     // false draws a tinted banner without an edge.
     in property <bool> bordered: true;
     in property <AlertActions> actions-placement: AlertActions.below;
     // A message without a title is the alert's primary copy.
-    in property <color> message-ink: root.title == "" ? root.theme.text-primary : root.theme.text-secondary;
-    in property <length> message-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+    in property <color> message-ink: root.title == "" ? root.recipe.title-ink : root.recipe.message-ink;
+    in property <length> message-size: root.recipe.message-size;
     in property <string> dismiss-label: KitStrings.dismiss-label-template.replace-all("{title}", root.title);
     callback dismissed();
     // Measure wrapped copy at the allocated width, including when this component
@@ -70,8 +70,8 @@ export component KitAlert inherits Rectangle {
     private property <length> gap: root.recipe.gap;
     private property <length> trailing-space: root.dismissible ? dismiss.width + root.gap : 0px;
     private property <bool> inline-actions: root.actions-placement != AlertActions.below && actions.preferred-width > 0px
-        && root.width - 2 * root.inset - icon.width - 2 * root.gap - root.trailing-space - actions.preferred-width >= root.theme.spacing.unit * 50 * root.theme.text-scale;
-    private property <length> action-gap: root.theme.spacing.unit * 2;
+        && root.width - 2 * root.inset - icon.width - 2 * root.gap - root.trailing-space - actions.preferred-width >= root.recipe.inline-copy-minimum;
+    private property <length> action-gap: root.recipe.actions-gap;
     private property <length> row-height: max(copy.preferred-height, icon.height, root.inline-actions ? actions.preferred-height : 0px);
     // Centres the copy and its mark against taller inline actions.
     private property <length> copy-offset: root.inline-actions ? (root.row-height - max(copy.preferred-height, icon.height)) / 2 : 0px;
@@ -96,9 +96,9 @@ export component KitAlert inherits Rectangle {
         height: self.preferred-height;
         spacing: 0px; alignment: start;
         words := VerticalLayout {
-            spacing: root.theme.spacing.unit; alignment: start;
-            if root.title != "": Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-            if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.message-ink; font-family: root.theme.typography.family; font-size: root.message-size; wrap: word-wrap; }
+            spacing: root.recipe.copy-gap; alignment: start;
+            if root.title != "": Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.recipe.title-ink; font-family: root.recipe.font-family; font-size: root.recipe.title-size; font-weight: root.recipe.title-weight; wrap: word-wrap; }
+            if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.message-ink; font-family: root.recipe.font-family; font-size: root.message-size; wrap: word-wrap; }
         }
         // Room for actions placed below; zero tall without them, so an alert
         // without actions keeps its measured height.
@@ -114,8 +114,8 @@ export component KitAlert inherits Rectangle {
         spacing: root.action-gap; alignment: start;
         @children
     }
-    title-measure := Text { x: 0px; y: 0px; width: 0px; height: 0px; visible: false; accessible-role: none; text: root.title; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; }
-    message-measure := Text { x: 0px; y: 0px; width: 0px; height: 0px; visible: false; accessible-role: none; text: root.message; font-family: root.theme.typography.family; font-size: root.message-size; }
+    title-measure := Text { x: 0px; y: 0px; width: 0px; height: 0px; visible: false; accessible-role: none; text: root.title; font-family: root.recipe.font-family; font-size: root.recipe.title-size; font-weight: root.recipe.title-weight; }
+    message-measure := Text { x: 0px; y: 0px; width: 0px; height: 0px; visible: false; accessible-role: none; text: root.message; font-family: root.recipe.font-family; font-size: root.message-size; }
     dismiss := KitIconButton {
         width: self.preferred-width; height: self.preferred-height;
         // Centred on the first line, so the target never adds to a one-line alert.
@@ -123,7 +123,7 @@ export component KitAlert inherits Rectangle {
         y: max(0px, root.inset + root.copy-offset - (self.height - icon.height) / 2);
         visible: root.dismissible; disabled: !root.dismissible;
         theme: root.theme; control-size: ControlSize.compact;
-        glyph: root.theme.icons.close; accessible-name: root.dismiss-label;
+        glyph: root.recipe.dismiss-glyph; accessible-name: root.dismiss-label;
         activated => { root.dismissed(); }
     }
 }
