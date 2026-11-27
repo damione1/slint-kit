@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// A hand copy of the kit's `KitAlert`, owned by the application. The body is the
+// kit source unchanged: only the component name and the import line differ.
+import { AlertActions, AlertRecipe, AlertSeverity, ControlSize, IconGlyph, KitIcon, KitIconButton, KitStrings, KitTheme, KitThemeContext, KitThemes } from "@kit";
+
+export component LocalAlert inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <AlertSeverity> severity: AlertSeverity.information;
+    in property <string> title;
+    in property <string> message;
+    // Replaces the mark of the severity; the recipe still tints it.
+    in property <IconGlyph> glyph: root.recipe.glyph;
+    in property <bool> dismissible;
+    // false draws a tinted banner without an edge.
+    in property <bool> bordered: true;
+    in property <AlertActions> actions-placement: AlertActions.below;
+    // A message without a title is the alert's primary copy.
+    in property <color> message-ink: root.title == "" ? root.recipe.title-ink : root.recipe.message-ink;
+    in property <length> message-size: root.recipe.message-size;
+    in property <string> dismiss-label: KitStrings.dismiss-label-template.replace-all("{title}", root.title);
+    callback dismissed();
+    // Measure wrapped copy at the allocated width, including when this component
+    // lives inside a conditional layout. An unconstrained row's preferred height
+    // measures its copy at minimum width and leaves unused space below the alert.
+    private property <AlertRecipe> recipe: KitThemes.alert-recipe(root.theme, root.severity);
+    in property <length> inset: root.recipe.inset;
+    in property <length> corner-radius: root.recipe.radius;
+    private property <length> gap: root.recipe.gap;
+    private property <length> trailing-space: root.dismissible ? dismiss.width + root.gap : 0px;
+    private property <bool> inline-actions: root.actions-placement != AlertActions.below && actions.preferred-width > 0px
+        && root.width - 2 * root.inset - icon.width - 2 * root.gap - root.trailing-space - actions.preferred-width >= root.recipe.inline-copy-minimum;
+    private property <length> action-gap: root.recipe.actions-gap;
+    private property <length> row-height: max(copy.preferred-height, icon.height, root.inline-actions ? actions.preferred-height : 0px);
+    // Centres the copy and its mark against taller inline actions.
+    private property <length> copy-offset: root.inline-actions ? (root.row-height - max(copy.preferred-height, icon.height)) / 2 : 0px;
+    preferred-height: max(2 * root.inset + root.row-height, root.dismissible ? dismiss.height : 0px);
+    min-height: self.preferred-height;
+    min-width: 2 * root.inset + icon.width + root.gap + root.trailing-space;
+    background: root.recipe.fill;
+    border-width: root.bordered ? root.recipe.border-width : 0px; border-color: root.recipe.border;
+    border-radius: root.corner-radius; vertical-stretch: 0;
+    accessible-role: groupbox; accessible-label: root.title != "" ? root.title : root.message; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
+    icon := KitIcon {
+        theme: root.theme;
+        x: root.inset; y: root.inset + root.copy-offset;
+        glyph: root.glyph;
+        ink: root.recipe.mark;
+    }
+    copy := VerticalLayout {
+        x: icon.x + icon.width + root.gap; y: root.inset + root.copy-offset;
+        private property <length> room: max(0px, root.width - self.x - root.inset - root.trailing-space - (root.inline-actions ? actions.preferred-width + root.gap : 0px));
+        width: root.inline-actions && root.actions-placement == AlertActions.inline
+            ? min(self.room, max(title-measure.preferred-width, message-measure.preferred-width)) : self.room;
+        height: self.preferred-height;
+        spacing: 0px; alignment: start;
+        words := VerticalLayout {
+            spacing: root.recipe.copy-gap; alignment: start;
+            if root.title != "": Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.recipe.title-ink; font-family: root.recipe.font-family; font-size: root.recipe.title-size; font-weight: root.recipe.title-weight; wrap: word-wrap; }
+            if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.message-ink; font-family: root.recipe.font-family; font-size: root.message-size; wrap: word-wrap; }
+        }
+        // Room for actions placed below; zero tall without them, so an alert
+        // without actions keeps its measured height.
+        Rectangle {
+            height: !root.inline-actions && actions.preferred-height > 0px ? actions.preferred-height + root.action-gap : 0px;
+        }
+    }
+    actions := HorizontalLayout {
+        x: root.inline-actions ? copy.x + copy.width + root.gap : copy.x;
+        y: root.inline-actions ? root.inset + (root.row-height - self.preferred-height) / 2 : copy.y + words.preferred-height + root.action-gap;
+        width: root.inline-actions ? self.preferred-width : copy.width;
+        height: self.preferred-height;
+        spacing: root.action-gap; alignment: start;
+        @children
+    }
+    title-measure := Text { x: 0px; y: 0px; width: 0px; height: 0px; visible: false; accessible-role: none; text: root.title; font-family: root.recipe.font-family; font-size: root.recipe.title-size; font-weight: root.recipe.title-weight; }
+    message-measure := Text { x: 0px; y: 0px; width: 0px; height: 0px; visible: false; accessible-role: none; text: root.message; font-family: root.recipe.font-family; font-size: root.message-size; }
+    dismiss := KitIconButton {
+        width: self.preferred-width; height: self.preferred-height;
+        // Centred on the first line, so the target never adds to a one-line alert.
+        x: root.width - self.width - root.inset;
+        y: max(0px, root.inset + root.copy-offset - (self.height - icon.height) / 2);
+        visible: root.dismissible; disabled: !root.dismissible;
+        theme: root.theme; control-size: ControlSize.compact;
+        glyph: root.recipe.dismiss-glyph; accessible-name: root.dismiss-label;
+        activated => { root.dismissed(); }
+    }
+}

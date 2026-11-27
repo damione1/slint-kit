@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// A consumer application that draws its own copy of the alert beside the kit's.
+import { AlertActions, AlertSeverity, KitAlert, KitButton } from "@kit";
+import { LocalAlert } from "alert.slint";
+
+export component App inherits Window {
+    in property <bool> local;
+    in property <AlertSeverity> severity: AlertSeverity.warning;
+    in property <AlertActions> placement: AlertActions.below;
+    in property <string> heading: "Storage is almost full";
+    in property <string> message: "Remove old recordings to keep saving new ones. This copy wraps on a narrow window.";
+    out property <int> dismissals;
+    width: 360px;
+    height: 240px;
+    if root.local: LocalAlert {
+        x: 12px; y: 12px; width: parent.width - 24px;
+        severity: root.severity; title: root.heading; message: root.message;
+        dismissible: true; actions-placement: root.placement;
+        dismissed => { root.dismissals += 1; }
+        KitButton { text: "Review"; }
+    }
+    if !root.local: KitAlert {
+        x: 12px; y: 12px; width: parent.width - 24px;
+        severity: root.severity; title: root.heading; message: root.message;
+        dismissible: true; actions-placement: root.placement;
+        dismissed => { root.dismissals += 1; }
+        KitButton { text: "Review"; }
+    }
+}
