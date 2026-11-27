@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// A consumer application of the style context, written against `@kit` only.
+import { KitStyleContext, KitStyleHooks, KitStyleHookProbe, KitStyles, KitStyleProbe, KitTheme, KitThemeContext, KitThemes } from "@kit";
+
+// Rust reaches the library global through this re-export.
+export { KitStyleContext, KitStyleHooks, KitStyles }
+
+// Records every value a binding evaluates, to detect intermediate states.
+export global Recorder {
+    pure callback radius(value: length) -> length;
+}
+
+// The whole identity of the application in one place.
+export global Identity {
+    in-out property <bool> dark;
+    // Opt-in: re-apply whenever any token changes, whoever wrote it.
+    in-out property <bool> follow-tokens;
+    // A token owned by Rust (the typeface is one case). Empty keeps the kit value.
+    in-out property <string> family;
+    out property <int> applies;
+    private property <KitTheme> tokens: KitThemeContext.current;
+
+    changed dark => {
+        KitThemeContext.current = root.dark ? KitThemes.dark : KitThemes.light;
+        root.apply();
+    }
+    changed family => {
+        root.apply();
+    }
+    changed tokens => {
+        if root.follow-tokens {
+            root.apply();
+        }
+    }
+
+    // Synchronous counterpart of `changed dark`: nothing stays queued.
+    public function show-dark(dark: bool) {
+        root.dark = dark;
+        KitThemeContext.current = dark ? KitThemes.dark : KitThemes.light;
+        root.apply();
+    }
+
+    public function apply() {
+        KitThemeContext.current.accent = root.dark ? #e9ae55 : #e2a22f;
+        if root.family != "" {
+            KitThemeContext.current.typography.family = root.family;
+        }
+        KitStyleContext.reset();
+        KitStyleContext.alert.base.box.radius = 12px;
+        KitStyleContext.alert.base.box.border-width = 3px;
+        KitStyleContext.alert.base.paint.border = KitThemeContext.current.accent;
+        root.applies += 1;
+    }
+}
+
+export component App inherits Window {
+    width: 200px;
+    height: 120px;
+    background: KitThemeContext.current.canvas;
+
+    out property <length> probe-radius: probe.radius;
+    out property <length> probe-frame-width: probe.frame-width;
+    out property <brush> probe-fill: probe.fill;
+    out property <color> probe-frame: probe.frame;
+    out property <string> probe-family: probe.family;
+
+    out property <length> hook-radius: hook-probe.radius;
+    out property <string> hook-family: hook-probe.family;
+
+    callback mutate-from-slint();
+    mutate-from-slint => {
+        KitStyleContext.alert.base.box.radius = 20px;
+    }
+
+    probe := KitStyleProbe {
+        x: 10px;
+        y: 10px;
+        width: 100px;
+        height: 60px;
+    }
+
+    hook-probe := KitStyleHookProbe {
+        x: 10px;
+        y: 80px;
+        width: 100px;
+        height: 30px;
+    }
+
+    // Drawn, so every frame evaluates the recorded binding if it is dirty.
+    Rectangle {
+        x: 120px;
+        y: 10px;
+        width: 20px;
+        height: Recorder.radius(KitStyleContext.alert.base.box.radius);
+        background: KitThemeContext.current.accent;
+    }
+}

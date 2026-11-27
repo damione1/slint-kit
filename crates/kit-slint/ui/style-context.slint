@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Prototype P0 of the style architecture (issue 446). Not a public contract:
+// only the alert carries a style here, and no component reads it yet.
+import { KitTheme, KitThemeContext } from "theme.slint";
+
+// Shared atoms: the same structs describe every part of every component.
+export struct KitPaint { fill: brush, ink: color, border: color }
+export struct KitTextStyle { family: string, size: length, weight: int }
+export struct KitBox { padding-inline: length, padding-block: length, gap: length, radius: length, border-width: length }
+
+export struct KitAlertStyle { box: KitBox, paint: KitPaint, title: KitTextStyle }
+// Geometry and text are shared; paint differs by severity.
+export struct KitAlertStyles { base: KitAlertStyle, error: KitPaint }
+
+// Defaults computed from the semantic tokens.
+export global KitStyles {
+    public pure function alert-styles(theme: KitTheme) -> KitAlertStyles {
+        return {
+            base: {
+                box: {
+                    padding-inline: theme.spacing.unit * 4, padding-block: theme.spacing.unit * 4,
+                    gap: theme.spacing.unit * 3, radius: theme.shape.radius-container,
+                    border-width: theme.shape.border-width,
+                },
+                paint: { fill: theme.information-subtle, ink: theme.text-primary, border: theme.information },
+                title: { family: theme.typography.family, size: theme.typography.size-control, weight: theme.typography.weight-semibold },
+            },
+            error: { fill: theme.danger-subtle, ink: theme.text-primary, border: theme.danger },
+        };
+    }
+}
+
+export global KitStyleContext {
+    in-out property <KitAlertStyles> alert: KitStyles.alert-styles(KitThemeContext.current);
+    // Recomputes every style from the current tokens and drops the overrides.
+    public function reset() {
+        root.alert = KitStyles.alert-styles(KitThemeContext.current);
+    }
+}
+
+// Stands for a kit component that draws from the context.
+export component KitStyleProbe inherits Rectangle {
+    out property <length> radius: KitStyleContext.alert.base.box.radius;
+    out property <length> frame-width: KitStyleContext.alert.base.box.border-width;
+    out property <brush> fill: KitStyleContext.alert.base.paint.fill;
+    out property <color> frame: KitStyleContext.alert.base.paint.border;
+    out property <string> family: KitStyleContext.alert.base.title.family;
+    background: root.fill;
+    border-radius: root.radius;
+    border-width: root.frame-width;
+    border-color: root.frame;
+}
+
+// Fallback of P0: the application replaces the function instead of mutating data.
+export global KitStyleHooks {
+    pure callback alert-styles(theme: KitTheme) -> KitAlertStyles;
+    alert-styles(theme) => {
+        return KitStyles.alert-styles(theme);
+    }
+}
+
+export component KitStyleHookProbe inherits Rectangle {
+    private property <KitAlertStyles> styles: KitStyleHooks.alert-styles(KitThemeContext.current);
+    out property <length> radius: root.styles.base.box.radius;
+    out property <string> family: root.styles.base.title.family;
+    background: root.styles.base.paint.fill;
+    border-radius: root.radius;
+}
