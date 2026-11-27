@@ -3,6 +3,7 @@ use std::process::{Command, ExitCode};
 
 mod docs;
 mod icons;
+mod lint_style;
 mod lint_tokens;
 mod quickstarts;
 
@@ -11,6 +12,7 @@ enum Task {
     GenerateContracts,
     GenerateIcons,
     LintTokens,
+    LintStyle(Option<String>),
     CheckQuickstarts,
     Check,
     CompileDocs(std::path::PathBuf),
@@ -22,13 +24,14 @@ impl Task {
             Some("generate-contracts") => Ok(Self::GenerateContracts),
             Some("generate-icons") => Ok(Self::GenerateIcons),
             Some("lint-tokens") => Ok(Self::LintTokens),
+            Some("lint-style") => Ok(Self::LintStyle(std::env::args().nth(2))),
             Some("check-quickstarts") => Ok(Self::CheckQuickstarts),
             Some("check") => Ok(Self::Check),
             Some("compile-docs") => std::env::args().nth(2)
                 .map(|path| Self::CompileDocs(path.into()))
                 .ok_or_else(|| "compile-docs requires a JSON request file".into()),
             _ => Err(
-                "usage: cargo run -p xtask -- [contracts|generate-contracts|generate-icons|lint-tokens|check-quickstarts|check]"
+                "usage: cargo run -p xtask -- [contracts|generate-contracts|generate-icons|lint-tokens|lint-style [component]|check-quickstarts|check]"
                     .into(),
             ),
         }
@@ -44,6 +47,7 @@ impl Task {
             .map_err(|e| e.to_string()),
             Self::GenerateIcons => icons::generate(),
             Self::LintTokens => lint_tokens::run(),
+            Self::LintStyle(component) => lint_style::run(component.as_deref()),
             Self::CheckQuickstarts => quickstarts::run(),
             Self::Check => run("cargo", &["fmt", "--all", "--", "--check"])
                 .and_then(|_| verify_generated())

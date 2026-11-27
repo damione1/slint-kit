@@ -69,7 +69,7 @@ pub struct AllowEntry {
 
 /// Replace comments and string contents with spaces, keeping every byte
 /// offset and newline, so positions in the mask are positions in the source.
-fn mask(source: &str) -> Vec<u8> {
+pub(crate) fn mask(source: &str) -> Vec<u8> {
     let bytes = source.as_bytes();
     let mut out = bytes.to_vec();
     let mut index = 0;
@@ -115,7 +115,7 @@ fn mask(source: &str) -> Vec<u8> {
     out
 }
 
-fn is_identifier_byte(byte: u8) -> bool {
+pub(crate) fn is_identifier_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-'
 }
 
@@ -354,6 +354,22 @@ fn slint_files(
     Ok(())
 }
 
+fn is_exempt(relative: &str) -> bool {
+    EXEMPT_FILES.iter().any(|(name, _)| *name == relative)
+        || EXEMPT_DIRECTORIES
+            .iter()
+            .any(|(directory, _)| relative.starts_with(directory))
+}
+
+/// The hand-written `.slint` files that are not the token source, with their
+/// paths relative to the UI directory.
+pub(crate) fn component_files(ui: &Path) -> Result<Vec<(String, PathBuf)>, String> {
+    let mut files = Vec::new();
+    slint_files(ui, ui, &mut files)?;
+    files.retain(|(relative, _)| !is_exempt(relative));
+    Ok(files)
+}
+
 pub fn allowlist_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("token-allowlist.txt")
 }
@@ -371,11 +387,7 @@ pub fn run() -> Result<(), String> {
     let mut problems = Vec::new();
     let mut skipped = 0;
     for (relative, path) in &files {
-        if EXEMPT_FILES.iter().any(|(name, _)| name == relative)
-            || EXEMPT_DIRECTORIES
-                .iter()
-                .any(|(directory, _)| relative.starts_with(directory))
-        {
+        if is_exempt(relative) {
             skipped += 1;
             continue;
         }
