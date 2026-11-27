@@ -4,7 +4,7 @@ These rules apply to every change, including pull requests from contributors and
 
 Use familiar web control behavior as the default interaction reference, including numeric input filtering, keyboard navigation, selection, disabled/read-only states and form actions. Preserve native editing and accessibility; document and verify platform differences instead of silently inventing a different interaction. Intrinsic form rules belong in the shared HTML constraint engine; email/URL examples must not accept arbitrary nonempty strings. Initialize validation once per window and guard Rust submission paths as well. Document shared properties and composition primitives distinctly, with compatibility links derived from actual inherited APIs.
 
-The kit is standalone: never name or depend on a consuming application. A defect found while integrating the kit is fixed here, with a regression check, rather than hidden in application code. Distinguish kit defects from application and upstream Slint defects before choosing what to change.
+The kit is standalone: never name or depend on a consuming application. A defect found while integrating the kit is fixed here, with a regression check, rather than hidden in application code. Distinguish kit defects from application and upstream Slint defects, and from style needs, before choosing what to change. A defect is behavior, accessibility or rendering that contradicts what the kit already offers, including an existing option that does not do what it says. A wish for a different look is a style need, not a defect, and follows the option freeze below.
 
 ## Structure
 
@@ -34,9 +34,10 @@ Be precise once, in the type, so the compiler checks every consumer.
 
 ## Component design
 
-- **Behavior and presentation stay separate.** Interaction lives in shared primitives and Rust controllers; appearance comes from the theme. A component never hard-codes colors, radii, borders, shadows, focus rings, typography, spacing or durations: it reads them from `KitTheme` tokens and the recipe of its family. A missing token is added to the theme (and to every shipped theme) rather than written as a literal.
+- **Behavior and presentation stay separate.** Interaction lives in shared primitives and Rust controllers; appearance comes from the theme. A component never hard-codes colors, radii, borders, shadows, focus rings, typography, spacing or durations: it reads them from `KitTheme` tokens and the recipe of its family. A drawn value that a caller cannot change is a style completeness question: the component's style does not yet describe everything it draws. It is not by itself a reason to add a token, a property or an enum value, and writing it as a literal or as new token arithmetic in the component is not the answer either.
+- **Option freeze.** While the style architecture is being prototyped ([#446](https://github.com/damione1/slint-kit/issues/446)), do not add an appearance property, a value to an appearance enum or a component-specific theme token. This takes precedence over the reuse rule below. Bugs are still fixed, with a regression check, and the fix does not introduce a new appearance option. A style need is added to the waiting list kept as a comment on that issue; the list becomes a test set for the new style architecture.
 - **Themes are complete.** Every shipped theme is a complete struct literal; omitted Slint struct fields silently become zero, so the theme completeness test must stay green.
-- **Reuse before adding.** Extend the existing primitive, recipe or enum of the family before creating a parallel one. Follow the property naming, callbacks and composition (`@children`, explicit header/body/footer parts) of neighbouring components.
+- **Reuse before adding.** Extend the existing primitive, recipe or enum of the family before creating a parallel one (appearance enums and appearance options are frozen, see above). Follow the property naming, callbacks and composition (`@children`, explicit header/body/footer parts) of neighbouring components.
 - **Icons** come from the generated icon set and `KitIcon`; do not inline path data in a component.
 - **Every state renders.** Hover, pressed, focus, disabled, read-only, invalid, selected and open states are visible in light and dark themes and at 200% text.
 
