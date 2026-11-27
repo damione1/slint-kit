@@ -393,3 +393,16 @@ fn fallback_a_style_function_assigned_from_rust() {
     theme.set_current(tokens);
     assert_eq!(app.get_hook_radius(), 16.);
 }
+
+// Added after the kit grew `KitBox.min-height`: the application inherits the
+// kit default through reset() and its own overrides stay in place.
+#[test]
+fn a_field_added_to_a_shared_atom_reaches_the_application_through_reset() {
+    let (app, _) = start();
+    app.global::<Identity>().invoke_apply();
+    let styles = app.global::<KitStyleContext>().get_alert();
+    let tokens = app.global::<KitThemeContext>().get_current();
+    assert_ne!(tokens.spacing.medium.height, 0.);
+    assert_eq!(styles.base.r#box.min_height, tokens.spacing.medium.height);
+    assert_eq!(styles.base.r#box.radius, 12.);
+}
