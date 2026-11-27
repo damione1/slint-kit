@@ -6,7 +6,7 @@ import { KitTheme, KitThemeContext } from "theme.slint";
 // Shared atoms: the same structs describe every part of every component.
 export struct KitPaint { fill: brush, ink: color, border: color }
 export struct KitTextStyle { family: string, size: length, weight: int }
-export struct KitBox { padding-inline: length, padding-block: length, gap: length, radius: length, border-width: length }
+export struct KitBox { padding-inline: length, padding-block: length, gap: length, radius: length, border-width: length, min-height: length }
 
 export struct KitAlertStyle { box: KitBox, paint: KitPaint, title: KitTextStyle }
 // Geometry and text are shared; paint differs by severity.
@@ -20,7 +20,7 @@ export global KitStyles {
                 box: {
                     padding-inline: theme.spacing.unit * 4, padding-block: theme.spacing.unit * 4,
                     gap: theme.spacing.unit * 3, radius: theme.shape.radius-container,
-                    border-width: theme.shape.border-width,
+                    border-width: theme.shape.border-width, min-height: theme.spacing.medium.height,
                 },
                 paint: { fill: theme.information-subtle, ink: theme.text-primary, border: theme.information },
                 title: { family: theme.typography.family, size: theme.typography.size-control, weight: theme.typography.weight-semibold },
@@ -45,6 +45,7 @@ export component KitStyleProbe inherits Rectangle {
     out property <brush> fill: KitStyleContext.alert.base.paint.fill;
     out property <color> frame: KitStyleContext.alert.base.paint.border;
     out property <string> family: KitStyleContext.alert.base.title.family;
+    min-height: KitStyleContext.alert.base.box.min-height;
     background: root.fill;
     border-radius: root.radius;
     border-width: root.frame-width;
